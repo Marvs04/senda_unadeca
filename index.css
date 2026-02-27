@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-unadeca-blue: #003366;
+  --color-unadeca-gold: #FFD700;
+  
+  /* Admin Palette - Sober, Professional */
+  --color-admin-primary: #18181b;
+  --color-admin-accent: #6366f1;
+  
+  /* Student Palette - Fresh, High Contrast */
+  --color-student-primary: #f8fafc;
+  --color-student-accent: #10b981;
+}
+
+@layer base {
+  body {
+    @apply bg-zinc-50 text-zinc-900 antialiased selection:bg-indigo-100 selection:text-indigo-900;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-2xl border border-zinc-200/50 shadow-xl shadow-zinc-200/40;
+  }
+  
+  .student-card {
+    @apply bg-white border border-zinc-200 shadow-xl shadow-zinc-200/50 text-zinc-900;
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 rounded-xl font-bold transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .page-container {
+    @apply max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12;
+  }
+
+  .select-custom {
+    @apply bg-zinc-50 border border-zinc-200 rounded-xl py-2 px-4 text-xs font-bold focus:ring-0 appearance-none cursor-pointer hover:bg-zinc-100 transition-all;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-zinc-200 rounded-full hover:bg-zinc-300 transition-colors;
+  }
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
