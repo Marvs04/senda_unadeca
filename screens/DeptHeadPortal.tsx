@@ -26,6 +26,8 @@ import WorkLogTable from '../components/WorkLogTable';
 import { User, UserRole, WorkLog, WorkLogStatus, Department, LIMITS } from '../types';
 import { cn, exportToCSV, exportToPDF, formatCurrency } from '../lib/utils';
 import { getBillingCycle, isDateInCycle } from '../lib/business';
+import { useConfirm } from '../hooks/useConfirm';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface DeptHeadPortalProps {
   user: User;
@@ -80,14 +82,15 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
   // Rejection State
   const [rejectingLog, setRejectingLog] = useState<WorkLog | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const { confirm, dialogProps } = useConfirm();
 
-  const handleApproveAll = () => {
-    if (window.confirm(`¿Estás seguro de que deseas aprobar los ${pendingLogs.length} registros pendientes?`)) {
-        const updates = pendingLogs.map(log => ({ logId: log.id, status: WorkLogStatus.APPROVED }));
-        if(updates.length > 0) {
-            updateMultipleWorkLogsStatus(updates);
-            toast.success('Todos los registros han sido aprobados', { position: 'top-center' });
-        }
+  const handleApproveAll = async () => {
+    const ok = await confirm(`¿Aprobar los ${pendingLogs.length} registros pendientes?`, { title: 'Aprobar todos', confirmLabel: 'Aprobar todo' });
+    if (!ok) return;
+    const updates = pendingLogs.map(log => ({ logId: log.id, status: WorkLogStatus.APPROVED }));
+    if (updates.length > 0) {
+      updateMultipleWorkLogsStatus(updates);
+      toast.success('Todos los registros han sido aprobados', { position: 'top-center' });
     }
   };
 
@@ -404,6 +407,7 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
             )}
         </AnimatePresence>
       </main>
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 };

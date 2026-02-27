@@ -26,6 +26,8 @@ import { User, WorkLog, WorkLogStatus, LIMITS } from '../types';
 import { cn, exportToCSV, exportToPDF, formatCurrency } from '../lib/utils';
 import { getBillingCycle, isDateInCycle, getTrimester } from '../lib/business';
 import { TITHE_PERCENTAGE } from '../constants';
+import { useConfirm } from '../hooks/useConfirm';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface StudentPortalProps {
   user: User;
@@ -41,6 +43,7 @@ const StudentPortal: React.FC<StudentPortalProps> = ({ user, onLogout, myLogs, a
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [description, setDescription] = useState('');
+  const { confirm, dialogProps } = useConfirm();
 
   useEffect(() => {
     const savedSession = localStorage.getItem(`session_${user.id}`);
@@ -72,15 +75,15 @@ const StudentPortal: React.FC<StudentPortalProps> = ({ user, onLogout, myLogs, a
     toast.success('Sesión iniciada correctamente', { position: 'top-center' });
   };
 
-  const handleCancel = () => {
-    if (window.confirm('¿Estás seguro de que deseas cancelar la sesión actual? Se perderá el tiempo transcurrido.')) {
-        setIsTracking(false);
-        setStartTime(null);
-        setElapsedTime(0);
-        setDescription('');
-        localStorage.removeItem(`session_${user.id}`);
-        toast.info('Sesión cancelada', { position: 'top-center' });
-    }
+  const handleCancel = async () => {
+    const ok = await confirm('¿Cancelar la sesión actual? Se perderá el tiempo transcurrido.', { variant: 'danger', title: 'Cancelar sesión' });
+    if (!ok) return;
+    setIsTracking(false);
+    setStartTime(null);
+    setElapsedTime(0);
+    setDescription('');
+    localStorage.removeItem(`session_${user.id}`);
+    toast.info('Sesión cancelada', { position: 'top-center' });
   };
 
   const handleFinish = () => {
@@ -463,6 +466,7 @@ const StudentPortal: React.FC<StudentPortalProps> = ({ user, onLogout, myLogs, a
 
         </div>
       </main>
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 };
