@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Search, Plus, Trash2, ChevronDown } from 'lucide-react';
 import { User, Department, UserRole } from '../../types';
 import { toast } from 'sonner';
+import { useConfirm } from '../../hooks/useConfirm';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 interface AdminDeptHeadsTabProps {
   allUsers: User[];
@@ -19,6 +21,7 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddingDeptHead, setIsAddingDeptHead] = useState(false);
+  const { confirm, dialogProps } = useConfirm();
 
   const filteredHeads = allUsers.filter(
     u => u.role === UserRole.DEPT_HEAD &&
@@ -43,11 +46,11 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
     toast.success('Jefe de Departamento creado exitosamente');
   };
 
-  const handleDelete = (head: User) => {
-    if (window.confirm(`¿Estás seguro de que deseas eliminar la cuenta de ${head.name}?`)) {
-      deleteUser(head.id);
-      toast.success('Cuenta eliminada correctamente');
-    }
+  const handleDelete = async (head: User) => {
+    const ok = await confirm(`¿Eliminar la cuenta de ${head.name}?`, { variant: 'danger', title: 'Eliminar cuenta' });
+    if (!ok) return;
+    deleteUser(head.id);
+    toast.success('Cuenta eliminada correctamente');
   };
 
   return (
@@ -185,6 +188,8 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
           </div>
         )}
       </AnimatePresence>
+
+      <ConfirmDialog {...dialogProps} />
     </motion.div>
   );
 };

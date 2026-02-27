@@ -38,6 +38,8 @@ import { User, WorkLogStatus, WorkLog, UserRole, Department } from '../types';
 import { TITHE_PERCENTAGE } from '../constants';
 import { cn, exportToCSV, exportToPDF, formatCurrency } from '../lib/utils';
 import { getBillingCycle, isDateInCycle, getTrimester, isDateInTrimester } from '../lib/business';
+import { useConfirm } from '../hooks/useConfirm';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface AccountingPortalProps {
   user: User;
@@ -56,6 +58,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({ user, onLogout, all
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDeptId, setSelectedDeptId] = useState('all');
+  const { confirm, dialogProps } = useConfirm();
 
   const { filteredLogs, approvedForPayroll, processedForPayroll, totalApprovedAmount, totalProcessedAmount, chartData, deptData, weeklySummary } = useMemo(() => {
     let logs = (allLogs || []).filter(log => {
@@ -141,13 +144,14 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({ user, onLogout, all
     };
   }, [allLogs, selectedCycle, selectedTrimester, selectedYear, viewMode, allUsers, allDepartments, currentRate, searchTerm, selectedDeptId]);
 
-  const handleProcessPayments = () => {
-    if (window.confirm(`¿Estás seguro de que deseas procesar los pagos para el ${viewMode === 'cycle' ? 'ciclo' : 'cuatrimestre'} seleccionado?`)) {
-        const updates = approvedForPayroll.flatMap((item: any) => item.logIds.map((logId: string) => ({ logId, status: WorkLogStatus.PROCESSED })));
-        if (updates.length > 0) {
-            updateMultipleWorkLogsStatus(updates);
-            toast.success('Pagos procesados exitosamente', { position: 'top-center' });
-        }
+  const handleProcessPayments = async () => {
+    const label = viewMode === 'cycle' ? 'ciclo' : 'cuatrimestre';
+    const ok = await confirm(`¿Procesar los pagos para el ${label} seleccionado?`, { title: 'Procesar pagos', confirmLabel: 'Procesar' });
+    if (!ok) return;
+    const updates = approvedForPayroll.flatMap((item: any) => item.logIds.map((logId: string) => ({ logId, status: WorkLogStatus.PROCESSED })));
+    if (updates.length > 0) {
+      updateMultipleWorkLogsStatus(updates);
+      toast.success('Pagos procesados exitosamente', { position: 'top-center' });
     }
   };
 
@@ -497,6 +501,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({ user, onLogout, all
             </AnimatePresence>
         </div>
       </main>
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 };

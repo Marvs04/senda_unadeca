@@ -18,6 +18,8 @@ import { toast, Toaster } from 'sonner';
 import Header from '../components/Header';
 import { User, UserRole } from '../types';
 import { cn } from '../lib/utils';
+import { useConfirm } from '../hooks/useConfirm';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface SuperAdminPortalProps {
   user: User;
@@ -32,6 +34,7 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({ user, onLogout, all
     const [adminPassword, setAdminPassword] = useState('');
     const [studentSearch, setStudentSearch] = useState('');
     const [adminSearch, setAdminSearch] = useState('');
+    const { confirm, dialogProps } = useConfirm();
 
     const adminUsers = useMemo(() => 
         (allUsers || []).filter(u => u.role === UserRole.ADMIN || u.role === UserRole.ACCOUNTING || u.role === UserRole.DEPT_HEAD), 
@@ -70,10 +73,10 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({ user, onLogout, all
         toast.success(`Cuenta de ${adminRole.replace('_', ' ')} creada exitosamente.`);
     };
 
-    const handleResetPassword = (userName: string) => {
-        if (window.confirm(`¿Confirmas que deseas resetear la contraseña de ${userName}?`)) {
-            toast.success(`Se ha enviado un enlace de recuperación a ${userName}`);
-        }
+    const handleResetPassword = async (userName: string) => {
+        const ok = await confirm(`¿Confirmas que deseas resetear la contraseña de ${userName}?`, { title: 'Resetear contraseña', variant: 'danger' });
+        if (!ok) return;
+        toast.success(`Se ha enviado un enlace de recuperación a ${userName}`);
     };
 
     return (
@@ -300,6 +303,7 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({ user, onLogout, all
                     </div>
                 </div>
             </main>
+            <ConfirmDialog {...dialogProps} />
         </div>
     );
 };

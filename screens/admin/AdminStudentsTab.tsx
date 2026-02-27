@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Search, Plus, ArrowRightLeft, UserMinus } from 'lucide-react';
 import { User, Department, UserRole } from '../../types';
 import { toast } from 'sonner';
+import { useConfirm } from '../../hooks/useConfirm';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 interface AdminStudentsTabProps {
   allUsers: User[];
@@ -18,6 +20,7 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingStudent, setEditingStudent] = useState<User | null>(null);
+  const { confirm, dialogProps } = useConfirm();
 
   const filteredStudents = useMemo(() =>
     allUsers.filter(u =>
@@ -34,10 +37,10 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
     setEditingStudent(null);
   };
 
-  const handleRemoveFromDept = (student: User) => {
-    if (window.confirm(`¿Confirmas que deseas quitar a ${student.name} de su departamento?`)) {
-      handleUpdateStudentDept(student.id, undefined);
-    }
+  const handleRemoveFromDept = async (student: User) => {
+    const ok = await confirm(`¿Quitar a ${student.name} de su departamento?`, { variant: 'danger', title: 'Quitar del departamento' });
+    if (!ok) return;
+    handleUpdateStudentDept(student.id, undefined);
   };
 
   return (
@@ -158,6 +161,8 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
           </div>
         )}
       </AnimatePresence>
+
+      <ConfirmDialog {...dialogProps} />
     </motion.div>
   );
 };
