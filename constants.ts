@@ -3,6 +3,9 @@ import { User, Department, WorkLog, UserRole, WorkLogStatus } from './types';
 export const HOURLY_RATE = 1500; // 1500 colones
 export const TITHE_PERCENTAGE = 0.10; // 10%
 
+// Contraseña de autorización para modificar tarifa (mock — reemplazar con auth real)
+export const ADMIN_RATE_PASSWORD = 'admin123';
+
 export const MOCK_DEPARTMENTS: Department[] = [
   { id: 'dept-uv', name: 'U Virtual', headId: 'user-head-1' },
   { id: 'dept-maint', name: 'Mantenimiento', headId: 'user-head-2' },

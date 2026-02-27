@@ -1,62 +1,17 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { 
-  LogOut, 
-  ShieldCheck, 
-  Lock, 
-  Users, 
-  GraduationCap, 
-  Briefcase,
-  Bell
-} from 'lucide-react';
-import { User, UserRole } from '../types';
+import { LogOut, Bell } from 'lucide-react';
+import { User } from '../types';
 import { cn } from '../lib/utils';
+import { ROLE_CONFIG } from '../lib/uiConfig';
 
 interface HeaderProps {
   user: User;
   onLogout: () => void;
 }
 
-const roleConfig = {
-  [UserRole.SUPER_ADMIN]: {
-    bg: 'bg-zinc-950',
-    text: 'Super Admin',
-    icon: ShieldCheck,
-    accent: 'border-zinc-800',
-    theme: 'dark'
-  },
-  [UserRole.ADMIN]: {
-    bg: 'bg-white',
-    text: 'Administración',
-    icon: Lock,
-    accent: 'border-zinc-200',
-    theme: 'light'
-  },
-  [UserRole.DEPT_HEAD]: {
-    bg: 'bg-white',
-    text: 'Jefatura',
-    icon: Users,
-    accent: 'border-zinc-200',
-    theme: 'light'
-  },
-  [UserRole.STUDENT]: {
-    bg: 'bg-slate-950',
-    text: 'Estudiante',
-    icon: GraduationCap,
-    accent: 'border-white/10',
-    theme: 'dark'
-  },
-  [UserRole.ACCOUNTING]: {
-    bg: 'bg-white',
-    text: 'Contabilidad',
-    icon: Briefcase,
-    accent: 'border-zinc-200',
-    theme: 'light'
-  },
-};
-
 const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
-  const config = roleConfig[user.role];
+  const config = ROLE_CONFIG[user.role];
   const IconComponent = config.icon;
   const isDark = config.theme === 'dark';
 

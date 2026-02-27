@@ -46,6 +46,7 @@ import WorkLogTable from '../components/WorkLogTable';
 import { User, WorkLog, UserRole, Department, WorkLogStatus } from '../types';
 import { cn, exportToCSV, exportToPDF, formatCurrency } from '../lib/utils';
 import { getBillingCycle, isDateInCycle } from '../lib/business';
+import { ADMIN_RATE_PASSWORD } from '../constants';
 
 interface AdminPortalProps {
   user: User;
@@ -208,8 +209,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({
 
   const handleRateUpdate = (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock authentication: password is "admin123"
-    if (ratePassword !== 'admin123') {
+    if (ratePassword !== ADMIN_RATE_PASSWORD) {
         toast.error('Contraseña de autorización incorrecta', { position: 'top-center' });
         return;
     }

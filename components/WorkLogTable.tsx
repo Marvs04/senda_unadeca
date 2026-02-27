@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { WorkLog, WorkLogStatus, User, Department, LIMITS } from '../types';
 import { cn, truncate } from '../lib/utils';
+import { STATUS_CONFIG } from '../lib/uiConfig';
 import { Calendar, Clock, FileText, User as UserIcon, Building } from 'lucide-react';
 
 interface WorkLogTableProps {
@@ -16,26 +17,7 @@ interface WorkLogTableProps {
 }
 
 const StatusBadge: React.FC<{ status: WorkLogStatus; rejectionReason?: string }> = ({ status, rejectionReason }) => {
-  const statusConfig = {
-    [WorkLogStatus.PENDING]: {
-      label: 'Pendiente',
-      className: 'bg-amber-500/10 text-amber-600 border-amber-500/20'
-    },
-    [WorkLogStatus.APPROVED]: {
-      label: 'Aprobado',
-      className: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20'
-    },
-    [WorkLogStatus.PROCESSED]: {
-      label: 'Procesado',
-      className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-    },
-    [WorkLogStatus.REJECTED]: {
-      label: 'Rechazado',
-      className: 'bg-rose-500/10 text-rose-600 border-rose-500/20'
-    },
-  };
-
-  const config = statusConfig[status];
+  const config = STATUS_CONFIG[status];
 
   return (
     <div className="flex flex-col items-start gap-1">
