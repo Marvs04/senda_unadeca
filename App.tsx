@@ -7,7 +7,7 @@ import AccountingPortal from './screens/AccountingPortal';
 import SuperAdminPortal from './screens/SuperAdminPortal';
 import LoginScreen from './screens/LoginScreen';
 import { HOURLY_RATE, TITHE_PERCENTAGE, MOCK_USERS, MOCK_WORK_LOGS, MOCK_DEPARTMENTS } from './constants';
-import { getBillingCycle } from './lib/utils';
+import { getBillingCycle } from './lib/business';
 
 import { AnimatePresence, motion } from 'motion/react';
 

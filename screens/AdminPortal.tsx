@@ -44,7 +44,8 @@ import Header from '../components/Header';
 import DashboardCard from '../components/DashboardCard';
 import WorkLogTable from '../components/WorkLogTable';
 import { User, WorkLog, UserRole, Department, WorkLogStatus } from '../types';
-import { cn, exportToCSV, exportToPDF, formatCurrency, getBillingCycle, isDateInCycle } from '../lib/utils';
+import { cn, exportToCSV, exportToPDF, formatCurrency } from '../lib/utils';
+import { getBillingCycle, isDateInCycle } from '../lib/business';
 
 interface AdminPortalProps {
   user: User;
