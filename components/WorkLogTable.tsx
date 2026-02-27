@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { WorkLog, WorkLogStatus, User, Department, LIMITS } from '../types';
+import { WorkLog, WorkLogStatus, User, Department } from '../types';
 import { cn, truncate } from '../lib/utils';
-import { STATUS_CONFIG } from '../lib/uiConfig';
 import { Calendar, Clock, FileText, User as UserIcon, Building } from 'lucide-react';
+import { StatusBadge, EmptyState } from './ui';
 
 interface WorkLogTableProps {
   logs: WorkLog[];
@@ -15,26 +15,6 @@ interface WorkLogTableProps {
   actions?: (log: WorkLog) => React.ReactNode;
   variant?: 'light' | 'dark';
 }
-
-const StatusBadge: React.FC<{ status: WorkLogStatus; rejectionReason?: string }> = ({ status, rejectionReason }) => {
-  const config = STATUS_CONFIG[status];
-
-  return (
-    <div className="flex flex-col items-start gap-1">
-      <span className={cn(
-        "px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border",
-        config.className
-      )}>
-        {config.label}
-      </span>
-      {status === WorkLogStatus.REJECTED && rejectionReason && (
-        <span className="text-[9px] text-rose-500/70 font-medium italic max-w-[120px]" title={rejectionReason}>
-          "{truncate(rejectionReason, 40)}"
-        </span>
-      )}
-    </div>
-  );
-};
 
 const WorkLogTable: React.FC<WorkLogTableProps> = ({ 
   logs, 
@@ -140,11 +120,7 @@ const WorkLogTable: React.FC<WorkLogTableProps> = ({
                 )}
               </motion.tr>
             )) : (
-              <tr>
-                <td colSpan={10} className="px-6 py-12 text-center">
-                  <p className="text-sm opacity-40 font-medium italic">No hay registros disponibles</p>
-                </td>
-              </tr>
+              <EmptyState colSpan={10} message="No hay registros disponibles" />
             )}
           </tbody>
         </table>

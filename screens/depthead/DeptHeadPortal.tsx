@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Users,
@@ -12,14 +12,16 @@ import {
   DollarSign,
   ChevronDown,
 } from 'lucide-react';
-import { toast, Toaster } from 'sonner';
-import Header from '../../components/Header';
+import { toast } from 'sonner';
+import { PortalLayout } from '../../components/layout';
+import { Button } from '../../components/ui';
 import DashboardCard from '../../components/DashboardCard';
 import WorkLogTable from '../../components/WorkLogTable';
-import { User, UserRole, WorkLog, WorkLogStatus, Department, LIMITS } from '../../types';
-import { cn, exportToCSV, exportToPDF, formatCurrency } from '../../lib/utils';
+import { User, WorkLog, WorkLogStatus, Department, LIMITS } from '../../types';
+import { exportToCSV, exportToPDF, formatCurrency } from '../../lib/utils';
 import { getBillingCycle, isDateInCycle } from '../../lib/business';
 import { useConfirm } from '../../hooks/useConfirm';
+import { useDeptHeadData } from '../../hooks/useDeptHeadData';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import DeptHeadPendingSection from './DeptHeadPendingSection';
 import DeptHeadLogForm from './DeptHeadLogForm';
@@ -54,28 +56,14 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
   const departmentName =
     (allDepartments || []).find(d => d.id === user.departmentId)?.name || 'N/A';
 
-  const myLogs = useMemo(
-    () => (allLogs || []).filter(log => log.departmentId === user.departmentId),
-    [user.departmentId, allLogs],
-  );
-
-  const { myStudents, totalHours, pendingHours, approvedHours, totalBilling } = useMemo(() => {
-    const myStudents = (allUsers || []).filter(
-      u => u.role === UserRole.STUDENT && u.departmentId === user.departmentId,
-    );
-    const cycleLogs = myLogs.filter(log => isDateInCycle(log.date, selectedCycle));
-    const totalHours = cycleLogs.reduce((acc, log) => acc + log.hours, 0);
-    const pendingHours = cycleLogs
-      .filter(log => log.status === WorkLogStatus.PENDING)
-      .reduce((acc, log) => acc + log.hours, 0);
-    const approvedHours = cycleLogs
-      .filter(log => log.status === WorkLogStatus.APPROVED)
-      .reduce((acc, log) => acc + log.hours, 0);
-    const totalBilling = approvedHours * currentRate;
-    return { myStudents, totalHours, pendingHours, approvedHours, totalBilling };
-  }, [user.departmentId, allUsers, myLogs, selectedCycle, currentRate]);
-
-  const pendingLogs = myLogs.filter(log => log.status === WorkLogStatus.PENDING);
+  const { myLogs, pendingLogs, myStudents, totalHours, pendingHours, approvedHours, totalBilling } =
+    useDeptHeadData({
+      departmentId: user.departmentId,
+      allLogs,
+      allUsers,
+      selectedCycle,
+      currentRate,
+    });
 
   // Form state
   const [selectedStudent, setSelectedStudent] = useState(myStudents[0]?.id || '');
@@ -160,10 +148,10 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
       log.rejectionReason || '',
     ]);
     if (type === 'csv') {
-      exportToCSV(`reporte_${departmentName.replace(' ', '_')}.csv`, headers, rows);
+      exportToCSV(`reporte_${departmentName.replace(/\s+/g, '_')}.csv`, headers, rows);
     } else {
       exportToPDF(
-        `reporte_${departmentName.replace(' ', '_')}.pdf`,
+        `reporte_${departmentName.replace(/\s+/g, '_')}.pdf`,
         `Reporte de Horas - ${departmentName}`,
         headers,
         rows,
@@ -176,23 +164,25 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
     if (log.status === WorkLogStatus.PENDING) {
       return (
         <div className="flex space-x-2">
-          <button
+          <Button
+            variant="icon-action"
+            className="text-emerald-600 hover:bg-emerald-50"
+            title="Aprobar"
             onClick={() => {
               updateWorkLogStatus(log.id, WorkLogStatus.APPROVED);
               toast.success('Registro aprobado', { position: 'top-center' });
             }}
-            className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
-            title="Aprobar"
           >
             <CheckCircle className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setRejectingLog(log)}
-            className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition-colors"
+          </Button>
+          <Button
+            variant="icon-action"
+            className="text-rose-600 hover:bg-rose-50"
             title="Rechazar"
+            onClick={() => setRejectingLog(log)}
           >
             <XCircle className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       );
     }
@@ -200,11 +190,7 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 selection:bg-emerald-100">
-      <Toaster position="top-center" richColors />
-      <Header user={user} onLogout={onLogout} />
-
-      <main className="page-container py-10">
+    <PortalLayout user={user} onLogout={onLogout} bg="bg-zinc-50 selection:bg-emerald-100">
         {/* Header + cycle picker */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -261,7 +247,6 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
             title="Facturación"
             value={formatCurrency(totalBilling)}
             icon={<DollarSign className="h-5 w-5 text-indigo-500" />}
-            trend={{ value: 'Total Aprobado', isPositive: true }}
           />
         </div>
 
@@ -290,20 +275,12 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handleExport('csv')}
-                    className="p-2.5 bg-zinc-50 hover:bg-zinc-100 text-zinc-600 rounded-xl transition-all"
-                    title="Exportar CSV"
-                  >
+                  <Button variant="icon-action" onClick={() => handleExport('csv')} title="Exportar CSV">
                     <Download className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleExport('pdf')}
-                    className="px-5 py-2.5 bg-zinc-900 text-white rounded-xl text-xs font-bold hover:bg-zinc-800 transition-all shadow-lg shadow-zinc-900/10 flex items-center space-x-2"
-                  >
-                    <FileText className="h-4 w-4" />
-                    <span>Exportar PDF</span>
-                  </button>
+                  </Button>
+                  <Button variant="primary" size="sm" icon={<FileText className="h-4 w-4" />} onClick={() => handleExport('pdf')}>
+                    Exportar PDF
+                  </Button>
                 </div>
               </div>
               <WorkLogTable
@@ -335,8 +312,6 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
             />
           </div>
         </div>
-      </main>
-
       <DeptHeadRejectionModal
         rejectingLog={rejectingLog}
         rejectionReason={rejectionReason}
@@ -346,10 +321,10 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
           setRejectingLog(null);
           setRejectionReason('');
         }}
-        allUsers={allUsers || []}
+        allUsers={allUsers}
       />
       <ConfirmDialog {...dialogProps} />
-    </div>
+    </PortalLayout>
   );
 };
 

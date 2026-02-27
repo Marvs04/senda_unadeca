@@ -1,6 +1,7 @@
 import React from 'react';
 import { Users, Search, Lock, HelpCircle } from 'lucide-react';
 import { User } from '../../types';
+import { Input, Button } from '../../components/ui';
 
 interface SuperAdminStudentHelpProps {
   filteredStudents: User[];
@@ -29,14 +30,12 @@ const SuperAdminStudentHelp: React.FC<SuperAdminStudentHelpProps> = ({
         </div>
       </div>
 
-      <div className="relative mb-6">
-        <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-        <input
-          type="text"
+      <div className="mb-6">
+        <Input
           placeholder="Buscar estudiante por nombre o carnet..."
           value={studentSearch}
           onChange={e => setStudentSearch(e.target.value)}
-          className="w-full bg-zinc-50 border-zinc-200 rounded-2xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all text-sm"
+          icon={<Search className="w-4 h-4" />}
         />
       </div>
 
@@ -55,13 +54,14 @@ const SuperAdminStudentHelp: React.FC<SuperAdminStudentHelpProps> = ({
                 <p className="text-[10px] font-mono text-zinc-400">{student.carnet || '---'}</p>
               </div>
             </div>
-            <button
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Lock className="w-3 h-3" />}
               onClick={() => onResetPassword(student.name)}
-              className="px-4 py-2 bg-zinc-100 text-zinc-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-zinc-900 hover:text-white transition-all flex items-center space-x-2"
             >
-              <Lock className="w-3 h-3" />
-              <span>Resetear Clave</span>
-            </button>
+              Resetear Clave
+            </Button>
           </div>
         ))}
       </div>

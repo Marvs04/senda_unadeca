@@ -1,7 +1,7 @@
 import React from 'react';
 import { Users, Search, RefreshCw } from 'lucide-react';
 import { User, UserRole } from '../../types';
-import { cn } from '../../lib/utils';
+import { Badge, Button } from '../../components/ui';
 
 interface SuperAdminAccountListProps {
   filteredAdmins: User[];
@@ -72,27 +72,25 @@ const SuperAdminAccountList: React.FC<SuperAdminAccountListProps> = ({
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span
-                    className={cn(
-                      'px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider',
-                      admin.role === UserRole.ADMIN
-                        ? 'bg-indigo-50 text-indigo-600'
-                        : admin.role === UserRole.DEPT_HEAD
-                          ? 'bg-emerald-50 text-emerald-600'
-                          : 'bg-zinc-100 text-zinc-600',
-                    )}
+                  <Badge
+                    variant={
+                      admin.role === UserRole.ADMIN ? 'indigo'
+                      : admin.role === UserRole.DEPT_HEAD ? 'success'
+                      : 'neutral'
+                    }
                   >
                     {admin.role.replace('_', ' ')}
-                  </span>
+                  </Badge>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button
-                    className="inline-flex items-center space-x-2 text-xs font-bold text-zinc-400 hover:text-zinc-900 transition-colors"
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={<RefreshCw className="w-3 h-3" />}
                     onClick={() => onResetPassword(admin.name)}
                   >
-                    <RefreshCw className="w-3 h-3" />
-                    <span>Resetear</span>
-                  </button>
+                    Resetear
+                  </Button>
                 </td>
               </tr>
             ))}
