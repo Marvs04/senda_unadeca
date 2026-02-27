@@ -1335,3 +1335,80 @@ export function cycleToDateRange(cycle: string): [string, string] {
 ---
 
 *Last updated: February 2026 â€” targets SENDA frontend at FASE 4. Supabase JS client v2.*
+
+
+---
+
+## Appendix D - Kiosk Mode
+
+### Overview
+
+Kiosk mode turns a shared department PC into a time-clock board. Students clock in/out
+using their own credentials. The dept head (or super admin) activates and manages the
+kiosk without sharing their account.
+
+### Auth model (all actions require credentials)
+
+| Action | Who |
+|---|---|
+| Activate kiosk | Dept head or Super Admin |
+| Clock in | Student (carnet + password) |
+| Clock out | Student (carnet + password) |
+| Cancel session | Dept head + reason |
+| Update shifts | Dept head |
+| Deactivate | Dept head or Super Admin |
+
+Currently validated via mockValidateCredentials() in useKiosk.ts.
+Replace with supabase.auth.signInWithPassword() when backend is live.
+
+### Types already in types.ts
+
+interface KioskSession { studentId: string; startedAt: string; }
+interface KioskShift   { startTime: string; endTime: string; }
+interface KioskState {
+  departmentId: string; activatedBy: string; activatedAt: string;
+  sessions: KioskSession[]; shifts: KioskShift[];
+}
+
+### Supabase schema additions
+
+create table kiosk_state (
+  id            uuid primary key default gen_random_uuid(),
+  department_id uuid not null references departments(id) on delete cascade,
+  activated_by  uuid not null references profiles(id),
+  activated_at  timestamptz not null default now(),
+  shifts        jsonb not null default '[]',
+  unique(department_id)
+);
+
+create table kiosk_sessions (
+  id         uuid primary key default gen_random_uuid(),
+  kiosk_id   uuid not null references kiosk_state(id) on delete cascade,
+  student_id uuid not null references profiles(id),
+  started_at timestamptz not null default now(),
+  unique(kiosk_id, student_id)
+);
+
+### Supabase Realtime (remote activation by super admin)
+
+Wire inside the empty useEffect in useKiosk.ts:
+
+  const channel = supabase
+    .channel('kiosk:{departmentId}')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'kiosk_state',
+        filter: 'department_id=eq.{departmentId}' }, payload => {
+      setKiosk({ departmentId: payload.new.department_id, activatedBy: payload.new.activated_by,
+                 activatedAt: payload.new.activated_at, sessions: [], shifts: payload.new.shifts ?? [] });
+    }).subscribe();
+
+### Clock-out work log
+
+Clock-out calls addWorkLog() with status PENDING -> feeds into existing approval flow.
+Cancelled sessions saved as REJECTED with a reason.
+
+### Migration checklist
+
+- [ ] Run kiosk schema SQL (kiosk_state + kiosk_sessions)
+- [ ] Apply RLS (dept head + super admin manage kiosk_state; students own session row)
+- [ ] Replace mockValidateCredentials with supabase.auth.signInWithPassword()
+- [ ] Wire Supabase Realtime in useKiosk.ts for remote activation

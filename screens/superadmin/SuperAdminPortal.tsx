@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Monitor } from 'lucide-react';
 import { toast } from 'sonner';
 import { PortalLayout } from '../../components/layout';
 import { User, UserRole } from '../../types';
 import { useConfirm } from '../../hooks/useConfirm';
 import { useSuperAdminData } from '../../hooks/useSuperAdminData';
+import { type KioskActions } from '../../hooks/useKiosk';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import SuperAdminAccountList from './SuperAdminAccountList';
 import SuperAdminStudentHelp from './SuperAdminStudentHelp';
@@ -16,6 +17,7 @@ interface SuperAdminPortalProps {
   onLogout: () => void;
   allUsers: User[];
   addUser: (newUser: Omit<User, 'id'>) => void;
+  onActivateKiosk: (identifier: string, password: string, departmentId: string) => { ok: boolean; error?: string };
 }
 
 const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
@@ -23,7 +25,24 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   onLogout,
   allUsers,
   addUser,
+  onActivateKiosk,
 }) => {
+  // Kiosk remote-enable state
+  const [kioskDeptId, setKioskDeptId]   = useState('');
+  const [kioskId, setKioskId]           = useState('');
+  const [kioskPass, setKioskPass]       = useState('');
+  const [kioskError, setKioskError]     = useState<string | null>(null);
+
+  const handleRemoteKiosk = (e: React.FormEvent) => {
+    e.preventDefault();
+    const result = onActivateKiosk(kioskId.trim(), kioskPass.trim(), kioskDeptId.trim());
+    if (!result.ok) { setKioskError(result.error ?? 'Error.'); return; }
+    setKioskError(null);
+    setKioskId('');
+    setKioskPass('');
+    toast.success('Kiosco activado remotamente.');
+  };
+
   const [adminName, setAdminName] = useState('');
   const [adminRole, setAdminRole] = useState<UserRole>(UserRole.ADMIN);
   const [adminPassword, setAdminPassword] = useState('');
@@ -94,7 +113,35 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
             />
           </div>
 
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-4 space-y-6">
+            {/* Remote Kiosk Activation */}
+            <div className="bg-white rounded-[2rem] border border-zinc-100 shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-2 bg-emerald-50 rounded-xl">
+                  <Monitor className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-900">Activar kiosco remoto</h3>
+                  <p className="text-xs text-zinc-400">Activa el kiosco de un departamento a distancia</p>
+                </div>
+              </div>
+              <form onSubmit={handleRemoteKiosk} className="flex flex-col gap-3">
+                <input type="text" placeholder="ID del departamento"
+                  value={kioskDeptId} onChange={e => { setKioskDeptId(e.target.value); setKioskError(null); }}
+                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                <input type="text" placeholder="Número de empleado (Super Admin)"
+                  value={kioskId} onChange={e => { setKioskId(e.target.value); setKioskError(null); }}
+                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                <input type="password" placeholder="Contraseña"
+                  value={kioskPass} onChange={e => { setKioskPass(e.target.value); setKioskError(null); }}
+                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                {kioskError && <p className="text-xs text-rose-500">{kioskError}</p>}
+                <button type="submit"
+                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors">
+                  Activar kiosco
+                </button>
+              </form>
+            </div>
             <SuperAdminCreateForm
               adminName={adminName}
               setAdminName={setAdminName}

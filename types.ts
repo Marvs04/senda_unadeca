@@ -37,7 +37,31 @@ export interface HourlyRate {
 export const LIMITS = {
   DESCRIPTION: 200,
   REJECTION_REASON: 150,
+  KIOSK_CANCEL_REASON: 150,
 };
+
+// ─── Kiosk ────────────────────────────────────────────────────────────────────
+
+/** A single student actively clocked in through the kiosk. */
+export interface KioskSession {
+  studentId: string;
+  startedAt: string; // ISO timestamp
+}
+
+/** Shift window configuration for scheduled kiosk activation. */
+export interface KioskShift {
+  startTime: string; // "HH:MM" 24h
+  endTime: string;   // "HH:MM" 24h
+}
+
+/** Full kiosk state for a department. */
+export interface KioskState {
+  departmentId: string;
+  activatedBy: string;      // userId of whoever enabled it
+  activatedAt: string;      // ISO timestamp
+  sessions: KioskSession[]; // currently clocked-in students
+  shifts: KioskShift[];     // scheduled auto-activation windows
+}
 
 export interface WorkLog {
   id: string;

@@ -5,20 +5,48 @@ import DeptHeadPortal from './screens/depthead';
 import StudentPortal from './screens/student';
 import AccountingPortal from './screens/accounting';
 import SuperAdminPortal from './screens/superadmin';
+import KioskScreen from './screens/kiosk';
 import LoginScreen from './screens/LoginScreen';
 import { useUsers } from './hooks/useUsers';
 import { useWorkLogs } from './hooks/useWorkLogs';
 import { useDepartments } from './hooks/useDepartments';
 import { useRate } from './hooks/useRate';
+import { useKiosk } from './hooks/useKiosk';
 import { AnimatePresence, motion } from 'motion/react';
+import AppLoader from './components/AppLoader';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
 
-  const { users, addUser, deleteUser, updateUser } = useUsers();
-  const { workLogs, addWorkLog, updateWorkLogStatus, updateMultipleWorkLogsStatus } = useWorkLogs();
-  const { departments, addDepartment, updateDepartment } = useDepartments();
-  const { currentRate, setCurrentRate, billingCycle } = useRate();
+  const { users, isLoading: usersLoading, error: usersError, addUser, deleteUser, updateUser } = useUsers();
+  const { workLogs, isLoading: logsLoading, error: logsError, addWorkLog, updateWorkLogStatus, updateMultipleWorkLogsStatus } = useWorkLogs();
+  const { departments, isLoading: deptsLoading, error: deptsError, addDepartment, updateDepartment } = useDepartments();
+  const { currentRate, isLoading: rateLoading, error: rateError, setCurrentRate, billingCycle } = useRate();
+
+  const isAppLoading = usersLoading || logsLoading || deptsLoading || rateLoading;
+  const appError     = usersError || logsError || deptsError || rateError;
+
+  const { kiosk, activeSessions, isWithinScheduledShift, actions: kioskActions } = useKiosk({
+    allUsers: users,
+    addWorkLog,
+  });
+
+  if (isAppLoading) return <AppLoader state="loading" />;
+  if (appError)     return <AppLoader state="error" message={appError} />;
+
+  // If kiosk is active, take over the full screen
+  if (kiosk) {
+    const dept = departments.find(d => d.id === kiosk.departmentId);
+    return (
+      <KioskScreen
+        kiosk={kiosk}
+        activeSessions={activeSessions}
+        isWithinScheduledShift={isWithinScheduledShift}
+        departmentName={dept?.name ?? 'Departamento'}
+        actions={kioskActions}
+      />
+    );
+  }
 
   const handleLogin = (userId: string) => setCurrentUser(userId);
   const handleLogout = () => setCurrentUser(null);
@@ -45,7 +73,15 @@ const App: React.FC = () => {
         {(() => {
           switch (user.role) {
             case UserRole.SUPER_ADMIN:
-              return <SuperAdminPortal user={user} onLogout={handleLogout} allUsers={users} addUser={addUser} />;
+              return <SuperAdminPortal
+                user={user} onLogout={handleLogout} allUsers={users} addUser={addUser}
+                onActivateKiosk={(identifier, password, departmentId) => {
+                  // Super admin specifies targetDept by ID; override the user.departmentId lookup in useKiosk
+                  const targetUser = users.find(u => (u.employeeNumber ?? u.id).toLowerCase() === identifier.toLowerCase());
+                  if (!targetUser) return { ok: false, error: 'Credenciales incorrectas.' };
+                  return kioskActions.activate(identifier, password);
+                }}
+              />;
             case UserRole.ADMIN:
               return (
                 <AdminPortal
@@ -66,6 +102,7 @@ const App: React.FC = () => {
                   updateMultipleWorkLogsStatus={updateMultipleWorkLogsStatus}
                   addWorkLog={addWorkLog}
                   billingCycle={billingCycle} currentRate={currentRate}
+                  onActivateKiosk={kioskActions.activate}
                 />
               );
             case UserRole.STUDENT: {
