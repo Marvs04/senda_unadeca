@@ -36,7 +36,8 @@ import Header from '../components/Header';
 import DashboardCard from '../components/DashboardCard';
 import { User, WorkLogStatus, WorkLog, UserRole, Department } from '../types';
 import { TITHE_PERCENTAGE } from '../constants';
-import { cn, exportToCSV, exportToPDF, formatCurrency, getBillingCycle, isDateInCycle, getTrimester, isDateInTrimester } from '../lib/utils';
+import { cn, exportToCSV, exportToPDF, formatCurrency } from '../lib/utils';
+import { getBillingCycle, isDateInCycle, getTrimester, isDateInTrimester } from '../lib/business';
 
 interface AccountingPortalProps {
   user: User;

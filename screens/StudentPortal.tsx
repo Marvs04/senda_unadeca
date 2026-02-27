@@ -23,7 +23,8 @@ import Header from '../components/Header';
 import DashboardCard from '../components/DashboardCard';
 import WorkLogTable from '../components/WorkLogTable';
 import { User, WorkLog, WorkLogStatus, LIMITS } from '../types';
-import { cn, exportToCSV, exportToPDF, formatCurrency, getBillingCycle, isDateInCycle, getTrimester } from '../lib/utils';
+import { cn, exportToCSV, exportToPDF, formatCurrency } from '../lib/utils';
+import { getBillingCycle, isDateInCycle, getTrimester } from '../lib/business';
 import { TITHE_PERCENTAGE } from '../constants';
 
 interface StudentPortalProps {
