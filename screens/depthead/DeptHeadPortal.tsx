@@ -22,6 +22,7 @@ import { exportToCSV, exportToPDF, formatCurrency } from '../../lib/utils';
 import { getBillingCycle, isDateInCycle } from '../../lib/business';
 import { useConfirm } from '../../hooks/useConfirm';
 import { useDeptHeadData } from '../../hooks/useDeptHeadData';
+import { type KioskActions } from '../../hooks/useKiosk';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import DeptHeadPendingSection from './DeptHeadPendingSection';
 import DeptHeadLogForm from './DeptHeadLogForm';
@@ -38,6 +39,7 @@ interface DeptHeadPortalProps {
   addWorkLog: (newLogData: Omit<WorkLog, 'id' | 'status'>, status?: WorkLogStatus) => void;
   billingCycle: string;
   currentRate: number;
+  onActivateKiosk: (identifier: string, password: string) => { ok: boolean; error?: string };
 }
 
 const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
@@ -48,11 +50,26 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
   allDepartments,
   updateWorkLogStatus,
   updateMultipleWorkLogsStatus,
+  onActivateKiosk,
   addWorkLog,
   billingCycle: initialBillingCycle,
   currentRate,
 }) => {
   const [selectedCycle, setSelectedCycle] = useState(initialBillingCycle);
+  const [kioskId, setKioskId]     = useState('');
+  const [kioskPass, setKioskPass] = useState('');
+  const [showKioskModal, setShowKioskModal] = useState(false);
+
+  const handleActivateKiosk = (e: React.FormEvent) => {
+    e.preventDefault();
+    const result = onActivateKiosk(kioskId.trim(), kioskPass.trim());
+    if (!result.ok) { toast.error(result.error ?? 'Error al activar kiosco.', { position: 'top-center' }); return; }
+    toast.success('Kiosco activado correctamente.', { position: 'top-center' });
+    setShowKioskModal(false);
+    setKioskId('');
+    setKioskPass('');
+  };
+
   const departmentName =
     (allDepartments || []).find(d => d.id === user.departmentId)?.name || 'N/A';
 
@@ -208,7 +225,16 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
                 {departmentName}
               </h2>
             </div>
-            <div className="flex items-center space-x-3 bg-white p-1.5 rounded-2xl border border-zinc-100 shadow-sm">
+            <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Clock className="h-4 w-4 text-emerald-600" />}
+              onClick={() => setShowKioskModal(true)}
+            >
+              Activar Kiosco
+            </Button>
+          <div className="flex items-center space-x-3 bg-white p-1.5 rounded-2xl border border-zinc-100 shadow-sm">
               <Calendar className="w-4 h-4 text-zinc-400 ml-2" />
               <div className="relative">
                 <select
@@ -230,6 +256,7 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
                 <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
               </div>
             </div>
+          </div>
           </div>
           <p className="text-zinc-500 text-sm">
             Gestión de horas para el ciclo:{' '}
@@ -324,6 +351,39 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
         allUsers={allUsers}
       />
       <ConfirmDialog {...dialogProps} />
+
+      {/* Kiosk activate modal */}
+      {showKioskModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowKioskModal(false)}>
+          <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-emerald-100 rounded-xl">
+                <Clock className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-zinc-900">Activar kiosco</h3>
+                <p className="text-xs text-zinc-500">{departmentName}</p>
+              </div>
+            </div>
+            <form onSubmit={handleActivateKiosk} className="flex flex-col gap-3">
+              <input type="text" placeholder="Número de empleado"
+                value={kioskId} onChange={e => setKioskId(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              <input type="password" placeholder="Contraseña"
+                value={kioskPass} onChange={e => setKioskPass(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              <div className="flex gap-3 mt-2">
+                <button type="button" onClick={() => setShowKioskModal(false)}
+                  className="flex-1 py-3 rounded-xl border border-zinc-200 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">Cancelar</button>
+                <button type="submit"
+                  className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors">Activar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </PortalLayout>
   );
 };

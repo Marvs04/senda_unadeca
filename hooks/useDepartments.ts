@@ -8,7 +8,8 @@
  */
 import { useState, useEffect } from 'react';
 import { Department } from '../types';
-import { getDepartments } from '../services';
+import { getDepartments, createDepartment, patchDepartment } from '../services';
+import { toast } from 'sonner';
 
 export function useDepartments() {
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -42,10 +43,19 @@ export function useDepartments() {
   const addDepartment = (newDepartment: Omit<Department, 'id'>) => {
     const department: Department = { ...newDepartment, id: `dept-${Date.now()}` };
     setDepartments(prev => [...prev, department]);
+    createDepartment(newDepartment).catch(() => {
+      setDepartments(prev => prev.filter(d => d.id !== department.id));
+      toast.error('Error al crear el departamento. Intente de nuevo.');
+    });
   };
 
   const updateDepartment = (deptId: string, updates: Partial<Department>) => {
+    const snapshot = departments.find(d => d.id === deptId);
     setDepartments(prev => prev.map(d => d.id === deptId ? { ...d, ...updates } : d));
+    patchDepartment(deptId, updates).catch(() => {
+      if (snapshot) setDepartments(prev => prev.map(d => d.id === deptId ? snapshot : d));
+      toast.error('Error al actualizar el departamento. Intente de nuevo.');
+    });
   };
 
   return { departments, isLoading, error, addDepartment, updateDepartment };
