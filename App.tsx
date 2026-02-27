@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { UserRole } from './types';
-import AdminPortal from './screens/admin/AdminPortal';
-import DeptHeadPortal from './screens/DeptHeadPortal';
-import StudentPortal from './screens/StudentPortal';
-import AccountingPortal from './screens/AccountingPortal';
-import SuperAdminPortal from './screens/SuperAdminPortal';
+import AdminPortal from './screens/admin';
+import DeptHeadPortal from './screens/depthead';
+import StudentPortal from './screens/student';
+import AccountingPortal from './screens/accounting';
+import SuperAdminPortal from './screens/superadmin';
 import LoginScreen from './screens/LoginScreen';
 import { useUsers } from './hooks/useUsers';
 import { useWorkLogs } from './hooks/useWorkLogs';

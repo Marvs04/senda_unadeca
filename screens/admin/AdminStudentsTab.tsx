@@ -1,10 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Search, Plus, ArrowRightLeft, UserMinus } from 'lucide-react';
-import { User, Department, UserRole } from '../../types';
+import React, { useState } from 'react';
+import { motion } from 'motion/react';
+import { Plus, ArrowRightLeft, UserMinus } from 'lucide-react';
+import { User, Department } from '../../types';
 import { toast } from 'sonner';
 import { useConfirm } from '../../hooks/useConfirm';
+import { useAdminUsersData } from '../../hooks/useAdminUsersData';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { Toolbar, Button, Badge, Modal, EmptyState } from '../../components/ui';
 
 interface AdminStudentsTabProps {
   allUsers: User[];
@@ -22,14 +24,7 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
   const [editingStudent, setEditingStudent] = useState<User | null>(null);
   const { confirm, dialogProps } = useConfirm();
 
-  const filteredStudents = useMemo(() =>
-    allUsers.filter(u =>
-      u.role === UserRole.STUDENT &&
-      ((u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.carnet?.includes(searchTerm))
-    ),
-    [allUsers, searchTerm]
-  );
+  const { filteredStudents } = useAdminUsersData({ allUsers, studentSearch: searchTerm, deptHeadSearch: '' });
 
   const handleUpdateStudentDept = (studentId: string, deptId: string | undefined) => {
     updateUser(studentId, { departmentId: deptId });
@@ -51,27 +46,16 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
       exit={{ opacity: 0, y: -10 }}
       className="space-y-8"
     >
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input
-            type="text"
-            placeholder="Buscar por nombre o carnet..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full bg-white border border-zinc-200 rounded-2xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all text-sm"
-          />
-        </div>
-        <button
-          className="px-6 py-3.5 bg-zinc-900 text-white rounded-2xl text-sm font-bold hover:bg-zinc-800 transition-all flex items-center justify-center space-x-2 shadow-xl shadow-zinc-900/10 opacity-50 cursor-not-allowed"
-          disabled
-          title="Funcionalidad próximamente"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nuevo Estudiante</span>
-        </button>
-      </div>
+      <Toolbar
+        searchValue={searchTerm}
+        onSearch={setSearchTerm}
+        searchPlaceholder="Buscar por nombre o carnet..."
+        actions={
+          <Button variant="primary" icon={<Plus className="w-4 h-4" />} disabled title="Funcionalidad próximamente">
+            Nuevo Estudiante
+          </Button>
+        }
+      />
 
       {/* Table */}
       <div className="bg-white rounded-[2.5rem] border border-zinc-100 shadow-sm overflow-hidden">
@@ -90,77 +74,52 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
                 <td className="px-8 py-5 font-medium text-sm">{student.name}</td>
                 <td className="px-8 py-5 text-sm text-zinc-500 font-mono">{student.carnet || '---'}</td>
                 <td className="px-8 py-5">
-                  <span className="px-3 py-1 bg-zinc-100 rounded-lg text-xs font-medium text-zinc-600">
+                  <Badge variant="neutral">
                     {allDepartments.find(d => d.id === student.departmentId)?.name || 'Sin Asignar'}
-                  </span>
+                  </Badge>
                 </td>
                 <td className="px-8 py-5 text-right">
                   <div className="flex items-center justify-end space-x-2">
-                    <button
-                      onClick={() => setEditingStudent(student)}
-                      className="p-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-all"
-                      title="Cambiar Departamento"
-                    >
+                    <Button variant="icon-action" onClick={() => setEditingStudent(student)} title="Cambiar Departamento">
                       <ArrowRightLeft className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleRemoveFromDept(student)}
-                      className="p-2 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                      title="Quitar de Departamento"
-                    >
+                    </Button>
+                    <Button variant="icon-action" onClick={() => handleRemoveFromDept(student)} title="Quitar de Departamento" className="hover:text-rose-600 hover:bg-rose-50">
                       <UserMinus className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </div>
                 </td>
               </tr>
             ))}
             {filteredStudents.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-8 py-12 text-center text-sm text-zinc-400 italic">
-                  No se encontraron estudiantes
-                </td>
-              </tr>
+              <EmptyState colSpan={4} message="No se encontraron estudiantes" />
             )}
           </tbody>
         </table>
       </div>
 
       {/* Change Dept Modal */}
-      <AnimatePresence>
-        {editingStudent && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl"
+      <Modal
+        open={!!editingStudent}
+        onClose={() => setEditingStudent(null)}
+        title="Cambiar Departamento"
+        subtitle={editingStudent ? `Selecciona el nuevo departamento para ${editingStudent.name}` : ''}
+      >
+        <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
+          {allDepartments.map(dept => (
+            <button
+              key={dept.id}
+              onClick={() => handleUpdateStudentDept(editingStudent!.id, dept.id)}
+              className="w-full p-4 text-left rounded-2xl border border-zinc-100 hover:border-zinc-900 hover:bg-zinc-50 transition-all flex items-center justify-between group"
             >
-              <h3 className="text-xl font-bold mb-2">Cambiar Departamento</h3>
-              <p className="text-sm text-zinc-500 mb-6">
-                Selecciona el nuevo departamento para <strong>{editingStudent.name}</strong>
-              </p>
-              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                {allDepartments.map(dept => (
-                  <button
-                    key={dept.id}
-                    onClick={() => handleUpdateStudentDept(editingStudent.id, dept.id)}
-                    className="w-full p-4 text-left rounded-2xl border border-zinc-100 hover:border-zinc-900 hover:bg-zinc-50 transition-all flex items-center justify-between group"
-                  >
-                    <span className="font-medium text-sm">{dept.name}</span>
-                    <ArrowRightLeft className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => setEditingStudent(null)}
-                className="w-full mt-6 py-3 text-zinc-400 text-xs font-bold uppercase tracking-widest hover:text-zinc-900 transition-colors"
-              >
-                Cancelar
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              <span className="font-medium text-sm">{dept.name}</span>
+              <ArrowRightLeft className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          ))}
+        </div>
+        <Button variant="ghost" className="w-full mt-4" onClick={() => setEditingStudent(null)}>
+          Cancelar
+        </Button>
+      </Modal>
 
       <ConfirmDialog {...dialogProps} />
     </motion.div>

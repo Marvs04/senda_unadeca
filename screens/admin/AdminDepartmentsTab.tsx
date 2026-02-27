@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Edit2, Building, ChevronDown } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Plus, Edit2, Building } from 'lucide-react';
 import { User, WorkLog, Department, UserRole } from '../../types';
 import { isDateInCycle } from '../../lib/business';
 import { toast } from 'sonner';
+import { Button, Modal, Input, Select, EmptyState } from '../../components/ui';
+import type { SelectOption } from '../../components/ui';
 
 interface AdminDepartmentsTabProps {
   allDepartments: Department[];
@@ -71,13 +73,9 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
     >
       {/* Toolbar */}
       <div className="flex justify-end">
-        <button
-          onClick={openAdd}
-          className="px-6 py-3.5 bg-zinc-900 text-white rounded-2xl text-sm font-bold hover:bg-zinc-800 transition-all flex items-center justify-center space-x-2 shadow-xl shadow-zinc-900/10"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nuevo Departamento</span>
-        </button>
+        <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={openAdd}>
+          Nuevo Departamento
+        </Button>
       </div>
 
       {/* Department Cards */}
@@ -95,12 +93,9 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
                 <div className="p-3 bg-zinc-100 rounded-2xl group-hover:bg-zinc-900 group-hover:text-white transition-all">
                   <Building className="w-5 h-5" />
                 </div>
-                <button
-                  onClick={() => openEdit(dept)}
-                  className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors"
-                >
+                <Button variant="icon-action" onClick={() => openEdit(dept)}>
                   <Edit2 className="w-4 h-4" />
-                </button>
+                </Button>
               </div>
               <h4 className="text-lg font-bold mb-1">{dept.name}</h4>
               <p className="text-xs text-zinc-400 mb-6">
@@ -122,70 +117,39 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
       </div>
 
       {/* Add/Edit Dept Modal */}
-      <AnimatePresence>
-        {isAddingDept && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl"
-            >
-              <h3 className="text-xl font-bold mb-6">
-                {editingDept ? 'Editar Departamento' : 'Nuevo Departamento'}
-              </h3>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest ml-1">
-                    Nombre del Departamento
-                  </label>
-                  <input
-                    type="text"
-                    value={newDeptName}
-                    onChange={e => setNewDeptName(e.target.value)}
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl py-3.5 px-5 focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all text-sm"
-                    placeholder="Ej. Recursos Humanos"
-                    autoFocus
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest ml-1">
-                    Jefe de Departamento
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={newDeptHeadId}
-                      onChange={e => setNewDeptHeadId(e.target.value)}
-                      className="select-custom w-full py-3.5 px-5 pr-10"
-                    >
-                      <option value="">Sin Asignar</option>
-                      {deptHeads.map(head => (
-                        <option key={head.id} value={head.id}>{head.name}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddingDept(false)}
-                    className="py-4 rounded-2xl text-zinc-400 text-xs font-bold uppercase tracking-widest hover:text-zinc-900 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="py-4 bg-zinc-900 text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-lg shadow-zinc-900/10"
-                  >
-                    {editingDept ? 'Guardar Cambios' : 'Crear Depto.'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+      <Modal
+        open={isAddingDept}
+        onClose={() => setIsAddingDept(false)}
+        title={editingDept ? 'Editar Departamento' : 'Nuevo Departamento'}
+      >
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <Input
+            label="Nombre del Departamento"
+            type="text"
+            value={newDeptName}
+            onChange={e => setNewDeptName(e.target.value)}
+            placeholder="Ej. Recursos Humanos"
+            autoFocus
+          />
+          <Select
+            label="Jefe de Departamento"
+            value={newDeptHeadId}
+            onChange={e => setNewDeptHeadId(e.target.value)}
+            options={[
+              { value: '', label: 'Sin Asignar' },
+              ...deptHeads.map(h => ({ value: h.id, label: h.name })),
+            ] satisfies SelectOption[]}
+          />
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <Button type="button" variant="ghost" onClick={() => setIsAddingDept(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="primary">
+              {editingDept ? 'Guardar Cambios' : 'Crear Depto.'}
+            </Button>
           </div>
-        )}
-      </AnimatePresence>
+        </form>
+      </Modal>
     </motion.div>
   );
 };

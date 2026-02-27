@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { UserRole } from '../../types';
 import { cn } from '../../lib/utils';
+import { Input, Button } from '../../components/ui';
 
 interface SuperAdminCreateFormProps {
   adminName: string;
@@ -75,45 +76,32 @@ const SuperAdminCreateForm: React.FC<SuperAdminCreateFormProps> = ({
             </div>
           </div>
 
-          {/* Name */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest ml-1">
-              Nombre Completo
-            </label>
-            <input
-              type="text"
-              value={adminName}
-              onChange={e => setAdminName(e.target.value)}
-              className="w-full bg-zinc-50 border-zinc-200 rounded-2xl py-3.5 px-5 focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all text-sm"
-              placeholder="Ej. Juan Pérez"
-            />
-          </div>
+          <Input
+            label="Nombre Completo"
+            type="text"
+            value={adminName}
+            onChange={e => setAdminName(e.target.value)}
+            placeholder="Ej. Juan Pérez"
+          />
 
-          {/* Password */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest ml-1">
-              Contraseña Temporal
-            </label>
-            <div className="relative">
-              <Key className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-              <input
-                type="password"
-                value={adminPassword}
-                onChange={e => setAdminPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-zinc-50 border-zinc-200 rounded-2xl py-3.5 pl-12 pr-5 focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all text-sm"
-              />
-            </div>
-          </div>
+          <Input
+            label="Contraseña Temporal"
+            type="password"
+            value={adminPassword}
+            onChange={e => setAdminPassword(e.target.value)}
+            placeholder="••••••••"
+            icon={<Key className="w-4 h-4" />}
+          />
 
-          <button
+          <Button
             type="submit"
-            className="w-full bg-zinc-900 text-white font-bold py-4 px-6 rounded-2xl hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-900/10 flex items-center justify-center space-x-3 active:scale-95"
+            variant="primary"
+            className="w-full"
+            icon={<Plus className="h-4 w-4" />}
+            iconRight={<ArrowRight className="w-4 h-4 opacity-50" />}
           >
-            <Plus className="h-4 w-4" />
-            <span>Crear Cuenta</span>
-            <ArrowRight className="w-4 h-4 opacity-50" />
-          </button>
+            Crear Cuenta
+          </Button>
         </form>
       </div>
 

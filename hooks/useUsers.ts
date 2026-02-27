@@ -1,9 +1,45 @@
-import { useState } from 'react';
+/**
+ * hooks/useUsers.ts
+ *
+ * Gestiona el estado de todos los usuarios del sistema.
+ *
+ * Ciclo de vida:
+ *   isLoading=true → getUsers() → isLoading=false + users | error
+ *
+ * Las mutaciones son optimistas: actualizan el estado local de inmediato.
+ */
+import { useState, useEffect } from 'react';
 import { User } from '../types';
-import { MOCK_USERS } from '../constants';
+import { getUsers } from '../services';
 
 export function useUsers() {
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
+  const [users, setUsers]         = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError]         = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    getUsers()
+      .then(data => {
+        if (!cancelled) {
+          setUsers(data);
+          setIsLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Error al cargar usuarios');
+          setIsLoading(false);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  // ── Mutaciones optimistas ─────────────────────────────────────────────────
 
   const addUser = (newUser: Omit<User, 'id'>) => {
     const user: User = { ...newUser, id: `user-${Date.now()}` };
@@ -18,5 +54,5 @@ export function useUsers() {
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
   };
 
-  return { users, addUser, deleteUser, updateUser };
+  return { users, isLoading, error, addUser, deleteUser, updateUser };
 }

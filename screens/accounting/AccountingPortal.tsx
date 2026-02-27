@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import {
   DollarSign,
@@ -11,13 +11,14 @@ import {
   CalendarDays,
   Search,
 } from 'lucide-react';
-import { toast, Toaster } from 'sonner';
-import Header from '../../components/Header';
+import { toast } from 'sonner';
+import { PortalLayout } from '../../components/layout';
 import DashboardCard from '../../components/DashboardCard';
 import { User, WorkLogStatus, WorkLog, Department } from '../../types';
 import { TITHE_PERCENTAGE } from '../../constants';
 import { cn, exportToCSV, exportToPDF, formatCurrency } from '../../lib/utils';
-import { getBillingCycle, isDateInCycle, getTrimester, isDateInTrimester } from '../../lib/business';
+import { getBillingCycle, getTrimester } from '../../lib/business';
+import { useAccountingData } from '../../hooks/useAccountingData';
 import { useConfirm } from '../../hooks/useConfirm';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AccountingCharts from './AccountingCharts';
@@ -44,142 +45,32 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<'cycle' | 'trimester'>('cycle');
   const [selectedCycle, setSelectedCycle] = useState(getBillingCycle().value);
-  const [selectedTrimester, setSelectedTrimester] = useState(getTrimester().num);
+  const currentTrimester = getTrimester();
+  const [selectedTrimester, setSelectedTrimester] = useState(currentTrimester.num);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDeptId, setSelectedDeptId] = useState('all');
   const { confirm, dialogProps } = useConfirm();
 
   const {
-    filteredLogs,
     approvedForPayroll,
-    processedForPayroll,
     totalApprovedAmount,
     totalProcessedAmount,
     chartData,
     deptData,
     weeklySummary,
-  } = useMemo(() => {
-    let logs = (allLogs || []).filter(log => {
-      if (viewMode === 'cycle') return isDateInCycle(log.date, selectedCycle);
-      return isDateInTrimester(log.date, selectedTrimester, selectedYear);
-    });
-
-    if (selectedDeptId !== 'all') logs = logs.filter(l => l.departmentId === selectedDeptId);
-
-    const approvedLogs = logs.filter(log => {
-      const student = (allUsers || []).find(u => u.id === log.studentId);
-      const matchesSearch =
-        student?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false;
-      return log.status === WorkLogStatus.APPROVED && matchesSearch;
-    });
-
-    const processedLogs = logs.filter(log => {
-      const student = (allUsers || []).find(u => u.id === log.studentId);
-      const matchesSearch =
-        student?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false;
-      return log.status === WorkLogStatus.PROCESSED && matchesSearch;
-    });
-
-    const aggregate = (logList: WorkLog[]) =>
-      Object.values(
-        logList.reduce(
-          (acc, log) => {
-            if (!acc[log.studentId]) {
-              acc[log.studentId] = {
-                studentId: log.studentId,
-                departmentId: log.departmentId,
-                totalHours: 0,
-                totalAmount: 0,
-                logIds: [],
-              };
-            }
-            acc[log.studentId].totalHours += log.hours;
-            acc[log.studentId].totalAmount += log.hours * currentRate;
-            acc[log.studentId].logIds.push(log.id);
-            return acc;
-          },
-          {} as Record<
-            string,
-            {
-              studentId: string;
-              departmentId: string;
-              totalHours: number;
-              totalAmount: number;
-              logIds: string[];
-            }
-          >,
-        ),
-      );
-
-    const aggregatedApproved = aggregate(approvedLogs);
-    const aggregatedProcessed = aggregate(processedLogs);
-
-    const totalAmount = aggregatedApproved.reduce((sum, item) => sum + item.totalAmount, 0);
-    const totalProcessed = logs
-      .filter(l => l.status === WorkLogStatus.PROCESSED)
-      .reduce((sum, log) => sum + log.hours * currentRate, 0);
-
-    // Weekly summary
-    const weeklySummary = logs.reduce(
-      (acc, log) => {
-        const date = new Date(log.date + 'T00:00:00');
-        const week = `W${Math.ceil(date.getDate() / 7)}`;
-        const month = date.toLocaleString('es-ES', { month: 'short' });
-        const key = `${month} - ${week}`;
-        if (!acc[key]) acc[key] = { key, hours: 0, amount: 0 };
-        acc[key].hours += log.hours;
-        acc[key].amount += log.hours * currentRate;
-        return acc;
-      },
-      {} as Record<string, { key: string; hours: number; amount: number }>,
-    );
-
-    // Top 5 chart data
-    const chartData = aggregatedApproved
-      .sort((a, b) => b.totalAmount - a.totalAmount)
-      .slice(0, 5)
-      .map(item => ({
-        name:
-          (allUsers || []).find(u => u.id === item.studentId)?.name?.split(' ')[0] || 'N/A',
-        monto: item.totalAmount,
-      }));
-
-    // Dept hours
-    const deptMap = logs.reduce(
-      (acc, log) => {
-        const deptName =
-          (allDepartments || []).find(d => d.id === log.departmentId)?.name || 'N/A';
-        acc[deptName] = (acc[deptName] || 0) + log.hours;
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
-
-    const deptData = Object.entries(deptMap).map(([name, value]) => ({ name, value }));
-
-    return {
-      filteredLogs: logs,
-      approvedForPayroll: aggregatedApproved,
-      processedForPayroll: aggregatedProcessed,
-      totalApprovedAmount: totalAmount,
-      totalProcessedAmount: totalProcessed,
-      chartData,
-      deptData,
-      weeklySummary: Object.values(weeklySummary),
-    };
-  }, [
+  } = useAccountingData({
     allLogs,
+    allUsers,
+    allDepartments,
+    viewMode,
     selectedCycle,
     selectedTrimester,
     selectedYear,
-    viewMode,
-    allUsers,
-    allDepartments,
-    currentRate,
     searchTerm,
     selectedDeptId,
-  ]);
+    currentRate,
+  });
 
   const handleProcessPayments = async () => {
     const label = viewMode === 'cycle' ? 'ciclo' : 'cuatrimestre';
@@ -232,11 +123,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 selection:bg-indigo-100">
-      <Toaster position="top-center" richColors />
-      <Header user={user} onLogout={onLogout} />
-
-      <main className="page-container py-10">
+    <PortalLayout user={user} onLogout={onLogout} bg="bg-zinc-50 selection:bg-indigo-100">
         {/* Toolbar */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -342,9 +229,8 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
                   >
                     {[1, 2, 3]
                       .filter(t => {
-                        const currentT = getTrimester();
-                        if (selectedYear < currentT.year) return true;
-                        return t <= currentT.num;
+                        if (selectedYear < currentTrimester.year) return true;
+                        return t <= currentTrimester.num;
                       })
                       .map(t => (
                         <option key={t} value={t}>
@@ -361,7 +247,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
                     className="select-custom pr-10"
                   >
                     {[2024, 2025, 2026]
-                      .filter(y => y <= getTrimester().year)
+                      .filter(y => y <= currentTrimester.year)
                       .map(y => (
                         <option key={y} value={y}>
                           {y}
@@ -421,14 +307,12 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
         {/* Payroll Table */}
         <AccountingPayrollTable
           approvedForPayroll={approvedForPayroll}
-          allUsers={allUsers || []}
-          allDepartments={allDepartments || []}
+          allUsers={allUsers}
+          allDepartments={allDepartments}
           onProcessPayments={handleProcessPayments}
         />
-      </main>
-
       <ConfirmDialog {...dialogProps} />
-    </div>
+    </PortalLayout>
   );
 };
 

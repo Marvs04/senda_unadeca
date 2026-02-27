@@ -15,7 +15,7 @@ export function formatCurrency(amount: number) {
   }).format(amount);
 }
 
-export function exportToCSV(filename: string, headers: string[], rows: any[][]) {
+export function exportToCSV(filename: string, headers: string[], rows: (string | number)[][]) {
   const csvContent = [
     headers.join(','),
     ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
@@ -32,7 +32,7 @@ export function exportToCSV(filename: string, headers: string[], rows: any[][]) 
   document.body.removeChild(link);
 }
 
-export function exportToPDF(filename: string, title: string, headers: string[], rows: any[][]) {
+export function exportToPDF(filename: string, title: string, headers: string[], rows: (string | number)[][]) {
   const doc = new jsPDF();
   
   // Add title
@@ -42,7 +42,7 @@ export function exportToPDF(filename: string, title: string, headers: string[], 
   doc.setTextColor(100);
   doc.text(`Generado el: ${new Date().toLocaleString('es-CR')}`, 14, 30);
   
-  // @ts-ignore
+  // @ts-expect-error — jsPDF-autotable extends jsPDF at runtime; types not bundled
   doc.autoTable({
     startY: 40,
     head: [headers],
@@ -54,7 +54,6 @@ export function exportToPDF(filename: string, title: string, headers: string[], 
 
   doc.save(filename);
 }
-// Business logic helpers were moved to lib/business.ts
 
 export function truncate(text: string | undefined | null, limit: number) {
   if (!text) return '';

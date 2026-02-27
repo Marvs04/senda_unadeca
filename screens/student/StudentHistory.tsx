@@ -2,7 +2,7 @@ import React from 'react';
 import { History, Download, ChevronDown } from 'lucide-react';
 import WorkLogTable from '../../components/WorkLogTable';
 import { User, WorkLog, Department } from '../../types';
-import { cn } from '../../lib/utils';
+import { TabBar, Button } from '../../components/ui';
 import { getBillingCycle, getTrimester } from '../../lib/business';
 
 interface StudentHistoryProps {
@@ -46,30 +46,14 @@ const StudentHistory: React.FC<StudentHistoryProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center bg-zinc-100 p-1.5 rounded-2xl">
-          <button
-            onClick={() => setHistoryView('cycle')}
-            className={cn(
-              'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all',
-              historyView === 'cycle'
-                ? 'bg-white text-zinc-900 shadow-sm'
-                : 'text-zinc-400 hover:text-zinc-600',
-            )}
-          >
-            Mes
-          </button>
-          <button
-            onClick={() => setHistoryView('trimester')}
-            className={cn(
-              'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all',
-              historyView === 'trimester'
-                ? 'bg-white text-zinc-900 shadow-sm'
-                : 'text-zinc-400 hover:text-zinc-600',
-            )}
-          >
-            Cuatri
-          </button>
-        </div>
+        <TabBar
+          tabs={[
+            { id: 'cycle' as const, label: 'Mes' },
+            { id: 'trimester' as const, label: 'Cuatri' },
+          ]}
+          activeTab={historyView}
+          onTabChange={setHistoryView}
+        />
       </div>
 
       {/* Controls + Table */}
@@ -137,14 +121,9 @@ const StudentHistory: React.FC<StudentHistoryProps> = ({
               </div>
             )}
           </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => onExport('pdf')}
-              className="p-2 text-zinc-400 hover:text-zinc-900 transition-colors"
-            >
-              <Download className="w-4 h-4" />
-            </button>
-          </div>
+          <Button variant="icon-action" onClick={() => onExport('pdf')} title="Exportar PDF">
+            <Download className="w-4 h-4" />
+          </Button>
         </div>
         <WorkLogTable logs={filteredLogs} users={[user]} departments={[]} title="" />
       </div>

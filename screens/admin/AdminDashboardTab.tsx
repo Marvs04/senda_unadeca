@@ -1,13 +1,15 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { motion } from 'motion/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { BarChart3, PieChart as PieChartIcon, Clock, Users, DollarSign, FileText, Download } from 'lucide-react';
 import DashboardCard from '../../components/DashboardCard';
 import WorkLogTable from '../../components/WorkLogTable';
-import { User, WorkLog, Department, UserRole } from '../../types';
+import { User, WorkLog, Department } from '../../types';
 import { formatCurrency, exportToCSV, exportToPDF } from '../../lib/utils';
 import { isDateInCycle } from '../../lib/business';
 import { toast } from 'sonner';
+import { Button } from '../../components/ui';
+import { useAdminDashboardStats } from '../../hooks/useAdminDashboardStats';
 
 interface AdminDashboardTabProps {
   allLogs: WorkLog[];
@@ -26,35 +28,12 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
   selectedCycle,
   currentRate,
 }) => {
-  const stats = useMemo(() => {
-    const cycleLogs = allLogs.filter(log => isDateInCycle(log.date, selectedCycle));
-    const totalHours = cycleLogs.reduce((acc, log) => acc + log.hours, 0);
-    const totalGlobalPayment = totalHours * currentRate;
-    const activeStudents = allUsers.filter(u => u.role === UserRole.STUDENT).length;
-
-    const deptMap = cycleLogs.reduce((acc, log) => {
-      const deptName = allDepartments.find(d => d.id === log.departmentId)?.name || 'N/A';
-      acc[deptName] = (acc[deptName] || 0) + log.hours;
-      return acc;
-    }, {} as Record<string, number>);
-    const deptChartData = Object.entries(deptMap).map(([name, value]) => ({ name, value }));
-
-    const studentMap = cycleLogs.reduce((acc, log) => {
-      const studentName = allUsers.find(u => u.id === log.studentId)?.name?.split(' ')[0] || 'N/A';
-      acc[studentName] = (acc[studentName] || 0) + log.hours;
-      return acc;
-    }, {} as Record<string, number>);
-    const studentChartData = (Object.entries(studentMap) as [string, number][])
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name, hours]) => ({ name, hours }));
-
-    return { totalHours, totalGlobalPayment, activeStudents, deptChartData, studentChartData };
-  }, [allLogs, allUsers, allDepartments, selectedCycle, currentRate]);
+  const stats = useAdminDashboardStats({ allLogs, allUsers, allDepartments, selectedCycle, currentRate });
 
   const handleExport = (type: 'csv' | 'pdf') => {
     const headers = ['Estudiante', 'Departamento', 'Fecha', 'Horas', 'Estado'];
-    const rows = allLogs.map(log => [
+    const cycleLogs = allLogs.filter(l => isDateInCycle(l.date, selectedCycle));
+    const rows = cycleLogs.map(log => [
       allUsers.find(u => u.id === log.studentId)?.name || 'N/A',
       allDepartments.find(d => d.id === log.departmentId)?.name || 'N/A',
       log.date,
@@ -138,13 +117,12 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <button onClick={() => handleExport('csv')} className="p-2.5 bg-zinc-50 hover:bg-zinc-100 text-zinc-600 rounded-xl transition-all">
+            <Button variant="icon-action" onClick={() => handleExport('csv')} title="Exportar CSV">
               <Download className="w-4 h-4" />
-            </button>
-            <button onClick={() => handleExport('pdf')} className="px-4 py-2.5 bg-zinc-900 text-white text-xs font-bold rounded-xl hover:bg-zinc-800 transition-all flex items-center space-x-2">
-              <FileText className="w-4 h-4" />
-              <span>Exportar PDF</span>
-            </button>
+            </Button>
+            <Button variant="primary" size="sm" icon={<FileText className="w-4 h-4" />} onClick={() => handleExport('pdf')}>
+              Exportar PDF
+            </Button>
           </div>
         </div>
         <div className="p-2">

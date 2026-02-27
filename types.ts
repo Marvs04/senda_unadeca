@@ -22,10 +22,10 @@ export interface Department {
 }
 
 export enum WorkLogStatus {
-    PENDING = 'PENDING',
-    APPROVED = 'APPROVED',
-    PROCESSED = 'PROCESSED',
-    REJECTED = 'REJECTED',
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  PROCESSED = 'PROCESSED',
+  REJECTED = 'REJECTED',
 }
 
 export interface HourlyRate {
@@ -40,12 +40,12 @@ export const LIMITS = {
 };
 
 export interface WorkLog {
-    id: string;
-    studentId: string;
-    departmentId: string;
-    date: string; // YYYY-MM-DD
-    hours: number;
-    description: string;
-    status: WorkLogStatus;
-    rejectionReason?: string;
+  id: string;
+  studentId: string;
+  departmentId: string;
+  date: string; // YYYY-MM-DD
+  hours: number;
+  description: string;
+  status: WorkLogStatus;
+  rejectionReason?: string;
 }
