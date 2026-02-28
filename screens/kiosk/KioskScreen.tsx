@@ -28,7 +28,21 @@ import {
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import { KioskState, KioskSession, User, KioskShift, LIMITS } from '../../types';
-import { KioskActions } from '../../hooks/useKiosk';
+import { KioskActions, KioskResultCode } from '../../hooks/useKiosk';
+
+// ─── Toast helpers ─────────────────────────────────────────────────────────────────────
+
+function showKioskError(error: string, code?: KioskResultCode) {
+  if (code === 'WRONG_DEPT') {
+    // Distinct security warning — different colour + longer duration so it's noticed
+    toast.warning(`⚠️ Acceso denegado — ${error}`, {
+      position: 'top-center',
+      duration: 6000,
+    });
+    return;
+  }
+  toast.error(error, { position: 'top-center' });
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -346,33 +360,39 @@ const KioskScreen: React.FC<KioskScreenProps> = ({
     const alreadyIn = activeSessions.some(s => s.user.carnet === identifier);
     if (alreadyIn) {
       const result = actions.clockOut(identifier, password);
-      if (!result.ok) { toast.error(result.error); return; }
-      toast.success('Salida registrada correctamente.', { position: 'top-center' });
+      if (!result.ok) { showKioskError(result.error!, result.code); return; }
+      toast.success(
+        result.name ? `Hasta luego, ${result.name}. Salida registrada.` : 'Salida registrada correctamente.',
+        { position: 'top-center' },
+      );
     } else {
       const result = actions.clockIn(identifier, password);
-      if (!result.ok) { toast.error(result.error); return; }
-      toast.success('Entrada registrada. ¡Buen trabajo!', { position: 'top-center' });
+      if (!result.ok) { showKioskError(result.error!, result.code); return; }
+      toast.success(
+        result.name ? `¡Bienvenido/a, ${result.name}! Entrada registrada.` : 'Entrada registrada. ¡Buen trabajo!',
+        { position: 'top-center' },
+      );
     }
   };
 
   const handleCancel = (headId: string, headPass: string, reason: string) => {
     if (!cancelTarget) return;
     const result = actions.cancelSession(headId, headPass, cancelTarget, reason);
-    if (!result.ok) { toast.error(result.error); return; }
-    toast.info('Sesión cancelada.', { position: 'top-center' });
+    if (!result.ok) { showKioskError(result.error!, result.code); return; }
+    toast.info('Sesión cancelada. Las horas quedan registradas como rechazadas.', { position: 'top-center' });
     setCancelTarget(null);
   };
 
   const handleSaveShifts = (headId: string, headPass: string, shifts: KioskShift[]) => {
     const result = actions.updateShifts(headId, headPass, shifts);
-    if (!result.ok) { toast.error(result.error); return; }
+    if (!result.ok) { showKioskError(result.error!, result.code); return; }
     toast.success('Turnos actualizados.', { position: 'top-center' });
     setShowShiftPanel(false);
   };
 
   const handleDeactivate = (identifier: string, password: string) => {
     const result = actions.deactivate(identifier, password);
-    if (!result.ok) { toast.error(result.error); return; }
+    if (!result.ok) { showKioskError(result.error!, result.code); return; }
     toast.info('Kiosco desactivado.', { position: 'top-center' });
   };
 
