@@ -1339,76 +1339,258 @@ export function cycleToDateRange(cycle: string): [string, string] {
 
 ---
 
+---
+
 ## Appendix D - Kiosk Mode
 
-### Overview
+> Updated February 2026 after feat(kiosk): result codes, WRONG_DEPT alerts,
+> rejectionReason fix, one-kiosk-per-dept enforcement.
 
-Kiosk mode turns a shared department PC into a time-clock board. Students clock in/out
-using their own credentials. The dept head (or super admin) activates and manages the
-kiosk without sharing their account.
+### D.1 Overview
 
-### Auth model (all actions require credentials)
+Kiosk mode turns a shared department PC into a time-clock board. A dept head (or super
+admin) activates the kiosk once using their own credentials. Students then clock in and
+out by typing their carnet + password directly on the kiosk screen. No shared passwords;
+every action is independently authenticated.
 
-| Action | Who |
-|---|---|
-| Activate kiosk | Dept head or Super Admin |
-| Clock in | Student (carnet + password) |
-| Clock out | Student (carnet + password) |
-| Cancel session | Dept head + reason |
-| Update shifts | Dept head |
-| Deactivate | Dept head or Super Admin |
+### D.2 Auth model
 
-Currently validated via mockValidateCredentials() in useKiosk.ts.
-Replace with supabase.auth.signInWithPassword() when backend is live.
+Every kiosk action requires valid credentials. The table below also shows the
+machine-readable `KioskResultCode` returned on failure so the UI can apply specific
+styles (e.g. security warning colour for WRONG_DEPT vs. generic red for BAD_CREDS).
 
-### Types already in types.ts
+| Action | Who | Required role | Failure codes |
+|---|---|---|---|
+| Activate kiosk | Dept head or Super Admin | DEPT_HEAD / SUPER_ADMIN | BAD_CREDS, WRONG_DEPT, ALREADY_ACTIVE |
+| Clock in | Student (carnet + password) | STUDENT | BAD_CREDS, WRONG_DEPT, ALREADY_IN |
+| Clock out | Student (carnet + password) | STUDENT | BAD_CREDS, WRONG_DEPT, NOT_IN |
+| Cancel session | Dept head (empNo + password + reason) | DEPT_HEAD | BAD_CREDS, WRONG_DEPT, NOT_FOUND |
+| Update shifts | Dept head | DEPT_HEAD | BAD_CREDS, WRONG_DEPT |
+| Deactivate kiosk | Dept head or Super Admin | DEPT_HEAD / SUPER_ADMIN | BAD_CREDS, WRONG_DEPT |
 
-interface KioskSession { studentId: string; startedAt: string; }
-interface KioskShift   { startTime: string; endTime: string; }
-interface KioskState {
-  departmentId: string; activatedBy: string; activatedAt: string;
-  sessions: KioskSession[]; shifts: KioskShift[];
+**Mock (now):** `mockValidateCredentials()` in `hooks/useKiosk.ts`  password equals carnet
+or employeeNumber.
+
+**Production:** Replace `mockValidateCredentials()` with:
+```typescript
+const { data, error } = await supabase.auth.signInWithPassword({
+  email: buildAuthEmail(identifier),
+  password,
+});
+if (error || !data.user) return { ok: false, error: 'Credenciales incorrectas.', code: 'BAD_CREDS' };
+// then fetch profile to check role + departmentId
+```
+
+### D.3 KioskResultCode and KioskActionResult types
+
+Defined in `hooks/useKiosk.ts` and exported for use in `KioskScreen.tsx`:
+
+```typescript
+export type KioskResultCode =
+  | 'WRONG_DEPT'     // valid user, wrong department
+  | 'BAD_CREDS'      // unknown identifier or wrong password
+  | 'ALREADY_ACTIVE' // a kiosk is already running (one per dept)
+  | 'ALREADY_IN'     // student already has an active session
+  | 'NOT_IN'         // student has no active session to clock out
+  | 'NOT_FOUND';     // session or entity not found
+
+export interface KioskActionResult {
+  ok: boolean;
+  error?: string;    // human-readable UI message
+  code?: KioskResultCode;
+  name?: string;     // set on successful clock-in / clock-out (student display name)
 }
+```
 
-### Supabase schema additions
+### D.4 WRONG_DEPT security enforcement
 
-create table kiosk_state (
-  id            uuid primary key default gen_random_uuid(),
-  department_id uuid not null references departments(id) on delete cascade,
-  activated_by  uuid not null references profiles(id),
-  activated_at  timestamptz not null default now(),
-  shifts        jsonb not null default '[]',
-  unique(department_id)
+When a student from Department B enters their carnet on a kiosk activated for Department A,
+the hook returns `code: 'WRONG_DEPT'` and the screen shows a distinct warning toast
+(amber, 6 s duration) instead of a generic error. This is a security boundary:
+
+- Frontend: `clockIn` and `clockOut` check `user.departmentId !== kiosk.departmentId` and
+  return `WRONG_DEPT` before ever touching state.
+- Backend (Supabase): The `kiosk_sessions` RLS policy must additionally verify that
+  `(select department_id from profiles where id = auth.uid()) = (select department_id from kiosk_state where id = kiosk_id)`.
+- It also applies to dept heads: `cancelSession`, `updateShifts`, and `deactivate` all
+  check `canManageKiosk(user, kiosk.departmentId)`, which returns false if the head's
+  `departmentId` does not match.
+
+### D.5 One kiosk per department
+
+Only one kiosk session may be active for a given department at a time.
+
+- **Frontend:** `activate()` checks `if (kiosk)` at the very top and returns
+  `{ ok: false, code: 'ALREADY_ACTIVE' }` before any auth call.
+- **Database:** The `kiosk_state` table has `UNIQUE(department_id)`, so a concurrent
+  second activation at the DB level is rejected with a unique constraint violation.
+
+```sql
+-- Already in schema below; shown here for emphasis:
+ALTER TABLE kiosk_state ADD CONSTRAINT kiosk_state_department_id_key UNIQUE (department_id);
+```
+
+### D.6 Cancelled sessions and rejectionReason
+
+When a dept head cancels a student's kiosk session, the hook:
+1. Computes elapsed hours (minimum 0, even for very short sessions).
+2. Calls `addWorkLog(data, WorkLogStatus.REJECTED)` with the `rejectionReason` field set
+   to the head's entered reason.
+3. The resulting REJECTED work log appears in:
+   - **Student portal** (StudentHistory tab)  shows the red "Rechazado" badge and the
+     reason text.
+   - **Dept head portal** (pending/history table)  same log row is visible with reason.
+
+```typescript
+// cancelSession (simplified)
+addWorkLog(
+  {
+    studentId: session.studentId,
+    departmentId: kiosk.departmentId,
+    date: today,
+    hours: Math.max(hoursWorked, 0),
+    description: 'Sesion kiosco - cancelada por jefe de departamento',
+    rejectionReason: reason,   // <-- required; surfaces in both dashboards
+  },
+  WorkLogStatus.REJECTED,
+);
+```
+
+On Supabase: `rejection_reason` column already exists on `work_logs` (TEXT, nullable).
+The INSERT just needs to populate it.
+
+### D.7 Supabase schema
+
+```sql
+-- Kiosk state: one row per active department kiosk
+CREATE TABLE kiosk_state (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  department_id UUID NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
+  activated_by  UUID NOT NULL REFERENCES profiles(id),
+  activated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  shifts        JSONB NOT NULL DEFAULT '[]',
+  UNIQUE (department_id)   -- enforces one-kiosk-per-dept at DB level
 );
 
-create table kiosk_sessions (
-  id         uuid primary key default gen_random_uuid(),
-  kiosk_id   uuid not null references kiosk_state(id) on delete cascade,
-  student_id uuid not null references profiles(id),
-  started_at timestamptz not null default now(),
-  unique(kiosk_id, student_id)
+-- Active student sessions within a kiosk
+CREATE TABLE kiosk_sessions (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  kiosk_id   UUID NOT NULL REFERENCES kiosk_state(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES profiles(id),
+  started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (kiosk_id, student_id)   -- a student can only have one active session per kiosk
 );
+```
 
-### Supabase Realtime (remote activation by super admin)
+### D.8 RLS policies for kiosk tables
 
-Wire inside the empty useEffect in useKiosk.ts:
+```sql
+-- kiosk_state
+ALTER TABLE kiosk_state ENABLE ROW LEVEL SECURITY;
 
+-- Dept head can INSERT/UPDATE/DELETE for their own department
+CREATE POLICY "Dept head manages own kiosk" ON kiosk_state
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.role IN ('DEPT_HEAD', 'SUPER_ADMIN')
+        AND (profiles.department_id = kiosk_state.department_id
+             OR profiles.role = 'SUPER_ADMIN')
+    )
+  );
+
+-- Everyone can read kiosk_state (so the screen can check if a kiosk is active)
+CREATE POLICY "Read kiosk state" ON kiosk_state
+  FOR SELECT USING (true);
+
+-- kiosk_sessions
+ALTER TABLE kiosk_sessions ENABLE ROW LEVEL SECURITY;
+
+-- Students can INSERT their own session (dept must match kiosk's dept)
+CREATE POLICY "Student can clock in to own dept kiosk" ON kiosk_sessions
+  FOR INSERT WITH CHECK (
+    student_id = auth.uid()
+    AND (
+      SELECT p.department_id FROM profiles p WHERE p.id = auth.uid()
+    ) = (
+      SELECT ks.department_id FROM kiosk_state ks WHERE ks.id = kiosk_id
+    )
+  );
+
+-- Dept head / super admin can DELETE any session in their dept kiosk (cancel)
+CREATE POLICY "Dept head can cancel sessions" ON kiosk_sessions
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM profiles p
+      JOIN kiosk_state ks ON ks.id = kiosk_sessions.kiosk_id
+      WHERE p.id = auth.uid()
+        AND p.role IN ('DEPT_HEAD', 'SUPER_ADMIN')
+        AND (p.department_id = ks.department_id OR p.role = 'SUPER_ADMIN')
+    )
+  );
+
+-- Everyone can read sessions (so the live board is visible)
+CREATE POLICY "Read sessions" ON kiosk_sessions
+  FOR SELECT USING (true);
+```
+
+### D.9 Supabase Realtime (remote activation by super admin)
+
+Replace the empty `useEffect` in `useKiosk.ts` with:
+
+```typescript
+useEffect(() => {
+  if (!initialDepartmentId) return;
   const channel = supabase
-    .channel('kiosk:{departmentId}')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'kiosk_state',
-        filter: 'department_id=eq.{departmentId}' }, payload => {
-      setKiosk({ departmentId: payload.new.department_id, activatedBy: payload.new.activated_by,
-                 activatedAt: payload.new.activated_at, sessions: [], shifts: payload.new.shifts ?? [] });
-    }).subscribe();
+    .channel(`kiosk:${initialDepartmentId}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'kiosk_state',
+        filter: `department_id=eq.${initialDepartmentId}` },
+      payload => {
+        setKiosk({
+          departmentId: payload.new.department_id,
+          activatedBy:  payload.new.activated_by,
+          activatedAt:  payload.new.activated_at,
+          sessions:     [],
+          shifts:       (payload.new.shifts as KioskShift[]) ?? [],
+        });
+      },
+    )
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'kiosk_state',
+        filter: `department_id=eq.${initialDepartmentId}` },
+      () => setKiosk(null),
+    )
+    .subscribe();
+  return () => { void supabase.removeChannel(channel); };
+}, [initialDepartmentId]);
+```
 
-### Clock-out work log
+Also subscribe to `kiosk_sessions` changes to keep the live board in sync when multiple
+devices share the same kiosk state.
 
-Clock-out calls addWorkLog() with status PENDING -> feeds into existing approval flow.
-Cancelled sessions saved as REJECTED with a reason.
+### D.10 Work log lifecycle for kiosk actions
 
-### Migration checklist
+| Kiosk action | WorkLogStatus | rejectionReason set? |
+|---|---|---|
+| Clock out (normal) | PENDING | No |
+| Deactivate (flush open sessions) | PENDING | No |
+| Cancel session (dept head) | REJECTED | Yes (required) |
 
-- [ ] Run kiosk schema SQL (kiosk_state + kiosk_sessions)
-- [ ] Apply RLS (dept head + super admin manage kiosk_state; students own session row)
-- [ ] Replace mockValidateCredentials with supabase.auth.signInWithPassword()
-- [ ] Wire Supabase Realtime in useKiosk.ts for remote activation
+PENDING logs feed into the normal dept head approval flow.
+REJECTED logs are immediately visible in student history and dept head tables.
+
+### D.11 Migration checklist
+
+- [ ] Run `kiosk_state` schema SQL
+- [ ] Run `kiosk_sessions` schema SQL
+- [ ] Apply RLS policies (D.8)
+- [ ] Enable Realtime for `kiosk_state` and `kiosk_sessions` in Supabase dashboard
+- [ ] Replace `mockValidateCredentials()` with `supabase.auth.signInWithPassword()` + profile fetch
+- [ ] Add `buildAuthEmail()` helper in `lib/utils.ts` (see Section 2.2)
+- [ ] Wire Supabase Realtime `useEffect` in `useKiosk.ts` (D.9)
+- [ ] Subscribe to `kiosk_sessions` changes for live board sync
+- [ ] Verify WRONG_DEPT RLS on kiosk_sessions INSERT matches frontend check
