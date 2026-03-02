@@ -30,7 +30,7 @@ const DeptHeadRejectionModal: React.FC<DeptHeadRejectionModalProps> = ({
       </div>
 
       <div className="space-y-4">
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-muted">
           Por favor, indica la razón por la cual estás rechazando las{' '}
           <strong>{rejectingLog?.hours}h</strong> del estudiante{' '}
           <strong>{allUsers.find(u => u.id === rejectingLog?.studentId)?.name}</strong>.
@@ -38,21 +38,21 @@ const DeptHeadRejectionModal: React.FC<DeptHeadRejectionModalProps> = ({
 
         <div className="space-y-2">
           <div className="flex items-center justify-between ml-1">
-            <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+            <label className="text-xs font-bold text-faint uppercase tracking-widest">
               Razón del Rechazo
             </label>
-            <span className="text-[10px] font-bold text-zinc-300">
+            <span className="text-[10px] font-bold text-border">
               {rejectionReason.length} / {LIMITS.REJECTION_REASON}
             </span>
           </div>
           <div className="relative">
-            <MessageSquare className="w-4 h-4 absolute left-4 top-4 text-zinc-400" />
+            <MessageSquare className="w-4 h-4 absolute left-4 top-4 text-faint" />
             <textarea
               value={rejectionReason}
               onChange={e => setRejectionReason(e.target.value)}
               rows={3}
               maxLength={LIMITS.REJECTION_REASON}
-              className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl py-4 pl-12 pr-5 focus:outline-none focus:ring-2 focus:ring-rose-500/10 transition-all text-sm"
+              className="w-full bg-surface border border-border rounded-2xl py-4 pl-12 pr-5 focus:outline-none focus:ring-2 focus:ring-rose-500/10 transition-all text-sm"
               placeholder="Ej. Descripción insuficiente, horas incorrectas..."
             />
           </div>

@@ -33,17 +33,17 @@ const SuperAdminCreateForm: React.FC<SuperAdminCreateFormProps> = ({
 }) => {
   return (
     <div className="space-y-8">
-      <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm">
+      <div className="bg-card p-8 rounded-[2.5rem] border border-border-faint shadow-sm">
         <div className="flex items-center space-x-3 mb-8">
-          <div className="p-2 bg-zinc-100 rounded-xl">
-            <UserPlus className="w-4 h-4 text-zinc-600" />
+          <div className="icon-box">
+            <UserPlus className="w-4 h-4" />
           </div>
           <h3 className="text-lg font-bold tracking-tight">Nueva Cuenta</h3>
         </div>
         <form onSubmit={onSubmit} className="space-y-6">
           {/* Role toggle */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest ml-1">
+            <label className="text-xs font-bold text-faint uppercase tracking-widest ml-1">
               Tipo de Cuenta
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -53,8 +53,8 @@ const SuperAdminCreateForm: React.FC<SuperAdminCreateFormProps> = ({
                 className={cn(
                   'py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all flex items-center justify-center space-x-2',
                   adminRole === UserRole.ADMIN
-                    ? 'bg-zinc-900 border-zinc-900 text-white'
-                    : 'bg-zinc-50 border-zinc-100 text-zinc-400 hover:bg-zinc-100',
+                    ? 'bg-primary border-primary text-primary-fg'
+                    : 'bg-surface border-border-faint text-faint hover:bg-surface-hover',
                 )}
               >
                 <ShieldCheck className="w-3 h-3" />
@@ -66,8 +66,8 @@ const SuperAdminCreateForm: React.FC<SuperAdminCreateFormProps> = ({
                 className={cn(
                   'py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all flex items-center justify-center space-x-2',
                   adminRole === UserRole.ACCOUNTING
-                    ? 'bg-zinc-900 border-zinc-900 text-white'
-                    : 'bg-zinc-50 border-zinc-100 text-zinc-400 hover:bg-zinc-100',
+                    ? 'bg-primary border-primary text-primary-fg'
+                    : 'bg-surface border-border-faint text-faint hover:bg-surface-hover',
                 )}
               >
                 <Briefcase className="w-3 h-3" />

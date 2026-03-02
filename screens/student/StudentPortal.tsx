@@ -3,7 +3,8 @@ import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { PortalLayout } from '../../components/layout';
 import { User, WorkLog } from '../../types';
-import { exportToCSV, exportToPDF } from '../../lib/utils';
+import { exportToCSV, formatCurrency } from '../../lib/utils';
+import { renderPDF } from '../../lib/pdf';
 import { getTrimester } from '../../lib/business';
 import { useStudentSession } from '../../hooks/useStudentSession';
 import { useStudentFilter } from '../../hooks/useStudentFilter';
@@ -57,18 +58,26 @@ const StudentPortal: React.FC<StudentPortalProps> = ({
   });
 
   const handleExport = (type: 'csv' | 'pdf') => {
-    const headers = ['Fecha', 'Horas', 'Descripción', 'Estado'];
+    const headers = ['Fecha', 'Horas', 'Descripci\u00f3n', 'Estado'];
     const rows = (myLogs || []).map(log => [log.date, log.hours, log.description, log.status]);
     const safeName = (user.name || 'estudiante').replace(/\s+/g, '_');
     if (type === 'csv') {
       exportToCSV(`mis_horas_${safeName}.csv`, headers, rows);
     } else {
-      exportToPDF(
-        `mis_horas_${safeName}.pdf`,
-        `Reporte de Horas - ${user.name}`,
+      const now = new Date().toLocaleDateString('es-CR', { year: 'numeric', month: 'long', day: 'numeric' });
+      renderPDF({
+        filename: `mis_horas_${safeName}.pdf`,
+        reportTitle: `REPORTE DE HORAS — ${user.name.toUpperCase()}`,
+        subtitle: 'Historial completo de horas de beca estudiantil',
+        meta: [
+          { label: 'Estudiante',      value: user.name },
+          { label: 'Fecha de Emisi\u00f3n', value: now },
+          { label: 'Carnet',          value: user.carnet || 'N/A' },
+          { label: 'Tasa por Hora',   value: formatCurrency(currentRate) },
+        ],
         headers,
         rows,
-      );
+      });
     }
     toast.success(`Reporte ${type.toUpperCase()} generado`, { position: 'top-center' });
   };
@@ -77,7 +86,7 @@ const StudentPortal: React.FC<StudentPortalProps> = ({
     <PortalLayout
       user={user}
       onLogout={onLogout}
-      bg="bg-[#f8f9fa] selection:bg-zinc-900 selection:text-white"
+      bg="bg-background selection:bg-primary selection:text-primary-fg"
       pagePadding="py-12"
     >
         {/* Profile */}

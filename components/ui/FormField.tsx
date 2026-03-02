@@ -15,7 +15,7 @@ interface FormFieldProps {
 const FormField: React.FC<FormFieldProps> = ({ label, error, hint, required, children }) => {
   return (
     <div className="space-y-2">
-      <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
+      <label className="block text-[10px] font-black uppercase tracking-widest text-faint ml-1">
         {label}
         {required && <span className="text-rose-400 ml-1">*</span>}
       </label>
@@ -24,7 +24,7 @@ const FormField: React.FC<FormFieldProps> = ({ label, error, hint, required, chi
         <p className="text-xs text-rose-500 ml-1">{error}</p>
       )}
       {hint && !error && (
-        <p className="text-xs text-zinc-400 ml-1">{hint}</p>
+        <p className="text-xs text-faint ml-1">{hint}</p>
       )}
     </div>
   );

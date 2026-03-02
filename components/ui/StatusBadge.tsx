@@ -1,5 +1,5 @@
 import React from 'react';
-import { WorkLog, WorkLogStatus } from '../../types';
+import { WorkLogStatus } from '../../types';
 import { cn, truncate } from '../../lib/utils';
 import { STATUS_CONFIG } from '../../lib/uiConfig';
 

@@ -18,11 +18,11 @@ import { Button } from '../../components/ui';
 import DashboardCard from '../../components/DashboardCard';
 import WorkLogTable from '../../components/WorkLogTable';
 import { User, WorkLog, WorkLogStatus, Department, LIMITS } from '../../types';
-import { exportToCSV, exportToPDF, formatCurrency } from '../../lib/utils';
+import { exportToCSV, formatCurrency } from '../../lib/utils';
+import { renderPDF } from '../../lib/pdf';
 import { getBillingCycle, isDateInCycle } from '../../lib/business';
 import { useConfirm } from '../../hooks/useConfirm';
 import { useDeptHeadData } from '../../hooks/useDeptHeadData';
-import { type KioskActions } from '../../hooks/useKiosk';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import DeptHeadPendingSection from './DeptHeadPendingSection';
 import DeptHeadLogForm from './DeptHeadLogForm';
@@ -113,6 +113,11 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
       toast.error('Por favor complete todos los campos.', { position: 'top-center' });
       return;
     }
+    const parsedHours = parseFloat(hours);
+    if (isNaN(parsedHours) || parsedHours <= 0 || parsedHours > LIMITS.MAX_HOURS) {
+      toast.error(`Las horas deben ser un número entre 0.1 y ${LIMITS.MAX_HOURS}.`, { position: 'top-center' });
+      return;
+    }
     if (description.length > LIMITS.DESCRIPTION) {
       toast.error(`La descripción no puede exceder los ${LIMITS.DESCRIPTION} caracteres.`, {
         position: 'top-center',
@@ -124,7 +129,7 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
         studentId: selectedStudent,
         departmentId: user.departmentId!,
         date,
-        hours: parseFloat(hours),
+        hours: parsedHours,
         description,
       },
       WorkLogStatus.APPROVED,
@@ -164,15 +169,24 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
       log.status,
       log.rejectionReason || '',
     ]);
+    const safeDept = departmentName.replace(/\s+/g, '_');
     if (type === 'csv') {
-      exportToCSV(`reporte_${departmentName.replace(/\s+/g, '_')}.csv`, headers, rows);
+      exportToCSV(`reporte_${safeDept}.csv`, headers, rows);
     } else {
-      exportToPDF(
-        `reporte_${departmentName.replace(/\s+/g, '_')}.pdf`,
-        `Reporte de Horas - ${departmentName}`,
+      const now = new Date().toLocaleDateString('es-CR', { year: 'numeric', month: 'long', day: 'numeric' });
+      renderPDF({
+        filename: `reporte_${safeDept}.pdf`,
+        reportTitle: `REPORTE DE HORAS — ${departmentName.toUpperCase()}`,
+        subtitle: 'Registro de horas trabajadas por estudiantes del departamento',
+        meta: [
+          { label: 'Departamento',       value: departmentName },
+          { label: 'Fecha de Emisi\u00f3n',   value: now },
+          { label: 'Jefe de Departamento', value: user.name },
+          { label: 'Ciclo',               value: selectedCycle },
+        ],
         headers,
         rows,
-      );
+      });
     }
     toast.success(`Reporte ${type.toUpperCase()} generado`, { position: 'top-center' });
   };
@@ -207,7 +221,7 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
   };
 
   return (
-    <PortalLayout user={user} onLogout={onLogout} bg="bg-zinc-50 selection:bg-emerald-100">
+    <PortalLayout user={user} onLogout={onLogout} bg="bg-background selection:bg-surface-hover">
         {/* Header + cycle picker */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -221,7 +235,7 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
                   Departamento
                 </span>
               </div>
-              <h2 className="text-3xl font-bold tracking-tight text-zinc-900 font-display">
+              <h2 className="text-3xl font-bold tracking-tight text-foreground font-display">
                 {departmentName}
               </h2>
             </div>
@@ -234,8 +248,8 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
             >
               Activar Kiosco
             </Button>
-          <div className="flex items-center space-x-3 bg-white p-1.5 rounded-2xl border border-zinc-100 shadow-sm">
-              <Calendar className="w-4 h-4 text-zinc-400 ml-2" />
+          <div className="flex items-center space-x-3 bg-card p-1.5 rounded-2xl border border-border-faint shadow-sm">
+              <Calendar className="w-4 h-4 text-faint ml-2" />
               <div className="relative">
                 <select
                   value={selectedCycle}
@@ -253,14 +267,14 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
                     );
                   })}
                 </select>
-                <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
               </div>
             </div>
           </div>
           </div>
-          <p className="text-zinc-500 text-sm">
+          <p className="text-muted text-sm">
             Gestión de horas para el ciclo:{' '}
-            <span className="font-bold text-zinc-900">{getBillingCycle(selectedCycle).label}</span>
+            <span className="font-bold text-foreground">{getBillingCycle(selectedCycle).label}</span>
           </p>
         </motion.div>
 
@@ -290,15 +304,15 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
             </AnimatePresence>
 
             {/* History */}
-            <div className="bg-white p-8 rounded-[2rem] border border-zinc-100 shadow-sm">
+            <div className="bg-card p-8 rounded-[2rem] border border-border-faint shadow-sm">
               <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-6">
                 <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-zinc-100 rounded-2xl">
-                    <History className="w-5 h-5 text-zinc-600" />
+                  <div className="icon-box-lg">
+                    <History className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="text-lg font-bold tracking-tight">Historial del Departamento</h3>
-                    <p className="text-xs text-zinc-500">Registros aprobados y procesados</p>
+                    <p className="text-xs text-muted">Registros aprobados y procesados</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -356,27 +370,27 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
       {showKioskModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setShowKioskModal(false)}>
-          <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm"
+          <div className="bg-card rounded-3xl shadow-2xl p-8 w-full max-w-sm"
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-emerald-100 rounded-xl">
                 <Clock className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-zinc-900">Activar kiosco</h3>
-                <p className="text-xs text-zinc-500">{departmentName}</p>
+                <h3 className="text-base font-bold text-foreground">Activar kiosco</h3>
+                <p className="text-xs text-muted">{departmentName}</p>
               </div>
             </div>
             <form onSubmit={handleActivateKiosk} className="flex flex-col gap-3">
               <input type="text" placeholder="Número de empleado"
                 value={kioskId} onChange={e => setKioskId(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
               <input type="password" placeholder="Contraseña"
                 value={kioskPass} onChange={e => setKioskPass(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
               <div className="flex gap-3 mt-2">
                 <button type="button" onClick={() => setShowKioskModal(false)}
-                  className="flex-1 py-3 rounded-xl border border-zinc-200 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">Cancelar</button>
+                  className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted hover:bg-surface transition-colors">Cancelar</button>
                 <button type="submit"
                   className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors">Activar</button>
               </div>

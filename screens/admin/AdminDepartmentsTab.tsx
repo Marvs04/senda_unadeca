@@ -4,7 +4,7 @@ import { Plus, Edit2, Building } from 'lucide-react';
 import { User, WorkLog, Department, UserRole } from '../../types';
 import { isDateInCycle } from '../../lib/business';
 import { toast } from 'sonner';
-import { Button, Modal, Input, Select, EmptyState } from '../../components/ui';
+import { Button, Modal, Input, Select } from '../../components/ui';
 import type { SelectOption } from '../../components/ui';
 
 interface AdminDepartmentsTabProps {
@@ -88,9 +88,9 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
           const deptHead = allUsers.find(u => u.id === dept.headId);
 
           return (
-            <div key={dept.id} className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm hover:shadow-md transition-all group">
+            <div key={dept.id} className="bg-card p-8 rounded-[2.5rem] border border-border-faint shadow-sm hover:shadow-md transition-all group">
               <div className="flex items-center justify-between mb-6">
-                <div className="p-3 bg-zinc-100 rounded-2xl group-hover:bg-zinc-900 group-hover:text-white transition-all">
+                <div className="p-3 bg-surface rounded-2xl group-hover:bg-primary group-hover:text-primary-fg transition-all">
                   <Building className="w-5 h-5" />
                 </div>
                 <Button variant="icon-action" onClick={() => openEdit(dept)}>
@@ -98,16 +98,16 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
                 </Button>
               </div>
               <h4 className="text-lg font-bold mb-1">{dept.name}</h4>
-              <p className="text-xs text-zinc-400 mb-6">
-                Jefe: <span className="text-zinc-900 font-medium">{deptHead?.name || 'No asignado'}</span>
+              <p className="text-xs text-faint mb-6">
+                Jefe: <span className="text-foreground font-medium">{deptHead?.name || 'No asignado'}</span>
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Estudiantes</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-faint mb-1">Estudiantes</p>
                   <p className="text-xl font-bold">{deptStudents}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Horas Ciclo</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-faint mb-1">Horas Ciclo</p>
                   <p className="text-xl font-bold">{deptHours.toFixed(1)}h</p>
                 </div>
               </div>

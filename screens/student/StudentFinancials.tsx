@@ -21,16 +21,16 @@ const StudentFinancials: React.FC<StudentFinancialsProps> = ({ stats }) => {
       <div className="grid grid-cols-2 gap-4">
         <motion.div
           whileHover={{ y: -5 }}
-          className="bg-white p-8 rounded-[3rem] border border-zinc-100 shadow-xl shadow-zinc-200/40 relative overflow-hidden group"
+          className="bg-card p-8 rounded-[3rem] border border-border-faint shadow-xl relative overflow-hidden group"
         >
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-all" />
           <div className="p-3 bg-emerald-50 w-fit rounded-2xl mb-6">
             <Wallet className="w-5 h-5 text-emerald-600" />
           </div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">
+          <p className="text-[10px] font-black uppercase tracking-widest text-faint mb-2">
             Total Neto
           </p>
-          <p className="text-3xl font-black font-display text-zinc-900 leading-none">
+          <p className="text-3xl font-black font-display text-foreground leading-none">
             {formatCurrency(stats.netAmount)}
           </p>
           <div className="mt-4 flex items-center space-x-1 text-[10px] font-bold text-emerald-600">
@@ -41,26 +41,26 @@ const StudentFinancials: React.FC<StudentFinancialsProps> = ({ stats }) => {
 
         <motion.div
           whileHover={{ y: -5 }}
-          className="bg-white p-8 rounded-[3rem] border border-zinc-100 shadow-xl shadow-zinc-200/40 relative overflow-hidden group"
+          className="bg-card p-8 rounded-[3rem] border border-border-faint shadow-xl relative overflow-hidden group"
         >
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/10 transition-all" />
           <div className="p-3 bg-amber-50 w-fit rounded-2xl mb-6">
             <Coins className="w-5 h-5 text-amber-600" />
           </div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">
+          <p className="text-[10px] font-black uppercase tracking-widest text-faint mb-2">
             Diezmo (10%)
           </p>
           <p className="text-3xl font-black font-display text-amber-600 leading-none">
             {formatCurrency(stats.tithe)}
           </p>
-          <p className="mt-4 text-[10px] font-bold text-zinc-400 italic">
+          <p className="mt-4 text-[10px] font-bold text-faint italic">
             "Mis manos dan, Dios multiplica"
           </p>
         </motion.div>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        <div className="p-8 rounded-[3rem] bg-zinc-900 text-white relative overflow-hidden group min-h-[160px] flex items-center">
+        <div className="p-8 rounded-[3rem] bg-dark text-primary-fg relative overflow-hidden group min-h-[160px] flex items-center">
           <div className="absolute right-0 bottom-0 w-32 h-32 bg-white/5 rounded-full blur-3xl" />
           <div className="relative z-10 flex items-start space-x-6">
             <div className="p-4 bg-white/10 rounded-2xl">
@@ -68,7 +68,7 @@ const StudentFinancials: React.FC<StudentFinancialsProps> = ({ stats }) => {
             </div>
             <div>
               <h4 className="text-sm font-black uppercase tracking-widest mb-2">Próximo Corte</h4>
-              <p className="text-sm text-zinc-400 leading-relaxed font-medium">
+              <p className="text-sm text-muted leading-relaxed font-medium">
                 Tu próximo pago se procesará el{' '}
                 <span className="text-white font-bold">
                   25 de {getBillingCycle().label.split(' ')[0]}

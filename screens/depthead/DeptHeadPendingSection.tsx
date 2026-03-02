@@ -27,7 +27,7 @@ const DeptHeadPendingSection: React.FC<DeptHeadPendingSectionProps> = ({
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: 'auto' }}
       exit={{ opacity: 0, height: 0 }}
-      className="bg-white p-8 rounded-[2rem] border border-amber-100 shadow-sm shadow-amber-500/5 overflow-hidden"
+      className="bg-card p-8 rounded-[2rem] border border-amber-100 shadow-sm shadow-amber-500/5 overflow-hidden"
     >
       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-6">
         <div className="flex items-center space-x-4">
@@ -36,7 +36,7 @@ const DeptHeadPendingSection: React.FC<DeptHeadPendingSectionProps> = ({
           </div>
           <div>
             <h3 className="text-lg font-bold tracking-tight">Pendientes de Aprobación</h3>
-            <p className="text-xs text-zinc-500">Revisa y aprueba las horas de tus estudiantes</p>
+            <p className="text-xs text-muted">Revisa y aprueba las horas de tus estudiantes</p>
           </div>
         </div>
         <Button variant="success" size="sm" icon={<CheckCircle className="h-4 w-4" />} onClick={onApproveAll}>

@@ -25,7 +25,7 @@ export async function getDepartments(): Promise<Department[]> {
 export async function createDepartment(
   data: Omit<Department, 'id'>,
 ): Promise<Department> {
-  const dept: Department = { ...data, id: `dept-${Date.now()}` };
+  const dept: Department = { ...data, id: crypto.randomUUID() };
 
   // Real (REST):
   // const { data: created } = await apiClient.post<Department>('/departments', data);

@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'motion/react';
 import {
   BarChart,
   Bar,
@@ -45,12 +44,12 @@ const AccountingCharts: React.FC<AccountingChartsProps> = ({
     <>
       {/* Bar + Pie Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
-        <div className="lg:col-span-8 bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm">
+        <div className="lg:col-span-8 bg-card p-8 rounded-[2.5rem] border border-border-faint shadow-sm">
           <div className="flex items-center space-x-3 mb-8">
-            <div className="p-2 bg-zinc-100 rounded-xl">
-              <BarChart3 className="w-4 h-4 text-zinc-600" />
+            <div className="p-2 bg-surface rounded-xl">
+              <BarChart3 className="w-4 h-4 text-muted" />
             </div>
-            <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-faint">
               Mayores Pagos (Top 5)
             </h3>
           </div>
@@ -89,12 +88,12 @@ const AccountingCharts: React.FC<AccountingChartsProps> = ({
           </div>
         </div>
 
-        <div className="lg:col-span-4 bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm">
+        <div className="lg:col-span-4 bg-card p-8 rounded-[2.5rem] border border-border-faint shadow-sm">
           <div className="flex items-center space-x-3 mb-8">
-            <div className="p-2 bg-zinc-100 rounded-xl">
-              <PieChartIcon className="w-4 h-4 text-zinc-600" />
+            <div className="p-2 bg-surface rounded-xl">
+              <PieChartIcon className="w-4 h-4 text-muted" />
             </div>
-            <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-faint">
               Horas por Depto.
             </h3>
           </div>
@@ -132,12 +131,12 @@ const AccountingCharts: React.FC<AccountingChartsProps> = ({
 
       {/* Weekly Summary + Trimester Progress */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
-        <div className="lg:col-span-4 bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm">
+        <div className="lg:col-span-4 bg-card p-8 rounded-[2.5rem] border border-border-faint shadow-sm">
           <div className="flex items-center space-x-3 mb-6">
-            <div className="p-2 bg-zinc-100 rounded-xl">
-              <CalendarDays className="w-4 h-4 text-zinc-600" />
+            <div className="p-2 bg-surface rounded-xl">
+              <CalendarDays className="w-4 h-4 text-muted" />
             </div>
-            <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-faint">
               Resumen Semanal
             </h3>
           </div>
@@ -145,32 +144,32 @@ const AccountingCharts: React.FC<AccountingChartsProps> = ({
             {weeklySummary.map(item => (
               <div
                 key={item.key}
-                className="flex items-center justify-between p-4 bg-zinc-50 rounded-2xl"
+                className="flex items-center justify-between p-4 bg-surface rounded-2xl"
               >
                 <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-zinc-400">
+                  <p className="text-xs font-black uppercase tracking-widest text-faint">
                     {item.key}
                   </p>
                   <p className="text-sm font-bold">{item.hours.toFixed(1)} horas</p>
                 </div>
-                <p className="text-sm font-black text-zinc-900">{formatCurrency(item.amount)}</p>
+                <p className="text-sm font-black text-foreground">{formatCurrency(item.amount)}</p>
               </div>
             ))}
             {weeklySummary.length === 0 && (
-              <p className="text-xs text-zinc-400 italic text-center py-8">
+              <p className="text-xs text-faint italic text-center py-8">
                 Sin datos para este periodo
               </p>
             )}
           </div>
         </div>
 
-        <div className="lg:col-span-8 bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm">
+        <div className="lg:col-span-8 bg-card p-8 rounded-[2.5rem] border border-border-faint shadow-sm">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-zinc-100 rounded-xl">
-                <TrendingUp className="w-4 h-4 text-zinc-600" />
+              <div className="p-2 bg-surface rounded-xl">
+                <TrendingUp className="w-4 h-4 text-muted" />
               </div>
-              <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-faint">
                 Progreso del Cuatrimestre
               </h3>
             </div>
@@ -190,20 +189,20 @@ const AccountingCharts: React.FC<AccountingChartsProps> = ({
                   className={cn(
                     'p-6 rounded-3xl border transition-all',
                     isCurrent
-                      ? 'bg-zinc-900 text-white border-zinc-900 shadow-xl shadow-zinc-900/20'
-                      : 'bg-white border-zinc-100 text-zinc-900',
+                      ? 'bg-primary text-primary-fg border-primary shadow-xl shadow-primary/20'
+                      : 'bg-card border-border-faint text-foreground',
                   )}
                 >
                   <p
                     className={cn(
                       'text-[10px] font-black uppercase tracking-widest mb-4',
-                      'text-zinc-400',
+                    'text-faint',
                     )}
                   >
                     Cuatri {tNum}
                   </p>
                   <p className="text-2xl font-black mb-1">{tHours.toFixed(0)}h</p>
-                  <p className={cn('text-xs font-bold', isCurrent ? 'text-emerald-400' : 'text-zinc-500')}>
+                  <p className={cn('text-xs font-bold', isCurrent ? 'text-emerald-400' : 'text-muted')}>
                     {formatCurrency(tAmount)}
                   </p>
                 </div>

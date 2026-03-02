@@ -18,38 +18,38 @@ interface RoleConfig {
 
 export const ROLE_CONFIG: Record<UserRole, RoleConfig> = {
   [UserRole.SUPER_ADMIN]: {
-    bg: 'bg-zinc-950',
+    bg: 'bg-dark',
     text: 'Super Admin',
     icon: ShieldCheck,
-    accent: 'border-zinc-800',
+    accent: 'border-border-dark',
     theme: 'dark',
   },
   [UserRole.ADMIN]: {
-    bg: 'bg-white',
+    bg: 'bg-card',
     text: 'Administración',
     icon: Lock,
-    accent: 'border-zinc-200',
+    accent: 'border-border',
     theme: 'light',
   },
   [UserRole.DEPT_HEAD]: {
-    bg: 'bg-white',
+    bg: 'bg-card',
     text: 'Jefatura',
     icon: Users,
-    accent: 'border-zinc-200',
+    accent: 'border-border',
     theme: 'light',
   },
   [UserRole.STUDENT]: {
-    bg: 'bg-slate-950',
+    bg: 'bg-student',
     text: 'Estudiante',
     icon: GraduationCap,
-    accent: 'border-white/10',
+    accent: 'border-border-dark',
     theme: 'dark',
   },
   [UserRole.ACCOUNTING]: {
-    bg: 'bg-white',
+    bg: 'bg-card',
     text: 'Contabilidad',
     icon: Briefcase,
-    accent: 'border-zinc-200',
+    accent: 'border-border',
     theme: 'light',
   },
 };

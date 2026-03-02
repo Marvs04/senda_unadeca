@@ -69,7 +69,7 @@ const CredentialForm: React.FC<CredentialFormProps> = ({
   onSubmit,
   submitLabel,
   submitIcon,
-  submitClass = 'bg-zinc-900 hover:bg-zinc-700 text-white',
+  submitClass = 'bg-primary hover:bg-primary-hover text-primary-fg',
   placeholder = 'Carnet',
 }) => {
   const [id, setId]     = useState('');
@@ -91,14 +91,14 @@ const CredentialForm: React.FC<CredentialFormProps> = ({
         onChange={e => setId(e.target.value)}
         placeholder={placeholder}
         autoComplete="off"
-        className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+        className="w-full px-4 py-3 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary"
       />
       <input
         type="password"
         value={pass}
         onChange={e => setPass(e.target.value)}
         placeholder="Contraseña"
-        className="w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+        className="w-full px-4 py-3 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary"
       />
       <button
         type="submit"
@@ -127,7 +127,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onRequestCancel, tic
       initial={{ opacity: 0, scale: 0.95, y: 10 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, y: -10 }}
-      className="flex items-center justify-between bg-white rounded-2xl border border-zinc-100 shadow-sm px-5 py-4"
+      className="flex items-center justify-between bg-card rounded-2xl border border-border-faint shadow-sm px-5 py-4"
     >
       <div className="flex items-center gap-4">
         <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
@@ -136,19 +136,19 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onRequestCancel, tic
           </span>
         </div>
         <div>
-          <p className="text-sm font-semibold text-zinc-900">{session.user.name}</p>
-          <p className="text-xs text-zinc-400">Carnet {session.user.carnet}</p>
+          <p className="text-sm font-semibold text-foreground">{session.user.name}</p>
+          <p className="text-xs text-faint">Carnet {session.user.carnet}</p>
         </div>
       </div>
       <div className="flex items-center gap-4">
         <div className="text-right">
-          <p className="text-xs text-zinc-400">Tiempo activo</p>
-          <p className="text-sm font-mono font-bold text-zinc-900">{formatElapsed(session.startedAt)}</p>
+          <p className="text-xs text-faint">Tiempo activo</p>
+          <p className="text-sm font-mono font-bold text-foreground">{formatElapsed(session.startedAt)}</p>
         </div>
         <button
           onClick={() => onRequestCancel(session.studentId)}
           title="Cancelar sesión (requiere credenciales de jefe)"
-          className="p-2 rounded-lg text-zinc-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+          className="p-2 rounded-lg text-faint hover:text-danger hover:bg-rose-50 transition-colors"
         >
           <XCircle className="w-4 h-4" />
         </button>
@@ -191,7 +191,7 @@ const CancelModal: React.FC<CancelModalProps> = ({ studentName, onConfirm, onClo
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm"
+        className="bg-card rounded-3xl shadow-2xl p-8 w-full max-w-sm"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-6">
@@ -199,8 +199,8 @@ const CancelModal: React.FC<CancelModalProps> = ({ studentName, onConfirm, onClo
             <XCircle className="w-5 h-5 text-rose-600" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-zinc-900">Cancelar sesión</h3>
-            <p className="text-xs text-zinc-500">{studentName}</p>
+            <h3 className="text-base font-bold text-foreground">Cancelar sesión</h3>
+            <p className="text-xs text-muted">{studentName}</p>
           </div>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -209,14 +209,14 @@ const CancelModal: React.FC<CancelModalProps> = ({ studentName, onConfirm, onClo
             placeholder="Número de empleado (jefe)"
             value={headId}
             onChange={e => setHeadId(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
+            className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
           />
           <input
             type="password"
             placeholder="Contraseña"
             value={headPass}
             onChange={e => setHeadPass(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
+            className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
           />
           <textarea
             placeholder="Razón del rechazo..."
@@ -224,10 +224,10 @@ const CancelModal: React.FC<CancelModalProps> = ({ studentName, onConfirm, onClo
             onChange={e => setReason(e.target.value)}
             rows={3}
             maxLength={LIMITS.KIOSK_CANCEL_REASON}
-            className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-rose-400"
+            className="w-full px-4 py-3 rounded-xl border border-border text-sm resize-none focus:outline-none focus:ring-2 focus:ring-rose-400"
           />
           <div className="flex gap-3 mt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl border border-zinc-200 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
+            <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted hover:bg-surface transition-colors">
               Cancelar
             </button>
             <button type="submit" className="flex-1 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold transition-colors">
@@ -275,50 +275,50 @@ const ShiftPanel: React.FC<ShiftPanelProps> = ({ shifts: initialShifts, onSave, 
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm"
+        className="bg-card rounded-3xl shadow-2xl p-8 w-full max-w-sm"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-zinc-100 rounded-xl">
-            <Settings className="w-5 h-5 text-zinc-600" />
+          <div className="p-2 bg-surface rounded-xl">
+            <Settings className="w-5 h-5 text-muted" />
           </div>
-          <h3 className="text-base font-bold text-zinc-900">Configurar turnos</h3>
+          <h3 className="text-base font-bold text-foreground">Configurar turnos</h3>
         </div>
         <form onSubmit={handleSave} className="flex flex-col gap-4">
           <div className="space-y-3">
             {shifts.map((s, i) => (
               <div key={i} className="flex items-center gap-2">
                 <input type="time" value={s.startTime} onChange={e => updateShift(i, 'startTime', e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-                <span className="text-zinc-400 text-xs">→</span>
+                  className="flex-1 px-3 py-2 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                <span className="text-faint text-xs">→</span>
                 <input type="time" value={s.endTime} onChange={e => updateShift(i, 'endTime', e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
-                <button type="button" onClick={() => removeShift(i)} className="p-2 text-zinc-300 hover:text-rose-500 transition-colors">
+                  className="flex-1 px-3 py-2 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                <button type="button" onClick={() => removeShift(i)} className="p-2 text-faint hover:text-danger transition-colors">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             ))}
           </div>
           <button type="button" onClick={addShift}
-            className="flex items-center gap-2 text-xs text-zinc-500 hover:text-zinc-900 transition-colors">
+            className="flex items-center gap-2 text-xs text-muted hover:text-foreground transition-colors">
             <Plus className="w-3 h-3" /> Agregar turno
           </button>
-          <div className="border-t border-zinc-100 pt-4 space-y-3">
-            <p className="text-xs text-zinc-400 font-medium">Credenciales de jefe para confirmar</p>
+          <div className="border-t border-border-faint pt-4 space-y-3">
+            <p className="text-xs text-faint font-medium">Credenciales de jefe para confirmar</p>
             <input type="text" placeholder="Número de empleado" value={headId}
               onChange={e => setHeadId(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             <input type="password" placeholder="Contraseña" value={headPass}
               onChange={e => setHeadPass(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           <div className="flex gap-3">
             <button type="button" onClick={onClose}
-              className="flex-1 py-3 rounded-xl border border-zinc-200 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors">
+              className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted hover:bg-surface transition-colors">
               Cancelar
             </button>
             <button type="submit"
-              className="flex-1 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-700 text-white text-sm font-semibold transition-colors">
+              className="flex-1 py-3 rounded-xl bg-primary hover:bg-primary-hover text-primary-fg text-sm font-semibold transition-colors">
               Guardar
             </button>
           </div>
@@ -411,7 +411,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({
           </div>
           <div>
             <h1 className="text-lg font-bold text-white font-display">SENDA Kiosco</h1>
-            <p className="text-xs text-zinc-400">{departmentName}</p>
+            <p className="text-xs text-faint">{departmentName}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -426,14 +426,13 @@ const KioskScreen: React.FC<KioskScreenProps> = ({
           </span>
           <button
             onClick={() => setShowShiftPanel(true)}
-            className="p-2 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/5 transition-colors"
-            title="Configurar turnos"
+            className="p-2 rounded-lg text-muted hover:text-zinc-200 hover:bg-white/5 transition-colors"
           >
             <Settings className="w-4 h-4" />
           </button>
           <button
             onClick={() => setShowDeactivate(true)}
-            className="p-2 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+            className="p-2 rounded-lg text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
             title="Desactivar kiosco"
           >
             <Power className="w-4 h-4" />
@@ -449,8 +448,8 @@ const KioskScreen: React.FC<KioskScreenProps> = ({
           <div className="max-w-sm mx-auto w-full space-y-8">
             <div>
               <h2 className="text-2xl font-bold text-white font-display mb-1">Registrar asistencia</h2>
-              <p className="text-sm text-zinc-400">
-                Ingresa tu carnet y contraseña para marcar <strong className="text-zinc-200">entrada</strong> o <strong className="text-zinc-200">salida</strong>.
+              <p className="text-sm text-faint">
+                Ingresa tu carnet y contraseña para marcar <strong className="text-primary-fg/90">entrada</strong> o <strong className="text-primary-fg/90">salida</strong>.
               </p>
             </div>
             <CredentialForm
@@ -461,8 +460,8 @@ const KioskScreen: React.FC<KioskScreenProps> = ({
               placeholder="Carnet"
             />
             <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5">
-              <ShieldCheck className="w-4 h-4 text-zinc-500 shrink-0" />
-              <p className="text-xs text-zinc-500">
+              <ShieldCheck className="w-4 h-4 text-muted shrink-0" />
+              <p className="text-xs text-muted">
                 Si ya tienes sesión activa, ingresa tus credenciales nuevamente para registrar tu salida.
               </p>
             </div>
@@ -472,7 +471,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({
         {/* Right: active sessions board */}
         <div className="lg:col-span-3 flex flex-col p-10">
           <div className="flex items-center gap-3 mb-8">
-            <Users className="w-5 h-5 text-zinc-400" />
+            <Users className="w-5 h-5 text-faint" />
             <h2 className="text-lg font-semibold text-white">Trabajando ahora</h2>
           </div>
 
@@ -526,16 +525,16 @@ const KioskScreen: React.FC<KioskScreenProps> = ({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm"
+              className="bg-card rounded-3xl shadow-2xl p-8 w-full max-w-sm"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 bg-rose-100 rounded-xl">
                   <Power className="w-5 h-5 text-rose-600" />
                 </div>
-                <h3 className="text-base font-bold text-zinc-900">Desactivar kiosco</h3>
+                <h3 className="text-base font-bold text-foreground">Desactivar kiosco</h3>
               </div>
-              <p className="text-xs text-zinc-500 mb-6">
+              <p className="text-xs text-muted mb-6">
                 Las sesiones activas se cerrarán y se registrarán sus horas como pendientes de aprobación.
               </p>
               <CredentialForm

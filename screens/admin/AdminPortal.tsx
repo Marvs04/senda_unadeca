@@ -58,10 +58,10 @@ const AdminPortal: React.FC<AdminPortalProps> = ({
   } = useAdminRateUpdate({ currentRate, onRateUpdated: setCurrentRate });
 
   return (
-    <PortalLayout user={user} onLogout={onLogout} bg="bg-zinc-50 selection:bg-indigo-100">
+    <PortalLayout user={user} onLogout={onLogout} bg="bg-background selection:bg-surface-hover">
       {/* Top bar: tabs + controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-        <TabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabBar tabs={TABS} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as TabId)} />
 
         <div className="flex items-center space-x-3">
           <Button
@@ -73,7 +73,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({
             Tarifa: {formatCurrency(currentRate)}
           </Button>
           <div className="relative">
-            <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
             <select
               value={selectedCycle}
               onChange={e => setSelectedCycle(e.target.value)}
@@ -86,7 +86,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({
                 return <option key={cycle.value} value={cycle.value}>{cycle.label}</option>;
               })}
             </select>
-            <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
           </div>
         </div>
       </div>
@@ -95,6 +95,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({
       <AnimatePresence mode="wait">
         {activeTab === 'dashboard' && (
           <AdminDashboardTab
+            user={user}
             allLogs={allLogs} allUsers={allUsers} allDepartments={allDepartments}
             selectedCycle={selectedCycle} currentRate={currentRate}
           />

@@ -38,6 +38,8 @@ export const LIMITS = {
   DESCRIPTION: 200,
   REJECTION_REASON: 150,
   KIOSK_CANCEL_REASON: 150,
+  /** Maximum hours a Dept Head can log in a single entry. Backend should mirror this with a CHECK constraint. */
+  MAX_HOURS: 12,
 };
 
 // ─── Kiosk ────────────────────────────────────────────────────────────────────

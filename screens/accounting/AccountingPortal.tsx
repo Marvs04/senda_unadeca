@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDebounce } from '../../hooks/useDebounce';
 import { motion } from 'motion/react';
 import {
   DollarSign,
@@ -16,7 +17,8 @@ import { PortalLayout } from '../../components/layout';
 import DashboardCard from '../../components/DashboardCard';
 import { User, WorkLogStatus, WorkLog, Department } from '../../types';
 import { TITHE_PERCENTAGE } from '../../constants';
-import { cn, exportToCSV, exportToPDF, formatCurrency } from '../../lib/utils';
+import { cn, exportToCSV, formatCurrency } from '../../lib/utils';
+import { renderPDF } from '../../lib/pdf';
 import { getBillingCycle, getTrimester } from '../../lib/business';
 import { useAccountingData } from '../../hooks/useAccountingData';
 import { useConfirm } from '../../hooks/useConfirm';
@@ -49,6 +51,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
   const [selectedTrimester, setSelectedTrimester] = useState(currentTrimester.num);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm);
   const [selectedDeptId, setSelectedDeptId] = useState('all');
   const { confirm, dialogProps } = useConfirm();
 
@@ -67,7 +70,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
     selectedCycle,
     selectedTrimester,
     selectedYear,
-    searchTerm,
+    searchTerm: debouncedSearch,
     selectedDeptId,
     currentRate,
   });
@@ -109,21 +112,32 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
       ];
     });
     const filename = `nomina_${viewMode}_${viewMode === 'cycle' ? selectedCycle : selectedTrimester}`;
+    const period = viewMode === 'cycle'
+      ? `Ciclo ${selectedCycle}`
+      : `Cuatrimestre ${selectedTrimester} \u2014 ${selectedYear}`;
     if (type === 'csv') {
       exportToCSV(`${filename}.csv`, headers, rows);
     } else {
-      exportToPDF(
-        `${filename}.pdf`,
-        `Reporte de Nómina - ${viewMode === 'cycle' ? 'Ciclo' : 'Cuatrimestre'}`,
+      const now = new Date().toLocaleDateString('es-CR', { year: 'numeric', month: 'long', day: 'numeric' });
+      renderPDF({
+        filename: `${filename}.pdf`,
+        reportTitle: `N\u00d3MINA DE PAGOS \u2014 ${period.toUpperCase()}`,
+        subtitle: 'Resumen de horas aprobadas, montos brutos, diezmo y pago neto',
+        meta: [
+          { label: 'Per\u00edodo',         value: period },
+          { label: 'Fecha de Emisi\u00f3n', value: now },
+          { label: 'Responsable',      value: user.name },
+          { label: 'Tipo de Reporte',  value: 'N\u00f3mina de Pagos' },
+        ],
         headers,
         rows,
-      );
+      });
     }
     toast.success(`Reporte ${type.toUpperCase()} generado`, { position: 'top-center' });
   };
 
   return (
-    <PortalLayout user={user} onLogout={onLogout} bg="bg-zinc-50 selection:bg-indigo-100">
+    <PortalLayout user={user} onLogout={onLogout} bg="bg-background selection:bg-surface-hover">
         {/* Toolbar */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -131,10 +145,10 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
           className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6"
         >
           <div>
-            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 font-display">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground font-display">
               Contabilidad
             </h2>
-            <p className="text-zinc-500 text-sm mt-1">
+            <p className="text-muted text-sm mt-1">
               Gestión de nómina y procesamiento de pagos.
             </p>
           </div>
@@ -142,19 +156,19 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
           <div className="flex flex-wrap items-center gap-3">
             {/* Search */}
             <div className="relative w-full md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint" />
               <input
                 type="text"
                 placeholder="Buscar estudiante..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-xs focus:ring-0"
+                className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-xs focus:ring-0"
               />
             </div>
 
             {/* Dept filter */}
             <div className="relative">
-              <Building className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Building className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
               <select
                 value={selectedDeptId}
                 onChange={e => setSelectedDeptId(e.target.value)}
@@ -167,18 +181,18 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
                   </option>
                 ))}
               </select>
-              <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
             </div>
 
             {/* View mode toggle */}
-            <div className="flex items-center space-x-1 bg-zinc-100 p-1 rounded-xl">
+            <div className="flex items-center space-x-1 bg-surface p-1 rounded-xl">
               <button
                 onClick={() => setViewMode('cycle')}
                 className={cn(
                   'px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all',
                   viewMode === 'cycle'
-                    ? 'bg-white text-zinc-900 shadow-sm'
-                    : 'text-zinc-500 hover:text-zinc-700',
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted hover:text-foreground',
                 )}
               >
                 Ciclo
@@ -188,8 +202,8 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
                 className={cn(
                   'px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all',
                   viewMode === 'trimester'
-                    ? 'bg-white text-zinc-900 shadow-sm'
-                    : 'text-zinc-500 hover:text-zinc-700',
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted hover:text-foreground',
                 )}
               >
                 Cuatrimestre
@@ -199,7 +213,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
             {/* Period selector */}
             {viewMode === 'cycle' ? (
               <div className="relative">
-                <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
                 <select
                   value={selectedCycle}
                   onChange={e => setSelectedCycle(e.target.value)}
@@ -216,12 +230,12 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
                     );
                   })}
                 </select>
-                <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
               </div>
             ) : (
               <div className="flex items-center space-x-2">
                 <div className="relative">
-                  <CalendarDays className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <CalendarDays className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
                   <select
                     value={selectedTrimester}
                     onChange={e => setSelectedTrimester(Number(e.target.value))}
@@ -238,7 +252,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
                         </option>
                       ))}
                   </select>
-                  <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                  <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
                 </div>
                 <div className="relative">
                   <select
@@ -254,26 +268,26 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
                         </option>
                       ))}
                   </select>
-                  <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                  <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
                 </div>
               </div>
             )}
 
             {/* Export buttons */}
-            <div className="flex items-center space-x-1 bg-white p-1 rounded-xl border border-zinc-200">
+            <div className="flex items-center space-x-1 bg-card p-1 rounded-xl border border-border">
               <button
                 onClick={() => handleExport('csv')}
-                className="p-2 hover:bg-zinc-50 rounded-lg transition-all"
+                className="p-2 hover:bg-surface rounded-lg transition-all"
                 title="CSV"
               >
-                <Download className="w-4 h-4 text-zinc-400" />
+                <Download className="w-4 h-4 text-faint" />
               </button>
               <button
                 onClick={() => handleExport('pdf')}
-                className="p-2 hover:bg-zinc-50 rounded-lg transition-all"
+                className="p-2 hover:bg-surface rounded-lg transition-all"
                 title="PDF"
               >
-                <FileText className="w-4 h-4 text-zinc-400" />
+                <FileText className="w-4 h-4 text-faint" />
               </button>
             </div>
           </div>

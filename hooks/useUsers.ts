@@ -43,7 +43,7 @@ export function useUsers() {
   // ── Mutaciones optimistas ─────────────────────────────────────────────────
 
   const addUser = (newUser: Omit<User, 'id'>) => {
-    const user: User = { ...newUser, id: `user-${Date.now()}` };
+    const user: User = { ...newUser, id: crypto.randomUUID() };
     setUsers(prev => [...prev, user]);
     createUser(newUser).catch(() => {
       setUsers(prev => prev.filter(u => u.id !== user.id));

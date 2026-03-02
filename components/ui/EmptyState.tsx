@@ -18,7 +18,7 @@ const Inner: React.FC<Omit<EmptyStateProps, 'colSpan'>> = ({
     {icon && (
       <span className="text-zinc-300">{icon}</span>
     )}
-    <p className="text-sm text-zinc-400 font-medium italic">{message}</p>
+    <p className="text-sm text-faint font-medium italic">{message}</p>
   </div>
 );
 

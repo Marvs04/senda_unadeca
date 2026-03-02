@@ -1594,3 +1594,144 @@ REJECTED logs are immediately visible in student history and dept head tables.
 - [ ] Wire Supabase Realtime `useEffect` in `useKiosk.ts` (D.9)
 - [ ] Subscribe to `kiosk_sessions` changes for live board sync
 - [ ] Verify WRONG_DEPT RLS on kiosk_sessions INSERT matches frontend check
+
+---
+
+## 11. Frontend Production Status
+
+> **Estado del frontend en el momento de entrega al equipo de backend: listo para conectar.**
+> El siguiente listado documenta qué se implementó, qué contratos cumple el frontend,
+> y qué acciones concretas debe tomar el backend para activar cada servicio.
+
+---
+
+### 11.1 Arquitectura del servicio mock → real
+
+Cada servicio en `services/` tiene dos bloques comentados debajo del mock:
+
+```typescript
+// Real (REST):
+// const { data } = await apiClient.post('/endpoint', payload);
+
+// Real (Supabase):
+// const { data, error } = await supabase.from('table').insert(...).select().single();
+// if (error) throw new Error(error.message);
+// return mapEntity(data);
+
+return Promise.resolve(MOCK_DATA); // ← eliminar esta línea al activar
+```
+
+**Pasos para activar un servicio:**
+1. Descomenta el bloque `Real (Supabase):`.
+2. Elimina la línea `return Promise.resolve(...)`.
+3. Repite para todos los métodos del servicio.
+4. Cuando todos los servicios de `services/` estén activos, elimina `api/__mocks__.ts`.
+
+---
+
+### 11.2 IDs de entidades (importante)
+
+Los IDs temporales en modo mock usan `crypto.randomUUID()`.
+Cuando Supabase esté activo, **los IDs vendrán del servidor** (`gen_random_uuid()` definido en el schema).
+El frontend ya está preparado para eso: ningún componente asume el formato del ID local.
+
+---
+
+### 11.3 Variables de entorno
+
+El frontend valida las vars en startup (`lib/env.ts`):
+
+| Variable | Obligatoria en prod | Descripción |
+|---|---|---|
+| `VITE_SUPABASE_URL` | ✅ | URL del proyecto Supabase |
+| `VITE_SUPABASE_ANON_KEY` | ✅ | Clave anon pública (no la service_role) |
+
+En **desarrollo** (modo mock activo): si no están configuradas, solo se muestra un `console.warn`.
+En **producción**: la app lanza un `Error` y no arranca. Crear `.env.local` antes del primer deploy.
+
+---
+
+### 11.4 Modo Demo
+
+El botón "Activar Modo Demo" (login screen) **solo es visible en `NODE_ENV=development`**.
+En el build de producción (`vite build`) el bloque queda excluido por tree-shaking de Vite.
+No se requiere ninguna acción del backend para esto.
+
+---
+
+### 11.5 Autenticación — contrato con el frontend
+
+El `LoginScreen` envía las credenciales a `services/authService` (a implementar por backend).
+El frontend espera que el login devuelva el **UUID del usuario** (`user.id`) que coincida con la tabla `profiles`.
+
+```typescript
+// Contrato esperado:
+// loginUser(identifier: string, password: string): Promise<{ userId: string }>
+```
+
+Pasos:
+1. Crear `services/authService.ts` con `loginUser()` y `logoutUser()`.
+2. En `loginUser()`, llamar `supabase.auth.signInWithPassword({ email: buildAuthEmail(identifier), password })`.
+3. Obtener el perfil del usuario: `supabase.from('profiles').select('id').eq('auth_id', session.user.id).single()`.
+4. Devolver el `id` de `profiles` — el frontend lo usa como `currentUser` en `App.tsx`.
+5. En `LoginScreen.tsx`, reemplazar el bloque `handleLoginSubmit` por la llamada a `loginUser()`.
+
+---
+
+### 11.6 Paginación (requerimiento para backend)
+
+El frontend actualmente carga **todos los registros en memoria** porque los mocks devuelven arrays completos.
+En producción esto no escala si hay miles de logs.
+
+**Se requiere paginación server-side para:**
+- `getWorkLogs()` → `work_logs` tabla (potencialmente miles de filas)
+- `getUsers()` → `profiles` tabla
+
+**Parámetros de paginación sugeridos:**
+```typescript
+getWorkLogs(options?: { page?: number; limit?: number; status?: WorkLogStatus; studentId?: string }): Promise<{ data: WorkLog[]; count: number }>
+```
+
+El frontend deberá actualizarse para pasar estos parámetros desde los hooks, pero **la interfaz de los servicios ya está aislada** — solo hay que cambiar `services/workLogService.ts` sin tocar componentes.
+
+---
+
+### 11.7 Checklist de integración backend ← frontend
+
+```
+SETUP INICIAL
+  [ ] Crear proyecto Supabase
+  [ ] Copiar .env.local desde .env.example y rellenar VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY
+  [ ] Ejecutar todo el SQL del schema (secciones 3.1–3.5 + Apéndice D)
+  [ ] Habilitar RLS en todas las tablas (sección 4)
+  [ ] Crear funciones helper (sección 5)
+  [ ] Activar Realtime para kiosk_state y kiosk_sessions (Apéndice D)
+  [ ] Desplegar Edge Functions: create-user, delete-user, reset-password, update-rate (sección 9)
+  [ ] Sembrar datos iniciales (sección 10)
+
+ACTIVACIÓN DE SERVICIOS (en este orden)
+  [ ] services/rateService.ts           → getCurrentRate(), createRate()
+  [ ] services/departmentService.ts     → getDepartments(), createDepartment(), patchDepartment()
+  [ ] services/userService.ts           → getUsers(), createUser(), patchUser(), deleteUser()
+  [ ] services/workLogService.ts        → getWorkLogs(), createWorkLog(), patchWorkLogStatus(), bulkPatchWorkLogStatus()
+  [ ] Crear services/authService.ts     → loginUser(), logoutUser()  (no existe aún, backend debe crearlo)
+
+AUTENTICACIÓN
+  [ ] Implementar buildAuthEmail() en lib/utils.ts (sección 2.2)
+  [ ] Crear services/authService.ts con loginUser() y logoutUser()
+  [ ] Actualizar LoginScreen.tsx: reemplazar handleLoginSubmit con llamada a loginUser()
+  [ ] Actualizar App.tsx: manejar sesión persistida con supabase.auth.onAuthStateChange()
+  [ ] Actualizar handleLogout en App.tsx para llamar logoutUser()
+
+KIOSCO (Realtime)
+  [ ] Activar el useEffect de Supabase Realtime en useKiosk.ts (Apéndice D.9)
+  [ ] Suscribir cambios de kiosk_sessions para live board sync
+
+LIMPIEZA FINAL
+  [ ] Verificar que todos los servicios estén activos
+  [ ] Eliminar api/__mocks__.ts
+  [ ] Ejecutar npm run lint  → 0 errores
+  [ ] Ejecutar npm test      → 32/32 ✓
+  [ ] Ejecutar npm run build → sin errores de TypeScript
+  [ ] Deploy
+```

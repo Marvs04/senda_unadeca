@@ -23,7 +23,7 @@ function TabBar<T extends string = string>({
   return (
     <div
       className={cn(
-        'flex items-center space-x-1 bg-zinc-100 p-1 rounded-2xl w-fit',
+        'flex items-center space-x-1 bg-surface p-1 rounded-2xl w-fit',
         className,
       )}
     >
@@ -37,8 +37,8 @@ function TabBar<T extends string = string>({
             className={cn(
               'flex items-center space-x-2 px-6 py-2.5 rounded-xl text-xs font-bold transition-all',
               isActive
-                ? 'bg-white text-zinc-900 shadow-sm'
-                : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-200/50',
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted hover:text-foreground hover:bg-surface-hover/50',
             )}
           >
             {IconComponent && <IconComponent className="w-4 h-4" />}
