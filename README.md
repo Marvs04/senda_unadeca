@@ -2,8 +2,223 @@
 
 # SENDA — Sistema de Horas Beca UNADECA
 
-**Portal de gestión de horas beca multi-rol para trabajadores estudiantiles de UNADECA.**  
-Registra horas, aprueba registros, procesa nóminas y genera reportes PDF — todo en un solo lugar.
+**Multi-role work-hours management portal for UNADECA student workers.**  
+Track hours, approve logs, process payroll and generate PDF reports — all in one place.
+
+![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind-4-38BDF8?style=flat-square&logo=tailwindcss&logoColor=white)
+![Supabase Ready](https://img.shields.io/badge/Supabase-Ready-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-32%20passing-22c55e?style=flat-square&logo=vitest&logoColor=white)
+
+</div>
+
+---
+
+## Overview
+
+SENDA is a full frontend portal system built for UNADECA's student work-scholarship program (*Horas Beca*). It replaces manual tracking with a role-based digital workflow — from a student logging hours to accounting exporting payroll reports.
+
+The app ships with a complete mock data layer so every role works out of the box today. The backend layer is fully designed and documented, ready to connect to Supabase when deployment begins.
+
+---
+
+## Roles
+
+| Role | Portal | Responsibilities |
+|---|---|---|
+| **Student** | StudentPortal | Log hours, view history, track earnings |
+| **Department Head** | DeptHeadPortal | Approve / reject logs, export dept reports |
+| **Admin** | AdminPortal | Manage users, departments, set hourly rate |
+| **Accounting** | AccountingPortal | View payroll by cycle, export branded PDF/CSV |
+| **Super Admin** | SuperAdminPortal | Manage all institutional accounts |
+
+---
+
+## Tech Stack
+
+### Core
+| Tool | Version | Purpose |
+|---|---|---|
+| [React](https://react.dev) | 19 | UI framework with code-splitting (React.lazy) |
+| [TypeScript](https://www.typescriptlang.org) | 5.8 | Strict type safety across the entire codebase |
+| [Vite](https://vitejs.dev) | 6 | Dev server and build tool (esbuild) |
+
+### Styling
+| Tool | Version | Purpose |
+|---|---|---|
+| [Tailwind CSS](https://tailwindcss.com) | 4 | Utility-first — semantic tokens via `@theme { --color-* }` |
+| [clsx](https://github.com/lukeed/clsx) + [tailwind-merge](https://github.com/dcastil/tailwind-merge) | latest | Conditional class composition without conflicts |
+
+### Animation
+| Tool | Version | Purpose |
+|---|---|---|
+| [Motion](https://motion.dev) | 12 | Page transitions and modal animations |
+
+### Data & Charts
+| Tool | Version | Purpose |
+|---|---|---|
+| [Recharts](https://recharts.org) | 3 | Payroll and hours charts in the Accounting portal |
+| [date-fns](https://date-fns.org) | 4 | Date formatting and billing cycle logic |
+
+### Notifications
+| Tool | Version | Purpose |
+|---|---|---|
+| [Sonner](https://sonner.emilkowal.ski) | 2 | Action and error toast notifications |
+
+### PDF Export
+| Tool | Version | Purpose |
+|---|---|---|
+| [jsPDF](https://github.com/parallax/jsPDF) + [jspdf-autotable](https://github.com/simonbengtsson/jsPDF-AutoTable) | 4 / 5 | Branded PDF reports with UNADECA/SENDA letterhead |
+
+### Icons
+| Tool | Purpose |
+|---|---|
+| [Lucide React](https://lucide.dev) | Consistent icon set throughout the UI |
+
+### Code Quality
+| Tool | Purpose |
+|---|---|
+| [Vitest](https://vitest.dev) | 32 unit tests for `lib/business.ts` |
+| [ESLint](https://eslint.org) + typescript-eslint | 0-warning baseline enforced |
+| [Husky](https://typicode.github.io/husky) | Pre-commit hook: `npm run lint` before every commit |
+
+### Backend (ready, not yet connected)
+| Tool | Purpose |
+|---|---|
+| [Supabase](https://supabase.com) | PostgreSQL database, Auth, Row Level Security, Edge Functions |
+
+---
+
+## Project Structure
+
+```
+senda_unadeca/
+├── api/                      # HTTP client + Supabase client + mock data
+│   ├── apiClient.ts          # Centralized HTTP client with token management
+│   ├── supabaseClient.ts     # Supabase client + table mappers
+│   ├── __mocks__.ts          # Mock data (delete when Supabase goes live)
+│   └── index.ts              # Barrel export
+├── components/
+│   ├── ui/                   # Atomic UI components (Button, Modal, Input, ...)
+│   ├── layout/               # PageContainer and PortalLayout shell
+│   ├── ErrorBoundary.tsx     # Global error boundary with debug details
+│   ├── Header.tsx            # Sticky header with per-role config
+│   └── WorkLogTable.tsx      # Reusable work-log data table
+├── hooks/                    # Feature hooks (data fetching, UI state, debounce)
+├── lib/
+│   ├── business.ts           # Billing cycle logic, pay calculations
+│   ├── pdf.ts                # Professional letterhead PDF engine
+│   ├── env.ts                # Environment variable validation at startup
+│   ├── utils.ts              # CSV export, formatCurrency, helpers
+│   ├── uiConfig.ts           # Status colors, label maps per role
+│   └── __tests__/
+│       └── business.test.ts  # 32 unit tests
+├── screens/
+│   ├── admin/                # Admin portal + tabs (Dashboard, Students, ...)
+│   ├── accounting/           # Accounting portal + charts + payroll table
+│   ├── depthead/             # Dept Head portal + log form + modals
+│   ├── student/              # Student portal + timer + history + financials
+│   ├── superadmin/           # Super Admin portal + account management
+│   ├── kiosk/                # Kiosk screen (student check-in / check-out)
+│   └── LoginScreen.tsx
+├── services/                 # Data-access layer (mock today → Supabase tomorrow)
+├── types.ts                  # All shared TypeScript types and enums
+└── constants.ts              # App-wide constants (TITHE_PERCENTAGE, etc.)
+```
+
+---
+
+## Commands
+
+```bash
+npm run dev          # Development server (http://localhost:5173)
+npm run build        # Production build
+npm run preview      # Preview the production build
+npm run typecheck    # TypeScript type check (tsc --noEmit)
+npm run lint         # ESLint — 0 warnings allowed
+npm run lint:fix     # ESLint with auto-fix
+npm run test         # Vitest (32 tests, run mode)
+npm run test:ui      # Vitest with interactive UI
+```
+
+---
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+
+- npm
+
+### Install & Run
+
+```bash
+git clone https://github.com/Marvs04/senda_unadeca.git
+cd senda_unadeca
+git checkout develop        # Active development branch
+npm install
+npm run dev
+```
+
+The app runs at `http://localhost:5173` with full mock data — no backend needed.
+
+---
+
+## Branded PDF Reports
+
+Each role generates a different PDF when clicking "Download PDF":
+
+| Portal | PDF Contents |
+|---|---|
+| Student | Hours history — name, student ID, hourly rate |
+| Dept Head | Department hours report — head name, billing cycle |
+| Accounting | Payroll report — period, gross amount, tithe deduction, net pay |
+| Admin | General report — all departments for the selected cycle |
+
+All PDFs include: **UNADECA / SENDA** letterhead with indigo accent stripe, metadata block, grid-themed data table, and a footer with the generation date and page numbers.
+
+---
+
+## Backend Migration
+
+The backend is fully specced in [`BACKEND_SPEC.md`](./BACKEND_SPEC.md). When ready:
+
+1. Create a Supabase project and set environment variables:
+   ```
+   VITE_SUPABASE_URL=your_project_url
+   VITE_SUPABASE_ANON_KEY=your_anon_key
+   ```
+2. Run the schema SQL from the spec (tables, RLS policies, triggers, Edge Functions)
+3. In each `services/*.ts` — uncomment the Supabase block, delete the mock return
+4. Delete `api/__mocks__.ts`
+
+Everything else stays the same. See `BACKEND_SPEC.md §11` for the full integration checklist.
+
+---
+
+## Branch Strategy
+
+| Branch | Purpose |
+|---|---|
+| `main` | Stable, approved code — only receives merges from `develop` |
+| `develop` | **Active development branch** — day-to-day work happens here |
+| `features` | Post-production changes — hotfixes and new features once in production |
+
+### Workflow
+
+```
+develop  ──── (day-to-day work) ────▶  PR to main  ──▶  main (production)
+                                                              │
+features  ◀──────────────── (hotfixes / post-production changes) ──────────┘
+```
+
+---
+
+<div align="center">
+  Built for <strong>UNADECA</strong> · 2026
+</div>
+
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)
