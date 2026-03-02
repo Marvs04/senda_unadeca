@@ -34,14 +34,14 @@ Each role gets its own dedicated portal — same app, different views and permis
 
 ## Roles & Features
 
-### 🎓 Student
+###  Student
 - View total hours and estimated earnings for the current billing cycle
 - Manual hour logging with description and date
 - Real-time kiosk clock-in / clock-out (managed by department heads)
 - Full history filterable by billing cycle, trimester and year
 - Download personal report as PDF (institutional letterhead) or CSV
 
-### 🏢 Department Head
+###  Department Head
 - Dashboard with pending, approved and rejected log counts for the cycle
 - Approve or reject individual logs, with mandatory written reason on rejection
 - Bulk-approve all pending logs in one click
@@ -49,21 +49,21 @@ Each role gets its own dedicated portal — same app, different views and permis
 - Activate / deactivate the kiosk for their department
 - Export department report as PDF or CSV
 
-### ⚙️ Admin
+###  Admin
 - Full user management — create, edit and suspend students, dept heads and accounting users
 - Department management — assign and reassign department heads
 - Update the global hourly rate (password-protected action)
 - Dashboard with total hours, active students and global payroll estimate for the current cycle
 - Export general report across all departments as PDF or CSV
 
-### 💰 Accounting
+###  Accounting
 - Consolidated payroll view by billing cycle or trimester
 - Per-student breakdown: total hours, gross amount, 10% tithe deduction and net pay
 - Filter by department and search by student name
 - Process payments in bulk (marks approved logs as Processed)
 - Export payroll as PDF with institutional letterhead and multi-page support
 
-### 🛡️ Super Admin
+###  Super Admin
 - Create and manage all institutional accounts (Admins, Dept Heads, Accounting users)
 - View and assist individual students across all departments
 
