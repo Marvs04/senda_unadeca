@@ -27,13 +27,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
     >
       {onSearch !== undefined && (
         <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
           <input
             type="text"
             value={searchValue}
             onChange={e => onSearch(e.target.value)}
             placeholder={searchPlaceholder}
-            className="w-full bg-white border border-zinc-200 rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all"
+            className="w-full bg-surface border border-border rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/5 transition-all"
           />
         </div>
       )}

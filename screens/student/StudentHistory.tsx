@@ -1,7 +1,7 @@
 import React from 'react';
 import { History, Download, ChevronDown } from 'lucide-react';
 import WorkLogTable from '../../components/WorkLogTable';
-import { User, WorkLog, Department } from '../../types';
+import { User, WorkLog } from '../../types';
 import { TabBar, Button } from '../../components/ui';
 import { getBillingCycle, getTrimester } from '../../lib/business';
 
@@ -33,16 +33,16 @@ const StudentHistory: React.FC<StudentHistoryProps> = ({
   onExport,
 }) => {
   return (
-    <div className="bg-white rounded-[3rem] border border-zinc-100 shadow-xl shadow-zinc-200/50 overflow-hidden">
+    <div className="bg-card rounded-[3rem] border border-border-faint shadow-xl overflow-hidden">
       {/* Header */}
-      <div className="px-10 py-8 border-b border-zinc-50 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+      <div className="px-10 py-8 border-b border-border-faint flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="flex items-center space-x-4">
-          <div className="p-3 bg-zinc-900 text-white rounded-2xl shadow-lg shadow-zinc-900/20">
+          <div className="p-3 bg-primary text-primary-fg rounded-2xl shadow-lg">
             <History className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-xl font-bold tracking-tight">Mis Registros</h3>
-            <p className="text-xs text-zinc-400 font-medium">Historial detallado de tus horas</p>
+            <p className="text-xs text-faint font-medium">Historial detallado de tus horas</p>
           </div>
         </div>
 
@@ -78,7 +78,7 @@ const StudentHistory: React.FC<StudentHistoryProps> = ({
                     );
                   })}
                 </select>
-                <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
               </div>
             ) : (
               <div className="flex items-center space-x-2">
@@ -100,7 +100,7 @@ const StudentHistory: React.FC<StudentHistoryProps> = ({
                         </option>
                       ))}
                   </select>
-                  <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                  <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
                 </div>
                 <div className="relative">
                   <select
@@ -116,7 +116,7 @@ const StudentHistory: React.FC<StudentHistoryProps> = ({
                         </option>
                       ))}
                   </select>
-                  <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                  <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
                 </div>
               </div>
             )}

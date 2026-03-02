@@ -20,16 +20,16 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
     <div className={cn('flex items-center justify-between', className)}>
       <div className="flex items-center space-x-3">
         {icon && (
-          <div className="p-2.5 bg-zinc-100 rounded-xl flex items-center justify-center text-zinc-600 shrink-0">
+          <div className="p-2.5 bg-surface rounded-xl flex items-center justify-center text-muted shrink-0">
             {icon}
           </div>
         )}
         <div>
-          <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-faint">
             {title}
           </h3>
           {subtitle && (
-            <p className="text-xs text-zinc-400 mt-0.5">{subtitle}</p>
+            <p className="text-xs text-faint mt-0.5">{subtitle}</p>
           )}
         </div>
       </div>

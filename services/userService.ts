@@ -24,7 +24,7 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function createUser(data: Omit<User, 'id'>): Promise<User> {
-  const newUser: User = { ...data, id: `user-${Date.now()}` };
+  const newUser: User = { ...data, id: crypto.randomUUID() };
 
   // Real (REST):
   // const { data: created } = await apiClient.post<User>('/users', data);

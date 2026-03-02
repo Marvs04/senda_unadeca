@@ -41,7 +41,7 @@ export function useDepartments() {
   // ── Mutaciones optimistas ─────────────────────────────────────────────────
 
   const addDepartment = (newDepartment: Omit<Department, 'id'>) => {
-    const department: Department = { ...newDepartment, id: `dept-${Date.now()}` };
+    const department: Department = { ...newDepartment, id: crypto.randomUUID() };
     setDepartments(prev => [...prev, department]);
     createDepartment(newDepartment).catch(() => {
       setDepartments(prev => prev.filter(d => d.id !== department.id));

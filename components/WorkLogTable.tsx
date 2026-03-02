@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { WorkLog, WorkLogStatus, User, Department } from '../types';
+import { WorkLog, User, Department } from '../types';
 import { cn, truncate } from '../lib/utils';
 import { Calendar, Clock, FileText, User as UserIcon, Building } from 'lucide-react';
 import { StatusBadge, EmptyState } from './ui';
@@ -34,8 +34,8 @@ const WorkLogTable: React.FC<WorkLogTableProps> = ({
     <div className={cn(
       "rounded-3xl border overflow-hidden transition-all duration-300",
       isDark 
-        ? "bg-zinc-900 border-white/10 text-white" 
-        : "bg-white border-zinc-100 text-zinc-900 shadow-sm"
+        ? "bg-dark-hover border-white/10 text-white" 
+        : "bg-card border-border-faint text-foreground shadow-sm"
     )}>
       <div className="px-6 py-5 border-b border-inherit flex items-center justify-between">
         <h3 className="text-sm font-bold uppercase tracking-widest opacity-70 font-display">{title}</h3>
@@ -49,7 +49,7 @@ const WorkLogTable: React.FC<WorkLogTableProps> = ({
           <thead>
             <tr className={cn(
               "text-[10px] uppercase tracking-widest font-bold opacity-40",
-              isDark ? "bg-white/5" : "bg-zinc-50"
+              isDark ? "bg-white/5" : "bg-surface"
             )}>
               {showStudent && <th className="px-6 py-3">Estudiante</th>}
               {showDepartment && <th className="px-6 py-3">Departamento</th>}
@@ -69,7 +69,7 @@ const WorkLogTable: React.FC<WorkLogTableProps> = ({
                 key={log.id} 
                 className={cn(
                   "group transition-colors",
-                  isDark ? "hover:bg-white/5" : "hover:bg-zinc-50"
+                  isDark ? "hover:bg-white/5" : "hover:bg-surface"
                 )}
               >
                 {showStudent && (

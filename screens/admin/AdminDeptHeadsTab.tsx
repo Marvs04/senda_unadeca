@@ -78,9 +78,9 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
       />
 
       {/* Table */}
-      <div className="bg-white rounded-[2.5rem] border border-zinc-100 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-[2.5rem] border border-border-faint shadow-sm overflow-hidden">
         <table className="w-full text-left border-collapse">
-          <thead className="bg-zinc-50 text-[10px] uppercase tracking-widest font-bold text-zinc-400">
+          <thead className="bg-surface text-[10px] uppercase tracking-widest font-bold text-faint">
             <tr>
               <th className="px-8 py-5">Nombre</th>
               <th className="px-8 py-5">Nº Empleado</th>
@@ -88,11 +88,11 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
               <th className="px-8 py-5 text-right">Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-border-faint">
             {filteredHeads.map(head => (
-              <tr key={head.id} className="hover:bg-zinc-50 transition-colors">
+              <tr key={head.id} className="hover:bg-surface transition-colors">
                 <td className="px-8 py-5 font-medium text-sm">{head.name}</td>
-                <td className="px-8 py-5 text-sm text-zinc-500 font-mono">{head.employeeNumber || '---'}</td>
+                <td className="px-8 py-5 text-sm text-muted font-mono">{head.employeeNumber || '---'}</td>
                 <td className="px-8 py-5">
                   <Badge variant="neutral">
                     {allDepartments.find(d => d.id === head.departmentId)?.name || 'Sin Asignar'}

@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { UserRole } from './types';
-import AdminPortal from './screens/admin';
-import DeptHeadPortal from './screens/depthead';
-import StudentPortal from './screens/student';
-import AccountingPortal from './screens/accounting';
-import SuperAdminPortal from './screens/superadmin';
-import KioskScreen from './screens/kiosk';
-import LoginScreen from './screens/LoginScreen';
+
+// Code splitting: cada portal solo se descarga cuando el usuario lo necesita
+const AdminPortal      = lazy(() => import('./screens/admin'));
+const DeptHeadPortal   = lazy(() => import('./screens/depthead'));
+const StudentPortal    = lazy(() => import('./screens/student'));
+const AccountingPortal = lazy(() => import('./screens/accounting'));
+const SuperAdminPortal = lazy(() => import('./screens/superadmin'));
+const KioskScreen      = lazy(() => import('./screens/kiosk'));
+const LoginScreen      = lazy(() => import('./screens/LoginScreen'));
 import { useUsers } from './hooks/useUsers';
 import { useWorkLogs } from './hooks/useWorkLogs';
 import { useDepartments } from './hooks/useDepartments';
@@ -75,7 +77,7 @@ const App: React.FC = () => {
             case UserRole.SUPER_ADMIN:
               return <SuperAdminPortal
                 user={user} onLogout={handleLogout} allUsers={users} addUser={addUser}
-                onActivateKiosk={(identifier, password, departmentId) => {
+                onActivateKiosk={(identifier, password, _departmentId) => {
                   // Super admin specifies targetDept by ID; override the user.departmentId lookup in useKiosk
                   const targetUser = users.find(u => (u.employeeNumber ?? u.id).toLowerCase() === identifier.toLowerCase());
                   if (!targetUser) return { ok: false, error: 'Credenciales incorrectas.' };
@@ -133,10 +135,12 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <AnimatePresence mode="wait">
-        {renderPortal()}
-      </AnimatePresence>
+    <div className="min-h-screen bg-background">
+      <Suspense fallback={<AppLoader state="loading" />}>
+        <AnimatePresence mode="wait">
+          {renderPortal()}
+        </AnimatePresence>
+      </Suspense>
     </div>
   );
 };

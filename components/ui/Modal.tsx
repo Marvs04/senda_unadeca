@@ -37,7 +37,7 @@ const Modal: React.FC<ModalProps> = ({
     <AnimatePresence>
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark/40 backdrop-blur-sm"
           onClick={!disableBackdropClose && onClose ? onClose : undefined}
         >
           <motion.div
@@ -46,7 +46,7 @@ const Modal: React.FC<ModalProps> = ({
             exit={{ opacity: 0, scale: 0.92 }}
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
-              'relative bg-white rounded-[2.5rem] p-8 w-full shadow-2xl',
+              'relative bg-card rounded-[2.5rem] p-8 w-full shadow-2xl',
               WIDTH_STYLES[width],
               className,
             )}
@@ -55,7 +55,8 @@ const Modal: React.FC<ModalProps> = ({
             {onClose && (
               <button
                 onClick={onClose}
-                className="absolute top-6 right-6 p-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50 rounded-xl transition-all"
+                aria-label="Cerrar"
+                className="absolute top-6 right-6 p-2 text-faint hover:text-foreground hover:bg-surface rounded-xl transition-all"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -66,7 +67,7 @@ const Modal: React.FC<ModalProps> = ({
                   <h3 className="text-xl font-bold tracking-tight">{title}</h3>
                 )}
                 {subtitle && (
-                  <p className="text-sm text-zinc-500 mt-1 leading-relaxed">{subtitle}</p>
+                  <p className="text-sm text-muted mt-1 leading-relaxed">{subtitle}</p>
                 )}
               </div>
             )}

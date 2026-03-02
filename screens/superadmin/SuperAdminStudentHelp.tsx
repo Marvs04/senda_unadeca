@@ -17,14 +17,14 @@ const SuperAdminStudentHelp: React.FC<SuperAdminStudentHelpProps> = ({
   onResetPassword,
 }) => {
   return (
-    <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm">
+    <div className="bg-card p-8 rounded-[2.5rem] border border-border-faint shadow-sm">
       <div className="flex items-center space-x-4 mb-8">
         <div className="p-3 bg-indigo-50 rounded-2xl">
           <HelpCircle className="w-5 h-5 text-indigo-600" />
         </div>
         <div>
           <h3 className="text-lg font-bold tracking-tight">Ayuda a Estudiantes</h3>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted">
             Gestión de recuperación de contraseñas para alumnos
           </p>
         </div>
@@ -43,15 +43,15 @@ const SuperAdminStudentHelp: React.FC<SuperAdminStudentHelpProps> = ({
         {filteredStudents.map(student => (
           <div
             key={student.id}
-            className="flex items-center justify-between p-4 rounded-2xl border border-zinc-50 hover:border-zinc-200 transition-all group"
+            className="flex items-center justify-between p-4 rounded-2xl border border-border-faint hover:border-border transition-all group"
           >
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-400 group-hover:bg-zinc-900 group-hover:text-white transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-surface flex items-center justify-center text-faint group-hover:bg-primary group-hover:text-primary-fg transition-colors">
                 <Users className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-sm font-bold">{student.name}</p>
-                <p className="text-[10px] font-mono text-zinc-400">{student.carnet || '---'}</p>
+                <p className="text-[10px] font-mono text-faint">{student.carnet || '---'}</p>
               </div>
             </div>
             <Button

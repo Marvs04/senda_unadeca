@@ -18,17 +18,17 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ user, myLogs, currentRa
       <div className="relative z-10 px-10 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
         <div className="flex items-center space-x-8">
           <div className="relative">
-            <div className="w-24 h-24 rounded-3xl bg-zinc-800 border border-white/10 flex items-center justify-center text-4xl font-black text-white shadow-2xl">
+            <div className="w-24 h-24 rounded-3xl bg-dark-hover border border-white/10 flex items-center justify-center text-4xl font-black text-white shadow-2xl">
               {user.name?.charAt(0)}
             </div>
-            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-emerald-500 rounded-xl border-4 border-zinc-900 flex items-center justify-center">
+            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-emerald-500 rounded-xl border-4 border-dark flex items-center justify-center">
               <Zap className="w-4 h-4 text-white fill-white" />
             </div>
           </div>
           <div>
             <h2 className="text-4xl font-black text-white tracking-tight mb-2">{user.name}</h2>
             <div className="flex flex-wrap gap-3">
-              <span className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-zinc-400">
+              <span className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-faint">
                 {user.carnet || 'Sin Carnet'}
               </span>
               <span className="px-4 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-black uppercase tracking-widest text-emerald-400">
@@ -39,14 +39,14 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ user, myLogs, currentRa
         </div>
         <div className="flex items-center space-x-12 px-10 py-6 bg-white/5 rounded-[2.5rem] border border-white/10 backdrop-blur-md">
           <div className="text-center">
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">
               Horas Totales
             </p>
             <p className="text-2xl font-black text-white">{totalHours.toFixed(1)}h</p>
           </div>
           <div className="w-px h-10 bg-white/10" />
           <div className="text-center">
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">
               Tarifa Actual
             </p>
             <p className="text-2xl font-black text-white">{formatCurrency(currentRate)}</p>

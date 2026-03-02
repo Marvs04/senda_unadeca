@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDebounce } from '../../hooks/useDebounce';
 import { motion } from 'motion/react';
 import { Plus, ArrowRightLeft, UserMinus } from 'lucide-react';
 import { User, Department } from '../../types';
@@ -21,10 +22,11 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
   updateUser,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm);
   const [editingStudent, setEditingStudent] = useState<User | null>(null);
   const { confirm, dialogProps } = useConfirm();
 
-  const { filteredStudents } = useAdminUsersData({ allUsers, studentSearch: searchTerm, deptHeadSearch: '' });
+  const { filteredStudents } = useAdminUsersData({ allUsers, studentSearch: debouncedSearch, deptHeadSearch: '' });
 
   const handleUpdateStudentDept = (studentId: string, deptId: string | undefined) => {
     updateUser(studentId, { departmentId: deptId });
@@ -58,9 +60,9 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
       />
 
       {/* Table */}
-      <div className="bg-white rounded-[2.5rem] border border-zinc-100 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-[2.5rem] border border-border-faint shadow-sm overflow-hidden">
         <table className="w-full text-left border-collapse">
-          <thead className="bg-zinc-50 text-[10px] uppercase tracking-widest font-bold text-zinc-400">
+          <thead className="bg-surface text-[10px] uppercase tracking-widest font-bold text-faint">
             <tr>
               <th className="px-8 py-5">Estudiante</th>
               <th className="px-8 py-5">Carnet</th>
@@ -68,11 +70,11 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
               <th className="px-8 py-5 text-right">Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
+          <tbody className="divide-y divide-border-faint">
             {filteredStudents.map(student => (
-              <tr key={student.id} className="hover:bg-zinc-50 transition-colors group">
+              <tr key={student.id} className="hover:bg-surface transition-colors group">
                 <td className="px-8 py-5 font-medium text-sm">{student.name}</td>
-                <td className="px-8 py-5 text-sm text-zinc-500 font-mono">{student.carnet || '---'}</td>
+                <td className="px-8 py-5 text-sm text-muted font-mono">{student.carnet || '---'}</td>
                 <td className="px-8 py-5">
                   <Badge variant="neutral">
                     {allDepartments.find(d => d.id === student.departmentId)?.name || 'Sin Asignar'}
@@ -109,7 +111,7 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
             <button
               key={dept.id}
               onClick={() => handleUpdateStudentDept(editingStudent!.id, dept.id)}
-              className="w-full p-4 text-left rounded-2xl border border-zinc-100 hover:border-zinc-900 hover:bg-zinc-50 transition-all flex items-center justify-between group"
+              className="w-full p-4 text-left rounded-2xl border border-border-faint hover:border-foreground hover:bg-surface transition-all flex items-center justify-between group"
             >
               <span className="font-medium text-sm">{dept.name}</span>
               <ArrowRightLeft className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />

@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils';
 export type BadgeVariant = 'neutral' | 'success' | 'danger' | 'warning' | 'info' | 'indigo';
 
 const VARIANT_STYLES: Record<BadgeVariant, string> = {
-  neutral: 'bg-zinc-100 text-zinc-600 border-zinc-200',
+  neutral: 'bg-surface text-muted border-border',
   success: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   danger:  'bg-rose-500/10 text-rose-600 border-rose-500/20',
   warning: 'bg-amber-500/10 text-amber-600 border-amber-500/20',

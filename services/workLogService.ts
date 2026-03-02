@@ -43,7 +43,7 @@ export async function createWorkLog(
 ): Promise<WorkLog> {
   const newLog: WorkLog = {
     ...data,
-    id: `log-${Date.now()}-${Math.random()}`,
+    id: crypto.randomUUID(),
     status,
   };
 
@@ -84,7 +84,7 @@ export async function patchWorkLogStatus(
 }
 
 export async function bulkPatchWorkLogStatus(
-  updates: { logId: string; status: WorkLogStatus }[],
+  _updates: { logId: string; status: WorkLogStatus }[],
 ): Promise<void> {
   // Real (REST):
   // await apiClient.patch('/work-logs/bulk-status', { updates });

@@ -29,10 +29,10 @@ const DeptHeadLogForm: React.FC<DeptHeadLogFormProps> = ({
   onSubmit,
 }) => {
   return (
-    <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm">
+    <div className="bg-card p-8 rounded-[2.5rem] border border-border-faint shadow-sm">
       <div className="flex items-center space-x-3 mb-6">
-        <div className="p-2 bg-zinc-100 rounded-xl">
-          <Plus className="w-4 h-4 text-zinc-600" />
+        <div className="icon-box">
+          <Plus className="w-4 h-4" />
         </div>
         <h3 className="text-lg font-bold tracking-tight">Registrar Horas</h3>
       </div>
@@ -65,10 +65,10 @@ const DeptHeadLogForm: React.FC<DeptHeadLogFormProps> = ({
 
         <div className="space-y-2">
           <div className="flex items-center justify-between ml-1">
-            <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+            <label className="text-xs font-bold text-faint uppercase tracking-widest">
               Descripción
             </label>
-            <span className="text-[10px] font-bold text-zinc-300">
+            <span className="text-[10px] font-bold text-border">
               {description.length} / {LIMITS.DESCRIPTION}
             </span>
           </div>
@@ -77,7 +77,7 @@ const DeptHeadLogForm: React.FC<DeptHeadLogFormProps> = ({
             onChange={e => setDescription(e.target.value)}
             rows={3}
             maxLength={LIMITS.DESCRIPTION}
-            className="w-full bg-zinc-50 border-zinc-200 rounded-2xl py-4 px-5 focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all text-sm placeholder:text-zinc-400"
+            className="w-full bg-surface border-border rounded-2xl py-4 px-5 focus:outline-none focus:ring-2 focus:ring-primary/5 transition-all text-sm placeholder:text-faint"
             placeholder="¿Qué tareas realizó el estudiante?"
           />
         </div>

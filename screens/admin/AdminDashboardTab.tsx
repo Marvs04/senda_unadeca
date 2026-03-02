@@ -5,13 +5,15 @@ import { BarChart3, PieChart as PieChartIcon, Clock, Users, DollarSign, FileText
 import DashboardCard from '../../components/DashboardCard';
 import WorkLogTable from '../../components/WorkLogTable';
 import { User, WorkLog, Department } from '../../types';
-import { formatCurrency, exportToCSV, exportToPDF } from '../../lib/utils';
+import { formatCurrency, exportToCSV } from '../../lib/utils';
+import { renderPDF } from '../../lib/pdf';
 import { isDateInCycle } from '../../lib/business';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui';
 import { useAdminDashboardStats } from '../../hooks/useAdminDashboardStats';
 
 interface AdminDashboardTabProps {
+  user: User;
   allLogs: WorkLog[];
   allUsers: User[];
   allDepartments: Department[];
@@ -22,6 +24,7 @@ interface AdminDashboardTabProps {
 const PIE_COLORS = ['#18181b', '#6366f1', '#10b981', '#f59e0b', '#ef4444'];
 
 const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
+  user,
   allLogs,
   allUsers,
   allDepartments,
@@ -40,8 +43,24 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
       log.hours,
       log.status,
     ]);
-    if (type === 'csv') exportToCSV('reporte_general.csv', headers, rows);
-    else exportToPDF('reporte_general.pdf', 'Reporte General de Horas Beca', headers, rows);
+    if (type === 'csv') {
+      exportToCSV('reporte_general.csv', headers, rows);
+    } else {
+      const now = new Date().toLocaleDateString('es-CR', { year: 'numeric', month: 'long', day: 'numeric' });
+      renderPDF({
+        filename: 'reporte_general.pdf',
+        reportTitle: 'REPORTE GENERAL DE HORAS BECA',
+        subtitle: `Ciclo ${selectedCycle} — todos los departamentos`,
+        meta: [
+          { label: 'Ciclo',           value: selectedCycle },
+          { label: 'Fecha de Emisi\u00f3n', value: now },
+          { label: 'Administrador',   value: user.name },
+          { label: 'Tipo de Reporte', value: 'Reporte General' },
+        ],
+        headers,
+        rows,
+      });
+    }
     toast.success(`Reporte ${type.toUpperCase()} generado`, { position: 'top-center' });
   };
 
@@ -62,12 +81,12 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-8 bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm">
+        <div className="lg:col-span-8 bg-card p-8 rounded-[2.5rem] border border-border-faint shadow-sm">
           <div className="flex items-center space-x-3 mb-8">
-            <div className="p-2 bg-zinc-100 rounded-xl">
-              <BarChart3 className="w-4 h-4 text-zinc-600" />
+            <div className="icon-box">
+              <BarChart3 className="w-4 h-4" />
             </div>
-            <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400">Horas por Estudiante (Top 5)</h3>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-faint">Horas por Estudiante (Top 5)</h3>
           </div>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -82,12 +101,12 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
           </div>
         </div>
 
-        <div className="lg:col-span-4 bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm">
+        <div className="lg:col-span-4 bg-card p-8 rounded-[2.5rem] border border-border-faint shadow-sm">
           <div className="flex items-center space-x-3 mb-8">
-            <div className="p-2 bg-zinc-100 rounded-xl">
-              <PieChartIcon className="w-4 h-4 text-zinc-600" />
+            <div className="icon-box">
+              <PieChartIcon className="w-4 h-4" />
             </div>
-            <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400">Distribución por Depto.</h3>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-faint">Distribución por Depto.</h3>
           </div>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -105,15 +124,15 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
       </div>
 
       {/* Global Logs Table */}
-      <div className="bg-white rounded-[2.5rem] border border-zinc-100 shadow-sm overflow-hidden">
-        <div className="px-8 py-6 border-b border-zinc-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-card rounded-[2.5rem] border border-border-faint shadow-sm overflow-hidden">
+        <div className="px-8 py-6 border-b border-border-faint flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
-            <div className="p-3 bg-zinc-100 rounded-2xl">
-              <FileText className="w-5 h-5 text-zinc-600" />
+            <div className="icon-box-lg">
+              <FileText className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-lg font-bold tracking-tight">Registros Globales</h3>
-              <p className="text-xs text-zinc-400">Vista consolidada del ciclo seleccionado</p>
+              <p className="text-xs text-faint">Vista consolidada del ciclo seleccionado</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">

@@ -31,7 +31,7 @@ const PortalLayout: React.FC<PortalLayoutProps> = ({
   user,
   onLogout,
   children,
-  bg = 'bg-zinc-50',
+  bg = 'bg-background',
   pagePadding = 'py-10',
   className,
 }) => {

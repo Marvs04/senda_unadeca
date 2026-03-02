@@ -6,7 +6,7 @@ import { PortalLayout } from '../../components/layout';
 import { User, UserRole } from '../../types';
 import { useConfirm } from '../../hooks/useConfirm';
 import { useSuperAdminData } from '../../hooks/useSuperAdminData';
-import { type KioskActions } from '../../hooks/useKiosk';
+import { useDebounce } from '../../hooks/useDebounce';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import SuperAdminAccountList from './SuperAdminAccountList';
 import SuperAdminStudentHelp from './SuperAdminStudentHelp';
@@ -48,12 +48,14 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   const [adminPassword, setAdminPassword] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
   const [adminSearch, setAdminSearch] = useState('');
+  const debouncedAdminSearch = useDebounce(adminSearch);
+  const debouncedStudentSearch = useDebounce(studentSearch);
   const { confirm, dialogProps } = useConfirm();
 
   const { filteredAdmins, filteredStudents } = useSuperAdminData({
     allUsers,
-    adminSearch,
-    studentSearch,
+    adminSearch: debouncedAdminSearch,
+    studentSearch: debouncedStudentSearch,
   });
 
   const handleAddAdmin = (e: React.FormEvent) => {
@@ -78,21 +80,21 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   };
 
   return (
-    <PortalLayout user={user} onLogout={onLogout} bg="bg-zinc-50 selection:bg-zinc-900 selection:text-white">
+    <PortalLayout user={user} onLogout={onLogout} bg="bg-background selection:bg-surface-hover">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-10"
         >
           <div className="flex items-center space-x-3 mb-2">
-            <div className="p-2 bg-zinc-900 text-white rounded-lg">
+            <div className="p-2 bg-primary text-primary-fg rounded-lg">
               <ShieldCheck className="w-5 h-5" />
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 font-display">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground font-display">
               Super Administración
             </h2>
           </div>
-          <p className="text-zinc-500 text-sm">
+          <p className="text-muted text-sm">
             Control total del sistema y gestión de privilegios administrativos.
           </p>
         </motion.div>
@@ -115,26 +117,26 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
 
           <div className="lg:col-span-4 space-y-6">
             {/* Remote Kiosk Activation */}
-            <div className="bg-white rounded-[2rem] border border-zinc-100 shadow-sm p-6">
+            <div className="bg-card rounded-[2rem] border border-border-faint shadow-sm p-6">
               <div className="flex items-center gap-3 mb-5">
                 <div className="p-2 bg-emerald-50 rounded-xl">
                   <Monitor className="w-4 h-4 text-emerald-600" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-zinc-900">Activar kiosco remoto</h3>
-                  <p className="text-xs text-zinc-400">Activa el kiosco de un departamento a distancia</p>
+                  <h3 className="text-sm font-bold text-foreground">Activar kiosco remoto</h3>
+                  <p className="text-xs text-faint">Activa el kiosco de un departamento a distancia</p>
                 </div>
               </div>
               <form onSubmit={handleRemoteKiosk} className="flex flex-col gap-3">
                 <input type="text" placeholder="ID del departamento"
                   value={kioskDeptId} onChange={e => { setKioskDeptId(e.target.value); setKioskError(null); }}
-                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                  className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                 <input type="text" placeholder="Número de empleado (Super Admin)"
                   value={kioskId} onChange={e => { setKioskId(e.target.value); setKioskError(null); }}
-                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                  className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                 <input type="password" placeholder="Contraseña"
                   value={kioskPass} onChange={e => { setKioskPass(e.target.value); setKioskError(null); }}
-                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+                  className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                 {kioskError && <p className="text-xs text-rose-500">{kioskError}</p>}
                 <button type="submit"
                   className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors">

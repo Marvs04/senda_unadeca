@@ -18,14 +18,14 @@ const DashboardCard: React.FC<DashboardCardProps> = ({ title, value, icon, varia
       className={cn(
         "p-6 rounded-3xl transition-all duration-300 border",
         isDark 
-          ? "bg-zinc-900 border-white/10 text-white shadow-2xl shadow-black/20" 
-          : "bg-white border-zinc-100 text-zinc-900 shadow-sm hover:shadow-xl hover:shadow-zinc-200/50"
+          ? "bg-dark-hover border-border-dark text-primary-fg shadow-2xl shadow-dark/20" 
+          : "bg-card border-border-faint text-foreground shadow-sm hover:shadow-xl hover:shadow-border/50"
       )}
     >
       <div className="flex items-center justify-between mb-4">
         <div className={cn(
           "p-2.5 rounded-2xl",
-          isDark ? "bg-white/10 text-white" : "bg-zinc-100 text-zinc-600"
+          isDark ? "bg-white/10 text-primary-fg" : "bg-surface text-muted"
         )}>
           {icon}
         </div>
@@ -33,7 +33,7 @@ const DashboardCard: React.FC<DashboardCardProps> = ({ title, value, icon, varia
       <div>
         <p className={cn(
           "text-[10px] uppercase tracking-widest font-bold mb-1",
-          isDark ? "text-white/50" : "text-zinc-400"
+          isDark ? "text-white/50" : "text-faint"
         )}>
           {title}
         </p>

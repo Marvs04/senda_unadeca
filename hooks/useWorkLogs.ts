@@ -50,7 +50,7 @@ export function useWorkLogs() {
   ) => {
     const newLog: WorkLog = {
       ...newLogData,
-      id: `log-${Date.now()}-${Math.random()}`,
+      id: crypto.randomUUID(),
       status,
     };
     setWorkLogs(prev =>
@@ -76,18 +76,18 @@ export function useWorkLogs() {
   };
 
   const updateMultipleWorkLogsStatus = (updates: { logId: string; status: WorkLogStatus }[]) => {
-    const ids      = new Set(updates.map(u => u.logId));
-    const snapshot = workLogs.filter(l => ids.has(l.id));
     setWorkLogs(prev => {
       const map = new Map(updates.map(u => [u.logId, u.status]));
       return prev.map(log => map.has(log.id) ? { ...log, status: map.get(log.id)! } : log);
     });
-    // TODO: when backend ready → Promise.all(updates.map(u => patchWorkLogStatus(u.logId, u.status)))
-    //   .catch(() => {
-    //     setWorkLogs(prev => prev.map(l => snapshot.find(s => s.id === l.id) ?? l));
-    //     toast.error('Error al procesar los registros. Intente de nuevo.');
-    //   });
-    void snapshot; // referenced in the TODO above; remove once service call is wired
+    // TODO (backend): agregar rollback optimista cuando el servicio esté conectado:
+    //   const ids = new Set(updates.map(u => u.logId));
+    //   const snapshot = workLogs.filter(l => ids.has(l.id));
+    //   Promise.all(updates.map(u => patchWorkLogStatus(u.logId, u.status)))
+    //     .catch(() => {
+    //       setWorkLogs(prev => prev.map(l => snapshot.find(s => s.id === l.id) ?? l));
+    //       toast.error('Error al procesar los registros. Intente de nuevo.');
+    //     });
   };
 
   return { workLogs, isLoading, error, addWorkLog, updateWorkLogStatus, updateMultipleWorkLogsStatus };

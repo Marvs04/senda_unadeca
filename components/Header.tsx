@@ -23,15 +23,15 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
         "sticky top-0 z-50 border-b backdrop-blur-md transition-colors duration-300",
         config.bg,
         config.accent,
-        isDark ? "text-white" : "text-zinc-900"
+        isDark ? "text-white" : "text-foreground"
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4">
             <div className={cn(
               "flex items-center justify-center w-10 h-10 rounded-xl border transition-all duration-300",
-              isDark ? "bg-white/10 border-white/20" : "bg-zinc-100 border-zinc-200"
+              isDark ? "bg-white/10 border-white/20" : "bg-surface border-border"
             )}>
               <IconComponent className="h-5 w-5" />
             </div>
@@ -39,7 +39,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
               <h1 className="text-base font-bold tracking-tight font-display">UNADECA</h1>
               <p className={cn(
                 "text-[10px] uppercase tracking-[0.2em] font-bold opacity-60",
-                isDark ? "text-white/70" : "text-zinc-500"
+                isDark ? "text-white/70" : "text-muted"
               )}>
                 {config.text}
               </p>
@@ -49,21 +49,21 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
           <div className="flex items-center space-x-4">
             <button className={cn(
               "p-2 rounded-full transition-colors",
-              isDark ? "hover:bg-white/10 text-white/70" : "hover:bg-zinc-100 text-zinc-500"
+              isDark ? "hover:bg-white/10 text-white/70" : "hover:bg-surface text-muted"
             )}>
               <Bell className="h-5 w-5" />
             </button>
 
             <div className={cn(
               "h-8 w-[1px]",
-              isDark ? "bg-white/10" : "bg-zinc-200"
+              isDark ? "bg-white/10" : "bg-border"
             )} />
 
             <div className="hidden md:flex flex-col items-end">
               <p className="text-sm font-semibold leading-none">{user.name}</p>
               <p className={cn(
                 "text-[10px] uppercase tracking-wider font-bold mt-1 opacity-50",
-                isDark ? "text-white/70" : "text-zinc-500"
+                isDark ? "text-white/70" : "text-muted"
               )}>
                 {user.role.replace('_', ' ')}
               </p>
@@ -75,7 +75,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
                 "flex items-center space-x-2 px-4 py-2 rounded-xl font-medium transition-all active:scale-95 border",
                 isDark 
                   ? "bg-white/5 hover:bg-white/10 border-white/10 text-white" 
-                  : "bg-zinc-900 hover:bg-zinc-800 border-zinc-900 text-white"
+                  : "bg-primary hover:bg-primary-hover border-primary text-primary-fg"
               )}
             >
               <span className="text-xs hidden sm:inline">Salir</span>
