@@ -211,7 +211,6 @@ export function useKiosk({ allUsers, addWorkLog, initialDepartmentId }: UseKiosk
       const hoursWorked = parseFloat(
         ((Date.now() - new Date(session.startedAt).getTime()) / 3_600_000).toFixed(2),
       );
-      if (hoursWorked < 0.05) return; // ignore ghost sessions < 3 min
       addWorkLog(
         {
           studentId: session.studentId,
@@ -281,18 +280,16 @@ export function useKiosk({ allUsers, addWorkLog, initialDepartmentId }: UseKiosk
       sessions: prev.sessions.filter(s => s.studentId !== user.id),
     } : prev);
 
-    if (hoursWorked >= 0.05) {
-      addWorkLog(
-        {
-          studentId: user.id,
-          departmentId: kiosk.departmentId,
-          date: new Date().toISOString().split('T')[0],
-          hours: hoursWorked,
-          description: 'Sesión kiosco',
-        },
-        WorkLogStatus.PENDING,
-      );
-    }
+    addWorkLog(
+      {
+        studentId: user.id,
+        departmentId: kiosk.departmentId,
+        date: new Date().toISOString().split('T')[0],
+        hours: Math.max(hoursWorked, 0),
+        description: 'Sesión kiosco',
+      },
+      WorkLogStatus.PENDING,
+    );
     return { ok: true, name: user.name };
   }, [kiosk, allUsers, addWorkLog]);
 
