@@ -10,7 +10,7 @@
  * de inmediato. Cuando el backend esté listo, agregar el await al servicio
  * correspondiente antes de setWorkLogs().
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { WorkLog, WorkLogStatus } from '../types';
 import { getWorkLogs, createWorkLog, patchWorkLogStatus } from '../services';
 import { toast } from 'sonner';
@@ -44,7 +44,7 @@ export function useWorkLogs() {
 
   // ── Mutaciones optimistas ─────────────────────────────────────────────────
 
-  const addWorkLog = (
+  const addWorkLog = useCallback((
     newLogData: Omit<WorkLog, 'id' | 'status'>,
     status: WorkLogStatus = WorkLogStatus.PENDING,
   ) => {
@@ -60,7 +60,7 @@ export function useWorkLogs() {
       setWorkLogs(prev => prev.filter(l => l.id !== newLog.id));
       toast.error('Error al guardar el registro. Intente de nuevo.');
     });
-  };
+  }, []);
 
   const updateWorkLogStatus = (logId: string, newStatus: WorkLogStatus, reason?: string) => {
     const snapshot = workLogs.find(l => l.id === logId);
