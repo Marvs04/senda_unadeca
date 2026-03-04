@@ -20,10 +20,10 @@ interface AdminPortalProps {
   allUsers: User[];
   allDepartments: Department[];
   addUser: (newUser: Omit<User, 'id'>, password?: string) => Promise<void> | void;
-  deleteUser: (userId: string) => void;
+  deleteUser: (userId: string) => Promise<void> | void;
   addDepartment: (newDepartment: Omit<Department, 'id'>) => Promise<void> | void;
   updateDepartment: (deptId: string, updates: Partial<Department>) => Promise<void> | void;
-  updateUser: (userId: string, updates: Partial<User>) => void;
+  updateUser: (userId: string, updates: Partial<User>) => Promise<void> | void;
   currentRate: number;
   setCurrentRate: (rate: number) => void;
 }
@@ -103,13 +103,13 @@ const AdminPortal: React.FC<AdminPortalProps> = ({
         {activeTab === 'students' && (
           <AdminStudentsTab
             allUsers={allUsers} allDepartments={allDepartments}
-            addUser={addUser} updateUser={updateUser}
+            addUser={addUser} updateUser={updateUser} deleteUser={deleteUser}
           />
         )}
         {activeTab === 'dept-heads' && (
           <AdminDeptHeadsTab
             allUsers={allUsers} allDepartments={allDepartments}
-            addUser={addUser} deleteUser={deleteUser}
+            addUser={addUser} updateUser={updateUser} deleteUser={deleteUser}
           />
         )}
         {activeTab === 'departments' && (

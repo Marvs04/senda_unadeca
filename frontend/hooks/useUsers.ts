@@ -56,22 +56,31 @@ export function useUsers() {
     }
   };
 
-  const deleteUser = (userId: string) => {
+  const deleteUser = async (userId: string) => {
     const snapshot = users.find(u => u.id === userId);
     setUsers(prev => prev.filter(u => u.id !== userId));
-    apiDeleteUser(userId).catch(() => {
+    try {
+      await apiDeleteUser(userId);
+    } catch (err: unknown) {
       if (snapshot) setUsers(prev => [...prev, snapshot]);
-      toast.error('Error al eliminar el usuario. Intente de nuevo.');
-    });
+      const message = err instanceof Error ? err.message : 'Error al eliminar el usuario. Intente de nuevo.';
+      toast.error(message);
+      throw err;
+    }
   };
 
-  const updateUser = (userId: string, updates: Partial<User>) => {
+  const updateUser = async (userId: string, updates: Partial<User>) => {
     const snapshot = users.find(u => u.id === userId);
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
-    patchUser(userId, updates).catch(() => {
+
+    try {
+      await patchUser(userId, updates);
+    } catch (err: unknown) {
       if (snapshot) setUsers(prev => prev.map(u => u.id === userId ? snapshot : u));
-      toast.error('Error al actualizar el usuario. Intente de nuevo.');
-    });
+      const message = err instanceof Error ? err.message : 'Error al actualizar el usuario. Intente de nuevo.';
+      toast.error(message);
+      throw err;
+    }
   };
 
   return { users, isLoading, error, addUser, deleteUser, updateUser };

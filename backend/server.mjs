@@ -37,6 +37,7 @@ function toUser(row) {
     carnet: row.carnet ?? undefined,
     employeeNumber: row.employee_number ?? undefined,
     departmentId: row.department_id ?? undefined,
+    isActive: row.is_active !== false,
   };
 }
 
@@ -137,6 +138,9 @@ app.post('/api/v1/auth/login', async (req, res) => {
       .single();
 
     if (profileError) return res.status(400).json({ message: profileError.message });
+    if (profile.is_active === false) {
+      return res.status(403).json({ message: 'La cuenta está desactivada. Contacta al administrador.' });
+    }
 
     return res.json({
       accessToken: data.session.access_token,
@@ -158,6 +162,9 @@ app.get('/api/v1/auth/me', requireAuth, async (req, res) => {
       .single();
 
     if (error) return res.status(400).json({ message: error.message });
+    if (data.is_active === false) {
+      return res.status(403).json({ message: 'La cuenta está desactivada. Contacta al administrador.' });
+    }
     return res.json(toUser(data));
   } catch (error) {
     return res.status(500).json({ message: error instanceof Error ? error.message : 'Error interno.' });
@@ -218,22 +225,58 @@ app.post('/api/v1/users', requireAuth, async (req, res) => {
 });
 
 app.patch('/api/v1/users/:id', requireAuth, async (req, res) => {
-  const { id } = req.params;
-  const { name, role, carnet, employeeNumber, departmentId } = req.body ?? {};
+  try {
+    const requester = await getRequesterProfile(req);
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(requester.role)) {
+      return res.status(403).json({ message: 'No autorizado para editar usuarios.' });
+    }
 
-  const { error } = await req.supabase
-    .from('profiles')
-    .update({
-      name,
-      role,
-      carnet,
-      employee_number: employeeNumber,
-      department_id: departmentId,
-    })
-    .eq('id', id);
+    const { id } = req.params;
+    const { name, role, carnet, employeeNumber, departmentId, isActive } = req.body ?? {};
 
-  if (error) return res.status(400).json({ message: error.message });
-  return res.status(204).send();
+    const { data: target, error: targetError } = await adminSupabase
+      .from('profiles')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (targetError || !target) {
+      return res.status(404).json({ message: 'Usuario no encontrado.' });
+    }
+
+    if (requester.role === 'ADMIN' && !['STUDENT', 'DEPT_HEAD'].includes(target.role)) {
+      return res.status(403).json({ message: 'Admin solo puede editar estudiantes y jefes de departamento.' });
+    }
+
+    if (target.role === 'SUPER_ADMIN') {
+      return res.status(403).json({ message: 'No se permite editar cuentas SUPER_ADMIN.' });
+    }
+
+    if (role !== undefined) {
+      return res.status(400).json({ message: 'Cambiar rol no está habilitado por esta ruta.' });
+    }
+
+    const updates = {};
+    if (name !== undefined) updates.name = String(name).trim();
+    if (carnet !== undefined) updates.carnet = carnet ? String(carnet).trim() : null;
+    if (employeeNumber !== undefined) updates.employee_number = employeeNumber ? String(employeeNumber).trim() : null;
+    if (departmentId !== undefined) updates.department_id = departmentId ? String(departmentId).trim() : null;
+    if (isActive !== undefined) updates.is_active = Boolean(isActive);
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: 'No hay cambios para actualizar.' });
+    }
+
+    const { error } = await adminSupabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', id);
+
+    if (error) return res.status(400).json({ message: error.message });
+    return res.status(204).send();
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : 'Error interno.' });
+  }
 });
 
 app.delete('/api/v1/users/:id', requireAuth, async (req, res) => {
@@ -244,6 +287,25 @@ app.delete('/api/v1/users/:id', requireAuth, async (req, res) => {
     }
 
     const { id } = req.params;
+
+    const { data: target, error: targetError } = await adminSupabase
+      .from('profiles')
+      .select('id, role')
+      .eq('id', id)
+      .single();
+
+    if (targetError || !target) {
+      return res.status(404).json({ message: 'Usuario no encontrado.' });
+    }
+
+    if (target.role === 'SUPER_ADMIN') {
+      return res.status(403).json({ message: 'No se permite eliminar cuentas SUPER_ADMIN.' });
+    }
+
+    if (requester.role === 'ADMIN' && !['STUDENT', 'DEPT_HEAD'].includes(target.role)) {
+      return res.status(403).json({ message: 'Admin solo puede eliminar estudiantes y jefes de departamento.' });
+    }
+
     const { error } = await adminSupabase.auth.admin.deleteUser(id);
     if (error) return res.status(400).json({ message: error.message });
     return res.status(204).send();

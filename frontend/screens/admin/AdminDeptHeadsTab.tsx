@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Power } from 'lucide-react';
 import { User, Department, UserRole } from '../../types';
 import { toast } from 'sonner';
 import { useConfirm } from '../../hooks/useConfirm';
@@ -13,22 +13,28 @@ interface AdminDeptHeadsTabProps {
   allUsers: User[];
   allDepartments: Department[];
   addUser: (newUser: Omit<User, 'id'>, password?: string) => Promise<void> | void;
-  deleteUser: (userId: string) => void;
+  updateUser: (userId: string, updates: Partial<User>) => Promise<void> | void;
+  deleteUser: (userId: string) => Promise<void> | void;
 }
 
 const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
   allUsers,
   allDepartments,
   addUser,
+  updateUser,
   deleteUser,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddingDeptHead, setIsAddingDeptHead] = useState(false);
+  const [editingHead, setEditingHead] = useState<User | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editEmployeeNumber, setEditEmployeeNumber] = useState('');
+  const [editDepartmentId, setEditDepartmentId] = useState('');
   const { confirm, dialogProps } = useConfirm();
 
   const { filteredHeads } = useAdminUsersData({ allUsers, studentSearch: '', deptHeadSearch: searchTerm });
 
-  const handleAddDeptHead = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddDeptHead = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
     const name = (form.elements.namedItem('name') as HTMLInputElement).value.trim();
@@ -40,17 +46,73 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
       return;
     }
 
-    addUser({ name, employeeNumber, departmentId: departmentId || undefined, role: UserRole.DEPT_HEAD });
-    setIsAddingDeptHead(false);
-    form.reset();
-    toast.success('Jefe de Departamento creado exitosamente');
+    try {
+      await addUser({ name, employeeNumber, departmentId: departmentId || undefined, role: UserRole.DEPT_HEAD, isActive: true });
+      setIsAddingDeptHead(false);
+      form.reset();
+      toast.success('Jefe de Departamento creado exitosamente');
+    } catch {
+      return;
+    }
+  };
+
+  const openEditHead = (head: User) => {
+    setEditingHead(head);
+    setEditName(head.name);
+    setEditEmployeeNumber(head.employeeNumber ?? '');
+    setEditDepartmentId(head.departmentId ?? '');
+  };
+
+  const handleEditHead = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingHead) return;
+
+    const name = editName.trim();
+    const employeeNumber = editEmployeeNumber.trim();
+    if (!name || !employeeNumber) {
+      toast.error('Nombre y número de empleado son requeridos.');
+      return;
+    }
+
+    try {
+      await updateUser(editingHead.id, {
+        name,
+        employeeNumber,
+        departmentId: editDepartmentId || undefined,
+      });
+      toast.success('Jefe de departamento actualizado', { position: 'top-center' });
+      setEditingHead(null);
+    } catch {
+      return;
+    }
   };
 
   const handleDelete = async (head: User) => {
     const ok = await confirm(`¿Eliminar la cuenta de ${head.name}?`, { variant: 'danger', title: 'Eliminar cuenta' });
     if (!ok) return;
-    deleteUser(head.id);
-    toast.success('Cuenta eliminada correctamente');
+    try {
+      await deleteUser(head.id);
+      toast.success('Cuenta eliminada correctamente');
+    } catch {
+      return;
+    }
+  };
+
+  const handleToggleActive = async (head: User) => {
+    const nextActive = head.isActive === false;
+    const actionLabel = nextActive ? 'activar' : 'desactivar';
+    const ok = await confirm(`¿Deseas ${actionLabel} la cuenta de ${head.name}?`, {
+      title: `${nextActive ? 'Activar' : 'Desactivar'} cuenta`,
+      variant: nextActive ? 'default' : 'danger',
+    });
+    if (!ok) return;
+
+    try {
+      await updateUser(head.id, { isActive: nextActive });
+      toast.success(`Cuenta ${nextActive ? 'activada' : 'desactivada'} correctamente`, { position: 'top-center' });
+    } catch {
+      return;
+    }
   };
 
   const deptOptions: SelectOption[] = [
@@ -85,6 +147,7 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
               <th className="px-8 py-5">Nombre</th>
               <th className="px-8 py-5">Nº Empleado</th>
               <th className="px-8 py-5">Departamento</th>
+              <th className="px-8 py-5">Estado</th>
               <th className="px-8 py-5 text-right">Acciones</th>
             </tr>
           </thead>
@@ -98,15 +161,33 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
                     {allDepartments.find(d => d.id === head.departmentId)?.name || 'Sin Asignar'}
                   </Badge>
                 </td>
+                <td className="px-8 py-5">
+                  <Badge variant={head.isActive === false ? 'danger' : 'success'}>
+                    {head.isActive === false ? 'Inactiva' : 'Activa'}
+                  </Badge>
+                </td>
                 <td className="px-8 py-5 text-right">
-                  <Button variant="icon-action" onClick={() => handleDelete(head)} title="Eliminar Cuenta" className="hover:text-rose-600 hover:bg-rose-50">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center justify-end space-x-2">
+                    <Button variant="icon-action" onClick={() => openEditHead(head)} title="Editar Cuenta">
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="icon-action"
+                      onClick={() => handleToggleActive(head)}
+                      title={head.isActive === false ? 'Activar cuenta' : 'Desactivar cuenta'}
+                      className={head.isActive === false ? 'hover:text-emerald-600 hover:bg-emerald-50' : 'hover:text-amber-600 hover:bg-amber-50'}
+                    >
+                      <Power className="w-4 h-4" />
+                    </Button>
+                    <Button variant="icon-action" onClick={() => handleDelete(head)} title="Eliminar Cuenta" className="hover:text-rose-600 hover:bg-rose-50">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
             {filteredHeads.length === 0 && (
-              <EmptyState colSpan={4} message="No se encontraron jefes de departamento" />
+              <EmptyState colSpan={5} message="No se encontraron jefes de departamento" />
             )}
           </tbody>
         </table>
@@ -128,6 +209,40 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
             </Button>
             <Button type="submit" variant="primary">
               Crear Cuenta
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        open={!!editingHead}
+        onClose={() => setEditingHead(null)}
+        title="Editar Jefe de Departamento"
+      >
+        <form onSubmit={handleEditHead} className="space-y-5">
+          <Input
+            label="Nombre Completo"
+            value={editName}
+            onChange={e => setEditName(e.target.value)}
+            autoFocus
+          />
+          <Input
+            label="Nº de Empleado"
+            value={editEmployeeNumber}
+            onChange={e => setEditEmployeeNumber(e.target.value)}
+          />
+          <Select
+            label="Departamento"
+            value={editDepartmentId}
+            onChange={e => setEditDepartmentId(e.target.value)}
+            options={deptOptions}
+          />
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <Button type="button" variant="ghost" onClick={() => setEditingHead(null)}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="primary">
+              Guardar Cambios
             </Button>
           </div>
         </form>
