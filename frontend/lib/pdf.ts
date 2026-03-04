@@ -231,3 +231,151 @@ export function renderPDF(config: PDFReportConfig): void {
 
   doc.save(config.filename);
 }
+
+// ─── Dept-grouped payroll PDF ─────────────────────────────────────────────────
+
+export interface DeptGroupRow {
+  deptName:   string;
+  students:   {
+    name:   string;
+    carnet: string;
+    hours:  string;
+    bruto:  string;
+    tithe:  string;
+    neto:   string;
+  }[];
+  totalHours: string;
+  totalBruto: string;
+  totalTithe: string;
+  totalNeto:  string;
+}
+
+/**
+ * Generates a PDF with one section per department.
+ * Each section has a dark header row, then student rows, then a totals footer.
+ */
+export function renderDeptGroupedPDF(config: {
+  filename:    string;
+  reportTitle: string;
+  subtitle?:   string;
+  meta:        PDFMetaItem[];
+  deptGroups:  DeptGroupRow[];
+  grandTotals: { hours: string; bruto: string; tithe: string; neto: string };
+}): void {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const W   = doc.internal.pageSize.getWidth();
+  const H   = doc.internal.pageSize.getHeight();
+
+  drawLetterhead(doc, W);
+
+  // Title
+  let curY = 50;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  setTextColor(doc, C.black);
+  doc.text(config.reportTitle, 14, curY);
+  curY += 7;
+
+  if (config.subtitle) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    setTextColor(doc, C.darkGray);
+    doc.text(config.subtitle, 14, curY);
+    curY += 6;
+  }
+  curY += 3;
+
+  // Meta block
+  curY = drawMeta(doc, W, curY, config.meta) + 6;
+
+  // Column headers used in every dept section
+  const headers = ['Estudiante', 'Carnet', 'Horas', 'Bruto', 'Diezmo', 'Neto'];
+  const colWidths = [55, 25, 16, 28, 28, 28]; // mm, sums ~ 180
+
+  // Draw each dept section
+  for (const dept of config.deptGroups) {
+    // Section header bar
+    const headerH = 8;
+    setFill(doc, [40, 40, 45]);
+    doc.rect(10, curY, W - 20, headerH, 'F');
+    setTextColor(doc, C.white);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text(dept.deptName.toUpperCase(), 14, curY + 5.5);
+    curY += headerH;
+
+    // Table for this dept
+    const rows: string[][] = dept.students.map(s => [
+      s.name, s.carnet, s.hours, s.bruto, s.tithe, s.neto,
+    ]);
+    // Totals row
+    rows.push(['TOTAL', '', dept.totalHours, dept.totalBruto, dept.totalTithe, dept.totalNeto]);
+
+    autoTable(doc, {
+      startY: curY,
+      head:   [headers],
+      body:   rows,
+      theme:  'grid',
+      headStyles: {
+        fillColor:  C.black,
+        textColor:  C.white,
+        fontStyle:  'bold',
+        fontSize:   7.5,
+        cellPadding: 2.5,
+      },
+      bodyStyles: {
+        fontSize:    7.5,
+        textColor:   C.darkGray,
+        cellPadding: 2.5,
+      },
+      alternateRowStyles: { fillColor: C.rowAlt },
+      // Bold the last row (totals)
+      didParseCell: data => {
+        if (data.row.index === rows.length - 1) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [230, 230, 232];
+        }
+      },
+      tableLineColor: [229, 231, 235],
+      tableLineWidth: 0.15,
+      columnStyles: colWidths.reduce<Record<number, { cellWidth: number }>>(
+        (acc, w, i) => { acc[i] = { cellWidth: w }; return acc; }, {},
+      ),
+      margin: { left: 10, right: 10, bottom: 20 },
+    });
+
+    curY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+
+    // Page break safety margin
+    if (curY > H - 40 && dept !== config.deptGroups[config.deptGroups.length - 1]) {
+      doc.addPage();
+      curY = 20;
+    }
+  }
+
+  // Grand totals
+  if (config.deptGroups.length > 0) {
+    curY += 2;
+    autoTable(doc, {
+      startY: curY,
+      head:   [['TOTALES GENERALES', '', 'Horas', 'Bruto', 'Diezmo', 'Neto']],
+      body:   [['', '', config.grandTotals.hours, config.grandTotals.bruto, config.grandTotals.tithe, config.grandTotals.neto]],
+      theme:  'grid',
+      headStyles: { fillColor: C.black, textColor: C.white, fontStyle: 'bold', fontSize: 8, cellPadding: 3 },
+      bodyStyles: { fontStyle: 'bold', fontSize: 8, cellPadding: 3, textColor: C.darkGray },
+      columnStyles: colWidths.reduce<Record<number, { cellWidth: number }>>(
+        (acc, w, i) => { acc[i] = { cellWidth: w }; return acc; }, {},
+      ),
+      margin: { left: 10, right: 10, bottom: 20 },
+    });
+  }
+
+  // Footers
+  const totalPages = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    drawFooter(doc, W, H, i, totalPages);
+  }
+
+  doc.save(config.filename);
+}
