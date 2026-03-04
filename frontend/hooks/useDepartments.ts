@@ -8,7 +8,7 @@
  */
 import { useState, useEffect } from 'react';
 import { Department } from '../types';
-import { getDepartments, createDepartment, patchDepartment } from '../services';
+import { getDepartments, createDepartment, patchDepartment, deleteDepartment as apiDeleteDepartment } from '../services';
 import { toast } from 'sonner';
 
 export function useDepartments() {
@@ -67,5 +67,18 @@ export function useDepartments() {
     }
   };
 
-  return { departments, isLoading, error, addDepartment, updateDepartment };
+  const deleteDepartment = async (deptId: string) => {
+    const snapshot = departments.find(d => d.id === deptId);
+    setDepartments(prev => prev.filter(d => d.id !== deptId));
+
+    try {
+      await apiDeleteDepartment(deptId);
+    } catch (err: unknown) {
+      if (snapshot) setDepartments(prev => [...prev, snapshot]);
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar el departamento. Intente de nuevo.');
+      throw err;
+    }
+  };
+
+  return { departments, isLoading, error, addDepartment, updateDepartment, deleteDepartment };
 }

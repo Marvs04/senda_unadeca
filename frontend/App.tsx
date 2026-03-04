@@ -27,7 +27,7 @@ const AuthenticatedArea: React.FC<AuthenticatedAreaProps> = ({ currentUserId, on
 
   const { users, isLoading: usersLoading, error: usersError, addUser, deleteUser, updateUser } = useUsers();
   const { workLogs, isLoading: logsLoading, error: logsError, addWorkLog, updateWorkLogStatus, updateMultipleWorkLogsStatus } = useWorkLogs();
-  const { departments, isLoading: deptsLoading, error: deptsError, addDepartment, updateDepartment } = useDepartments();
+  const { departments, isLoading: deptsLoading, error: deptsError, addDepartment, updateDepartment, deleteDepartment } = useDepartments();
   const { currentRate, isLoading: rateLoading, error: rateError, setCurrentRate, billingCycle } = useRate();
 
   const isAppLoading = usersLoading || logsLoading || deptsLoading || rateLoading;
@@ -102,6 +102,7 @@ const AuthenticatedArea: React.FC<AuthenticatedAreaProps> = ({ currentUserId, on
                 deleteUser={deleteUser}
                 addDepartment={addDepartment}
                 updateDepartment={updateDepartment}
+                deleteDepartment={deleteDepartment}
                 updateUser={updateUser}
                 currentRate={currentRate}
                 setCurrentRate={setCurrentRate}

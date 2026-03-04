@@ -387,6 +387,49 @@ app.patch('/api/v1/departments/:id', requireAuth, async (req, res) => {
   }
 });
 
+app.delete('/api/v1/departments/:id', requireAuth, async (req, res) => {
+  try {
+    const requester = await getRequesterProfile(req);
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(requester.role)) {
+      return res.status(403).json({ message: 'No autorizado para eliminar departamentos.' });
+    }
+
+    const { id } = req.params;
+
+    const { data: dept, error: deptError } = await adminSupabase
+      .from('departments')
+      .select('id, name')
+      .eq('id', id)
+      .single();
+
+    if (deptError || !dept) {
+      return res.status(404).json({ message: 'Departamento no encontrado.' });
+    }
+
+    const { count, error: logsError } = await adminSupabase
+      .from('work_logs')
+      .select('id', { count: 'exact', head: true })
+      .eq('department_id', id);
+
+    if (logsError) return res.status(400).json({ message: logsError.message });
+    if ((count ?? 0) > 0) {
+      return res.status(409).json({
+        message: `No se puede eliminar \"${dept.name}\" porque tiene registros de horas asociados.`,
+      });
+    }
+
+    const { error } = await adminSupabase
+      .from('departments')
+      .delete()
+      .eq('id', id);
+
+    if (error) return res.status(400).json({ message: error.message });
+    return res.status(204).send();
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : 'Error interno.' });
+  }
+});
+
 app.get('/api/v1/work-logs', requireAuth, async (req, res) => {
   const { data, error } = await req.supabase
     .from('work_logs')

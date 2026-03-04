@@ -29,3 +29,7 @@ export async function patchDepartment(
   await apiClient.patch(`/departments/${deptId}`, updates);
   return updates;
 }
+
+export async function deleteDepartment(deptId: string): Promise<void> {
+  await apiClient.del(`/departments/${deptId}`);
+}
