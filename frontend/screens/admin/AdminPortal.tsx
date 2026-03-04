@@ -23,6 +23,7 @@ interface AdminPortalProps {
   deleteUser: (userId: string) => Promise<void> | void;
   addDepartment: (newDepartment: Omit<Department, 'id'>) => Promise<void> | void;
   updateDepartment: (deptId: string, updates: Partial<Department>) => Promise<void> | void;
+  deleteDepartment: (deptId: string) => Promise<void> | void;
   updateUser: (userId: string, updates: Partial<User>) => Promise<void> | void;
   currentRate: number;
   setCurrentRate: (rate: number) => void;
@@ -40,7 +41,7 @@ const TABS: Tab<TabId>[] = [
 const AdminPortal: React.FC<AdminPortalProps> = ({
   user, onLogout,
   allLogs, allUsers, allDepartments,
-  addUser, deleteUser, addDepartment, updateDepartment, updateUser,
+  addUser, deleteUser, addDepartment, updateDepartment, deleteDepartment, updateUser,
   currentRate, setCurrentRate,
 }) => {
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
@@ -116,7 +117,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({
           <AdminDepartmentsTab
             allDepartments={allDepartments} allUsers={allUsers} allLogs={allLogs}
             selectedCycle={selectedCycle}
-            addDepartment={addDepartment} updateDepartment={updateDepartment}
+            addDepartment={addDepartment} updateDepartment={updateDepartment} deleteDepartment={deleteDepartment}
           />
         )}
       </AnimatePresence>
