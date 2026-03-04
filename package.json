@@ -7,6 +7,7 @@
     "dev:core": "concurrently -n backend,frontend -c cyan,magenta \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
+    "lint": "npm --prefix frontend run lint",
     "typecheck": "npm --prefix frontend run typecheck",
     "stop": "kill-port 3000 3001 3002 4000",
     "restart": "run-s stop dev:core"
