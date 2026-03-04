@@ -70,3 +70,7 @@ Plantilla: `backend/.env.example`.
 
 - Frontend: `frontend/README.md` y `frontend/FRONTEND_SPEC.md`
 - Backend: `backend/README.md` y `backend/BACKEND_SPEC.md`
+
+## Registro de cambios
+
+- Historial consolidado de cambios recientes: `CHANGELOG.md`
