@@ -12,8 +12,8 @@ interface AdminDepartmentsTabProps {
   allUsers: User[];
   allLogs: WorkLog[];
   selectedCycle: string;
-  addDepartment: (newDepartment: Omit<Department, 'id'>) => void;
-  updateDepartment: (deptId: string, updates: Partial<Department>) => void;
+  addDepartment: (newDepartment: Omit<Department, 'id'>) => Promise<void> | void;
+  updateDepartment: (deptId: string, updates: Partial<Department>) => Promise<void> | void;
 }
 
 const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
@@ -43,16 +43,20 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
     setIsAddingDept(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDeptName.trim()) return;
 
-    if (editingDept) {
-      updateDepartment(editingDept.id, { name: newDeptName, headId: newDeptHeadId || undefined });
-      toast.success('Departamento actualizado exitosamente', { position: 'top-center' });
-    } else {
-      addDepartment({ name: newDeptName, headId: newDeptHeadId || undefined });
-      toast.success('Departamento creado exitosamente', { position: 'top-center' });
+    try {
+      if (editingDept) {
+        await updateDepartment(editingDept.id, { name: newDeptName.trim(), headId: newDeptHeadId || undefined });
+        toast.success('Departamento actualizado exitosamente', { position: 'top-center' });
+      } else {
+        await addDepartment({ name: newDeptName.trim(), headId: newDeptHeadId || undefined });
+        toast.success('Departamento creado exitosamente', { position: 'top-center' });
+      }
+    } catch {
+      return;
     }
 
     setIsAddingDept(false);

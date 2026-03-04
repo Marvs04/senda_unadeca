@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { motion } from 'motion/react';
 import { Plus, ArrowRightLeft, UserMinus } from 'lucide-react';
-import { User, Department } from '../../types';
+import { User, Department, UserRole } from '../../types';
 import { toast } from 'sonner';
 import { useConfirm } from '../../hooks/useConfirm';
 import { useAdminUsersData } from '../../hooks/useAdminUsersData';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { Toolbar, Button, Badge, Modal, EmptyState } from '../../components/ui';
+import { Toolbar, Button, Badge, Modal, EmptyState, Input, Select } from '../../components/ui';
+import type { SelectOption } from '../../components/ui';
 
 interface AdminStudentsTabProps {
   allUsers: User[];
@@ -19,11 +20,17 @@ interface AdminStudentsTabProps {
 const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
   allUsers,
   allDepartments,
+  addUser,
   updateUser,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm);
   const [editingStudent, setEditingStudent] = useState<User | null>(null);
+  const [isAddingStudent, setIsAddingStudent] = useState(false);
+  const [newStudentName, setNewStudentName] = useState('');
+  const [newStudentCarnet, setNewStudentCarnet] = useState('');
+  const [newStudentDepartmentId, setNewStudentDepartmentId] = useState('');
+  const [newStudentPassword, setNewStudentPassword] = useState('');
   const { confirm, dialogProps } = useConfirm();
 
   const { filteredStudents } = useAdminUsersData({ allUsers, studentSearch: debouncedSearch, deptHeadSearch: '' });
@@ -40,6 +47,47 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
     handleUpdateStudentDept(student.id, undefined);
   };
 
+  const resetStudentForm = () => {
+    setNewStudentName('');
+    setNewStudentCarnet('');
+    setNewStudentDepartmentId('');
+    setNewStudentPassword('');
+  };
+
+  const handleCreateStudent = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const name = newStudentName.trim();
+    const carnet = newStudentCarnet.trim();
+
+    if (!name || !carnet) {
+      toast.error('Nombre y carnet son requeridos.');
+      return;
+    }
+
+    try {
+      await addUser(
+        {
+          name,
+          carnet,
+          role: UserRole.STUDENT,
+          departmentId: newStudentDepartmentId || undefined,
+        },
+        newStudentPassword.trim() || undefined,
+      );
+
+      toast.success('Estudiante creado exitosamente', { position: 'top-center' });
+      setIsAddingStudent(false);
+      resetStudentForm();
+    } catch {
+      return;
+    }
+  };
+
+  const departmentOptions: SelectOption[] = [
+    { value: '', label: 'Sin Asignar' },
+    ...allDepartments.map(d => ({ value: d.id, label: d.name })),
+  ];
+
   return (
     <motion.div
       key="students"
@@ -53,7 +101,7 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
         onSearch={setSearchTerm}
         searchPlaceholder="Buscar por nombre o carnet..."
         actions={
-          <Button variant="primary" icon={<Plus className="w-4 h-4" />} disabled title="Funcionalidad próximamente">
+          <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setIsAddingStudent(true)}>
             Nuevo Estudiante
           </Button>
         }
@@ -100,6 +148,59 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
       </div>
 
       {/* Change Dept Modal */}
+      <Modal
+        open={isAddingStudent}
+        onClose={() => {
+          setIsAddingStudent(false);
+          resetStudentForm();
+        }}
+        title="Nuevo Estudiante"
+      >
+        <form onSubmit={handleCreateStudent} className="space-y-5">
+          <Input
+            label="Nombre Completo"
+            value={newStudentName}
+            onChange={e => setNewStudentName(e.target.value)}
+            placeholder="Ej. María Gómez"
+            autoFocus
+          />
+          <Input
+            label="Carnet"
+            value={newStudentCarnet}
+            onChange={e => setNewStudentCarnet(e.target.value)}
+            placeholder="Ej. 20240001"
+          />
+          <Select
+            label="Departamento"
+            value={newStudentDepartmentId}
+            onChange={e => setNewStudentDepartmentId(e.target.value)}
+            options={departmentOptions}
+          />
+          <Input
+            label="Contraseña Temporal (opcional)"
+            type="password"
+            value={newStudentPassword}
+            onChange={e => setNewStudentPassword(e.target.value)}
+            placeholder="Si se deja vacío, se usa el carnet"
+          />
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setIsAddingStudent(false);
+                resetStudentForm();
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" variant="primary">
+              Crear Cuenta
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
       <Modal
         open={!!editingStudent}
         onClose={() => setEditingStudent(null)}

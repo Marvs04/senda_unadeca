@@ -49,7 +49,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, users, departments }
             await onLogin(username.trim(), password);
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : 'Credenciales inválidas.');
-            if (import.meta.env.DEV) setShowDemo(true);
         } finally {
             setIsSubmitting(false);
     }

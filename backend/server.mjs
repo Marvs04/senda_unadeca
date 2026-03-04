@@ -259,28 +259,70 @@ app.get('/api/v1/departments', requireAuth, async (req, res) => {
 });
 
 app.post('/api/v1/departments', requireAuth, async (req, res) => {
-  const { name, headId } = req.body ?? {};
-  const { data, error } = await req.supabase
-    .from('departments')
-    .insert({ name, head_id: headId ?? null })
-    .select('*')
-    .single();
+  try {
+    const requester = await getRequesterProfile(req);
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(requester.role)) {
+      return res.status(403).json({ message: 'No autorizado para crear departamentos.' });
+    }
 
-  if (error) return res.status(400).json({ message: error.message });
-  return res.status(201).json(toDepartment(data));
+    const { name, headId } = req.body ?? {};
+    const normalizedName = String(name ?? '').trim();
+    const normalizedHeadId = typeof headId === 'string' && headId.trim() ? headId.trim() : null;
+
+    if (!normalizedName) {
+      return res.status(400).json({ message: 'El nombre del departamento es requerido.' });
+    }
+
+    const { data, error } = await adminSupabase
+      .from('departments')
+      .insert({ name: normalizedName, head_id: normalizedHeadId })
+      .select('*')
+      .single();
+
+    if (error) return res.status(400).json({ message: error.message });
+    return res.status(201).json(toDepartment(data));
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : 'Error interno.' });
+  }
 });
 
 app.patch('/api/v1/departments/:id', requireAuth, async (req, res) => {
-  const { id } = req.params;
-  const { name, headId } = req.body ?? {};
+  try {
+    const requester = await getRequesterProfile(req);
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(requester.role)) {
+      return res.status(403).json({ message: 'No autorizado para actualizar departamentos.' });
+    }
 
-  const { error } = await req.supabase
-    .from('departments')
-    .update({ name, head_id: headId })
-    .eq('id', id);
+    const { id } = req.params;
+    const { name, headId } = req.body ?? {};
+    const updates = {};
 
-  if (error) return res.status(400).json({ message: error.message });
-  return res.status(204).send();
+    if (name !== undefined) {
+      const normalizedName = String(name).trim();
+      if (!normalizedName) {
+        return res.status(400).json({ message: 'El nombre del departamento no puede estar vacío.' });
+      }
+      updates.name = normalizedName;
+    }
+
+    if (headId !== undefined) {
+      updates.head_id = typeof headId === 'string' && headId.trim() ? headId.trim() : null;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: 'No hay campos para actualizar.' });
+    }
+
+    const { error } = await adminSupabase
+      .from('departments')
+      .update(updates)
+      .eq('id', id);
+
+    if (error) return res.status(400).json({ message: error.message });
+    return res.status(204).send();
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : 'Error interno.' });
+  }
 });
 
 app.get('/api/v1/work-logs', requireAuth, async (req, res) => {

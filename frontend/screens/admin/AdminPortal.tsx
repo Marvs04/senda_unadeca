@@ -21,8 +21,8 @@ interface AdminPortalProps {
   allDepartments: Department[];
   addUser: (newUser: Omit<User, 'id'>, password?: string) => Promise<void> | void;
   deleteUser: (userId: string) => void;
-  addDepartment: (newDepartment: Omit<Department, 'id'>) => void;
-  updateDepartment: (deptId: string, updates: Partial<Department>) => void;
+  addDepartment: (newDepartment: Omit<Department, 'id'>) => Promise<void> | void;
+  updateDepartment: (deptId: string, updates: Partial<Department>) => Promise<void> | void;
   updateUser: (userId: string, updates: Partial<User>) => void;
   currentRate: number;
   setCurrentRate: (rate: number) => void;
