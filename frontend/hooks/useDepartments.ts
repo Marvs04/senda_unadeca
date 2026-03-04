@@ -40,22 +40,31 @@ export function useDepartments() {
 
   // ── Mutaciones optimistas ─────────────────────────────────────────────────
 
-  const addDepartment = (newDepartment: Omit<Department, 'id'>) => {
+  const addDepartment = async (newDepartment: Omit<Department, 'id'>) => {
     const department: Department = { ...newDepartment, id: crypto.randomUUID() };
     setDepartments(prev => [...prev, department]);
-    createDepartment(newDepartment).catch(() => {
+
+    try {
+      const created = await createDepartment(newDepartment);
+      setDepartments(prev => prev.map(d => (d.id === department.id ? created : d)));
+    } catch (err: unknown) {
       setDepartments(prev => prev.filter(d => d.id !== department.id));
-      toast.error('Error al crear el departamento. Intente de nuevo.');
-    });
+      toast.error(err instanceof Error ? err.message : 'Error al crear el departamento. Intente de nuevo.');
+      throw err;
+    }
   };
 
-  const updateDepartment = (deptId: string, updates: Partial<Department>) => {
+  const updateDepartment = async (deptId: string, updates: Partial<Department>) => {
     const snapshot = departments.find(d => d.id === deptId);
     setDepartments(prev => prev.map(d => d.id === deptId ? { ...d, ...updates } : d));
-    patchDepartment(deptId, updates).catch(() => {
+
+    try {
+      await patchDepartment(deptId, updates);
+    } catch (err: unknown) {
       if (snapshot) setDepartments(prev => prev.map(d => d.id === deptId ? snapshot : d));
-      toast.error('Error al actualizar el departamento. Intente de nuevo.');
-    });
+      toast.error(err instanceof Error ? err.message : 'Error al actualizar el departamento. Intente de nuevo.');
+      throw err;
+    }
   };
 
   return { departments, isLoading, error, addDepartment, updateDepartment };
