@@ -66,6 +66,13 @@ function setDrawColor(doc: jsPDF, [r, g, b]: [number, number, number]) {
   doc.setDrawColor(r, g, b);
 }
 
+function sanitizeForPdf(value: string | number): string {
+  return String(value)
+    .replace(/\u00a0/g, ' ')
+    .replace(/₡\s?/g, 'C/ ')
+    .trim();
+}
+
 function drawLetterhead(doc: jsPDF, W: number) {
   // ── Black header bar ────────────────────────────────────────────────────────
   setFill(doc, C.black);
@@ -145,13 +152,13 @@ function drawMeta(doc: jsPDF, W: number, startY: number, meta: PDFMetaItem[]): n
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.5);
     setTextColor(doc, C.midGray);
-    doc.text(item.label.toUpperCase(), col, y + 1.5);
+    doc.text(sanitizeForPdf(item.label).toUpperCase(), col, y + 1.5);
 
     // Value
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     setTextColor(doc, C.darkGray);
-    doc.text(String(item.value), col, y + 6.5);
+    doc.text(sanitizeForPdf(item.value), col, y + 6.5);
   });
 
   return startY + blockH; // returns bottom Y of the block
@@ -171,14 +178,14 @@ export function renderPDF(config: PDFReportConfig): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   setTextColor(doc, C.black);
-  doc.text(config.reportTitle, 14, curY);
+  doc.text(sanitizeForPdf(config.reportTitle), 14, curY);
   curY += 7;
 
   if (config.subtitle) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     setTextColor(doc, C.darkGray);
-    doc.text(config.subtitle, 14, curY);
+    doc.text(sanitizeForPdf(config.subtitle), 14, curY);
     curY += 6;
   }
 
@@ -191,8 +198,8 @@ export function renderPDF(config: PDFReportConfig): void {
   // ── Data table ─────────────────────────────────────────────────────────────
   autoTable(doc, {
     startY: tableStartY,
-    head: [config.headers],
-    body: config.rows.map(row => row.map(cell => String(cell))),
+    head: [config.headers.map(h => sanitizeForPdf(h))],
+    body: config.rows.map(row => row.map(cell => sanitizeForPdf(cell))),
     theme: 'grid',
     headStyles: {
       fillColor: C.black,
