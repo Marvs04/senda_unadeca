@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { motion } from 'motion/react';
-import { Plus, ArrowRightLeft, UserMinus } from 'lucide-react';
+import { Plus, Edit2, Power, Trash2 } from 'lucide-react';
 import { User, Department, UserRole } from '../../types';
 import { toast } from 'sonner';
 import { useConfirm } from '../../hooks/useConfirm';
@@ -14,7 +14,8 @@ interface AdminStudentsTabProps {
   allUsers: User[];
   allDepartments: Department[];
   addUser: (newUser: Omit<User, 'id'>, password?: string) => Promise<void> | void;
-  updateUser: (userId: string, updates: Partial<User>) => void;
+  updateUser: (userId: string, updates: Partial<User>) => Promise<void> | void;
+  deleteUser: (userId: string) => Promise<void> | void;
 }
 
 const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
@@ -22,6 +23,7 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
   allDepartments,
   addUser,
   updateUser,
+  deleteUser,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm);
@@ -31,21 +33,12 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
   const [newStudentCarnet, setNewStudentCarnet] = useState('');
   const [newStudentDepartmentId, setNewStudentDepartmentId] = useState('');
   const [newStudentPassword, setNewStudentPassword] = useState('');
+  const [editName, setEditName] = useState('');
+  const [editCarnet, setEditCarnet] = useState('');
+  const [editDepartmentId, setEditDepartmentId] = useState('');
   const { confirm, dialogProps } = useConfirm();
 
   const { filteredStudents } = useAdminUsersData({ allUsers, studentSearch: debouncedSearch, deptHeadSearch: '' });
-
-  const handleUpdateStudentDept = (studentId: string, deptId: string | undefined) => {
-    updateUser(studentId, { departmentId: deptId });
-    toast.success('Departamento actualizado correctamente', { position: 'top-center' });
-    setEditingStudent(null);
-  };
-
-  const handleRemoveFromDept = async (student: User) => {
-    const ok = await confirm(`¿Quitar a ${student.name} de su departamento?`, { variant: 'danger', title: 'Quitar del departamento' });
-    if (!ok) return;
-    handleUpdateStudentDept(student.id, undefined);
-  };
 
   const resetStudentForm = () => {
     setNewStudentName('');
@@ -70,6 +63,7 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
           name,
           carnet,
           role: UserRole.STUDENT,
+          isActive: true,
           departmentId: newStudentDepartmentId || undefined,
         },
         newStudentPassword.trim() || undefined,
@@ -78,6 +72,69 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
       toast.success('Estudiante creado exitosamente', { position: 'top-center' });
       setIsAddingStudent(false);
       resetStudentForm();
+    } catch {
+      return;
+    }
+  };
+
+  const openEditStudent = (student: User) => {
+    setEditingStudent(student);
+    setEditName(student.name);
+    setEditCarnet(student.carnet ?? '');
+    setEditDepartmentId(student.departmentId ?? '');
+  };
+
+  const handleEditStudent = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingStudent) return;
+
+    const name = editName.trim();
+    const carnet = editCarnet.trim();
+    if (!name || !carnet) {
+      toast.error('Nombre y carnet son requeridos.');
+      return;
+    }
+
+    try {
+      await updateUser(editingStudent.id, {
+        name,
+        carnet,
+        departmentId: editDepartmentId || undefined,
+      });
+      toast.success('Estudiante actualizado correctamente', { position: 'top-center' });
+      setEditingStudent(null);
+    } catch {
+      return;
+    }
+  };
+
+  const handleToggleActive = async (student: User) => {
+    const nextActive = student.isActive === false;
+    const actionLabel = nextActive ? 'activar' : 'desactivar';
+    const ok = await confirm(`¿Deseas ${actionLabel} la cuenta de ${student.name}?`, {
+      title: `${nextActive ? 'Activar' : 'Desactivar'} cuenta`,
+      variant: nextActive ? 'default' : 'danger',
+    });
+    if (!ok) return;
+
+    try {
+      await updateUser(student.id, { isActive: nextActive });
+      toast.success(`Cuenta ${nextActive ? 'activada' : 'desactivada'} correctamente`, { position: 'top-center' });
+    } catch {
+      return;
+    }
+  };
+
+  const handleDeleteStudent = async (student: User) => {
+    const ok = await confirm(`¿Eliminar la cuenta de ${student.name}?`, {
+      title: 'Eliminar cuenta',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
+    try {
+      await deleteUser(student.id);
+      toast.success('Cuenta eliminada correctamente', { position: 'top-center' });
     } catch {
       return;
     }
@@ -115,6 +172,7 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
               <th className="px-8 py-5">Estudiante</th>
               <th className="px-8 py-5">Carnet</th>
               <th className="px-8 py-5">Departamento</th>
+              <th className="px-8 py-5">Estado</th>
               <th className="px-8 py-5 text-right">Acciones</th>
             </tr>
           </thead>
@@ -128,20 +186,33 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
                     {allDepartments.find(d => d.id === student.departmentId)?.name || 'Sin Asignar'}
                   </Badge>
                 </td>
+                <td className="px-8 py-5">
+                  <Badge variant={student.isActive === false ? 'danger' : 'success'}>
+                    {student.isActive === false ? 'Inactiva' : 'Activa'}
+                  </Badge>
+                </td>
                 <td className="px-8 py-5 text-right">
                   <div className="flex items-center justify-end space-x-2">
-                    <Button variant="icon-action" onClick={() => setEditingStudent(student)} title="Cambiar Departamento">
-                      <ArrowRightLeft className="w-4 h-4" />
+                    <Button variant="icon-action" onClick={() => openEditStudent(student)} title="Editar Estudiante">
+                      <Edit2 className="w-4 h-4" />
                     </Button>
-                    <Button variant="icon-action" onClick={() => handleRemoveFromDept(student)} title="Quitar de Departamento" className="hover:text-rose-600 hover:bg-rose-50">
-                      <UserMinus className="w-4 h-4" />
+                    <Button
+                      variant="icon-action"
+                      onClick={() => handleToggleActive(student)}
+                      title={student.isActive === false ? 'Activar cuenta' : 'Desactivar cuenta'}
+                      className={student.isActive === false ? 'hover:text-emerald-600 hover:bg-emerald-50' : 'hover:text-amber-600 hover:bg-amber-50'}
+                    >
+                      <Power className="w-4 h-4" />
+                    </Button>
+                    <Button variant="icon-action" onClick={() => handleDeleteStudent(student)} title="Eliminar Cuenta" className="hover:text-rose-600 hover:bg-rose-50">
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </td>
               </tr>
             ))}
             {filteredStudents.length === 0 && (
-              <EmptyState colSpan={4} message="No se encontraron estudiantes" />
+              <EmptyState colSpan={5} message="No se encontraron estudiantes" />
             )}
           </tbody>
         </table>
@@ -204,24 +275,35 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
       <Modal
         open={!!editingStudent}
         onClose={() => setEditingStudent(null)}
-        title="Cambiar Departamento"
-        subtitle={editingStudent ? `Selecciona el nuevo departamento para ${editingStudent.name}` : ''}
+        title="Editar Estudiante"
+        subtitle={editingStudent ? `Actualiza la información de ${editingStudent.name}` : ''}
       >
-        <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
-          {allDepartments.map(dept => (
-            <button
-              key={dept.id}
-              onClick={() => handleUpdateStudentDept(editingStudent!.id, dept.id)}
-              className="w-full p-4 text-left rounded-2xl border border-border-faint hover:border-foreground hover:bg-surface transition-all flex items-center justify-between group"
-            >
-              <span className="font-medium text-sm">{dept.name}</span>
-              <ArrowRightLeft className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </button>
-          ))}
-        </div>
-        <Button variant="ghost" className="w-full mt-4" onClick={() => setEditingStudent(null)}>
-          Cancelar
-        </Button>
+        <form onSubmit={handleEditStudent} className="space-y-5">
+          <Input
+            label="Nombre Completo"
+            value={editName}
+            onChange={e => setEditName(e.target.value)}
+          />
+          <Input
+            label="Carnet"
+            value={editCarnet}
+            onChange={e => setEditCarnet(e.target.value)}
+          />
+          <Select
+            label="Departamento"
+            value={editDepartmentId}
+            onChange={e => setEditDepartmentId(e.target.value)}
+            options={departmentOptions}
+          />
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <Button type="button" variant="ghost" onClick={() => setEditingStudent(null)}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="primary">
+              Guardar Cambios
+            </Button>
+          </div>
+        </form>
       </Modal>
 
       <ConfirmDialog {...dialogProps} />

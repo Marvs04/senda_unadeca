@@ -13,6 +13,7 @@ export interface User {
   carnet?: string;
   employeeNumber?: string;
   departmentId?: string;
+  isActive?: boolean;
 }
 
 export interface Department {
