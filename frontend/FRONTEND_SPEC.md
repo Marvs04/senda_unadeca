@@ -6,6 +6,7 @@ Este archivo concentra lo de frontend de SENDA.
 
 - Arquitectura activa: `frontend -> backend API (/api/v1/*) -> Supabase`.
 - El frontend no debe incluir llamadas directas a Supabase para flujos de negocio.
+- Excepcion permitida: suscripciones Realtime (`postgres_changes`) para refresco automatico de estado.
 - La autenticaciÃ³n vigente se resuelve por API (`/auth/login`, `/auth/me`, `/auth/logout`) con bearer token en `TokenManager`.
 - Cualquier documentaciÃ³n previa que describa acceso directo a Supabase desde componentes/hook se considera histÃ³rica.
 
@@ -25,6 +26,8 @@ En `.env` o `.env.local`:
 
 - `VITE_API_BASE_URL` (opcional en local con proxy)
 - `VITE_API_VERSION` (opcional, por defecto `v1`)
+- `VITE_SUPABASE_URL` (requerida para Realtime)
+- `VITE_SUPABASE_ANON_KEY` (requerida para Realtime)
 
 ## Estructura frontend principal
 
@@ -36,4 +39,4 @@ En `.env` o `.env.local`:
 
 ## Nota importante
 
-La base de datos se accede solo desde `backend/`; el frontend no debe incluir cliente directo de Supabase.
+La base de datos se opera por `backend/`; el frontend solo usa cliente Supabase para escuchar eventos Realtime y luego re-sincroniza via backend API.

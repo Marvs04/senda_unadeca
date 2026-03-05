@@ -13,6 +13,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { WorkLog, WorkLogStatus } from '../types';
 import { getWorkLogs, createWorkLog, patchWorkLogStatus, bulkPatchWorkLogStatus } from '../services';
+import { subscribeToTableChanges } from '../lib/realtime';
 import { toast } from 'sonner';
 
 export function useWorkLogs() {
@@ -22,24 +23,53 @@ export function useWorkLogs() {
 
   useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
-    setError(null);
+    let refreshTimer: number | null = null;
 
-    getWorkLogs()
-      .then(data => {
-        if (!cancelled) {
-          setWorkLogs(data);
-          setIsLoading(false);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
+    const syncWorkLogs = async (isInitialLoad: boolean) => {
+      if (isInitialLoad) {
+        setIsLoading(true);
+        setError(null);
+      }
+
+      try {
+        const data = await getWorkLogs();
+        if (cancelled) return;
+        setWorkLogs(data);
+        if (isInitialLoad) setIsLoading(false);
+      } catch (err: unknown) {
+        if (cancelled) return;
+        if (isInitialLoad) {
           setError(err instanceof Error ? err.message : 'Error al cargar registros de horas');
           setIsLoading(false);
+          return;
         }
-      });
+        // Keep the last good state when realtime refresh fails.
+        console.warn('[Realtime] No se pudo sincronizar bitacoras', err);
+      }
+    };
 
-    return () => { cancelled = true; };
+    const scheduleBackgroundSync = () => {
+      if (refreshTimer !== null) return;
+      refreshTimer = window.setTimeout(() => {
+        refreshTimer = null;
+        void syncWorkLogs(false);
+      }, 250);
+    };
+
+    void syncWorkLogs(true);
+
+    const unsubscribeRealtime = subscribeToTableChanges({
+      table: 'work_logs',
+      onChange: scheduleBackgroundSync,
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribeRealtime();
+      if (refreshTimer !== null) {
+        window.clearTimeout(refreshTimer);
+      }
+    };
   }, []);
 
   // ── Mutaciones optimistas ─────────────────────────────────────────────────
