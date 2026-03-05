@@ -2,6 +2,13 @@
 
 Este archivo concentra lo de frontend de SENDA.
 
+## Estado actual (2026-03-04)
+
+- Arquitectura activa: `frontend -> backend API (/api/v1/*) -> Supabase`.
+- El frontend no debe incluir llamadas directas a Supabase para flujos de negocio.
+- La autenticaciÃ³n vigente se resuelve por API (`/auth/login`, `/auth/me`, `/auth/logout`) con bearer token en `TokenManager`.
+- Cualquier documentaciÃ³n previa que describa acceso directo a Supabase desde componentes/hook se considera histÃ³rica.
+
 ## Estado actual
 
 - Autenticación real contra backend API (`/api/v1/auth/*`) desde `services/authService.ts`.

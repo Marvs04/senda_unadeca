@@ -7,7 +7,7 @@ interface SuperAdminAccountListProps {
   filteredAdmins: User[];
   adminSearch: string;
   setAdminSearch: (v: string) => void;
-  onResetPassword: (name: string) => void;
+  onResetPassword: (user: User) => void;
 }
 
 const SuperAdminAccountList: React.FC<SuperAdminAccountListProps> = ({
@@ -87,7 +87,7 @@ const SuperAdminAccountList: React.FC<SuperAdminAccountListProps> = ({
                     variant="ghost"
                     size="sm"
                     icon={<RefreshCw className="w-3 h-3" />}
-                    onClick={() => onResetPassword(admin.name)}
+                    onClick={() => onResetPassword(admin)}
                   >
                     Resetear
                   </Button>

@@ -10,7 +10,13 @@
  */
 import { useState, useEffect } from 'react';
 import { User } from '../types';
-import { getUsers, createUser, patchUser, deleteUser as apiDeleteUser } from '../services';
+import {
+  getUsers,
+  createUser,
+  patchUser,
+  deleteUser as apiDeleteUser,
+  resetUserPassword as apiResetUserPassword,
+} from '../services';
 import { toast } from 'sonner';
 
 export function useUsers() {
@@ -43,13 +49,15 @@ export function useUsers() {
   // ── Mutaciones optimistas ─────────────────────────────────────────────────
 
   const addUser = async (newUser: Omit<User, 'id'>, password?: string) => {
-    const user: User = { ...newUser, id: crypto.randomUUID() };
-    setUsers(prev => [...prev, user]);
+    const tempId = crypto.randomUUID();
+    const optimisticUser: User = { ...newUser, id: tempId };
+    setUsers(prev => [...prev, optimisticUser]);
 
     try {
-      await createUser(newUser, password);
+      const created = await createUser(newUser, password);
+      setUsers(prev => prev.map(u => (u.id === tempId ? created : u)));
     } catch (err: unknown) {
-      setUsers(prev => prev.filter(u => u.id !== user.id));
+      setUsers(prev => prev.filter(u => u.id !== tempId));
       const message = err instanceof Error ? err.message : 'Error al crear el usuario. Intente de nuevo.';
       toast.error(message);
       throw err;
@@ -83,5 +91,15 @@ export function useUsers() {
     }
   };
 
-  return { users, isLoading, error, addUser, deleteUser, updateUser };
+  const resetUserPassword = async (userId: string, newPassword: string) => {
+    try {
+      await apiResetUserPassword(userId, newPassword);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al resetear la contraseña. Intente de nuevo.';
+      toast.error(message);
+      throw err;
+    }
+  };
+
+  return { users, isLoading, error, addUser, deleteUser, updateUser, resetUserPassword };
 }
