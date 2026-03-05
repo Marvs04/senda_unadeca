@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react';
 import { Department } from '../types';
 import { getDepartments, createDepartment, patchDepartment, deleteDepartment as apiDeleteDepartment } from '../services';
+import { subscribeToTableChanges } from '../lib/realtime';
 import { toast } from 'sonner';
 
 export function useDepartments() {
@@ -18,24 +19,53 @@ export function useDepartments() {
 
   useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
-    setError(null);
+    let refreshTimer: number | null = null;
 
-    getDepartments()
-      .then(data => {
-        if (!cancelled) {
-          setDepartments(data);
-          setIsLoading(false);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
+    const syncDepartments = async (isInitialLoad: boolean) => {
+      if (isInitialLoad) {
+        setIsLoading(true);
+        setError(null);
+      }
+
+      try {
+        const data = await getDepartments();
+        if (cancelled) return;
+        setDepartments(data);
+        if (isInitialLoad) setIsLoading(false);
+      } catch (err: unknown) {
+        if (cancelled) return;
+        if (isInitialLoad) {
           setError(err instanceof Error ? err.message : 'Error al cargar departamentos');
           setIsLoading(false);
+          return;
         }
-      });
+        // Keep the last good state when realtime refresh fails.
+        console.warn('[Realtime] No se pudo sincronizar departamentos', err);
+      }
+    };
 
-    return () => { cancelled = true; };
+    const scheduleBackgroundSync = () => {
+      if (refreshTimer !== null) return;
+      refreshTimer = window.setTimeout(() => {
+        refreshTimer = null;
+        void syncDepartments(false);
+      }, 250);
+    };
+
+    void syncDepartments(true);
+
+    const unsubscribeRealtime = subscribeToTableChanges({
+      table: 'departments',
+      onChange: scheduleBackgroundSync,
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribeRealtime();
+      if (refreshTimer !== null) {
+        window.clearTimeout(refreshTimer);
+      }
+    };
   }, []);
 
   // ── Mutaciones optimistas ─────────────────────────────────────────────────

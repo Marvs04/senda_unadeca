@@ -17,6 +17,7 @@ import {
   deleteUser as apiDeleteUser,
   resetUserPassword as apiResetUserPassword,
 } from '../services';
+import { subscribeToTableChanges } from '../lib/realtime';
 import { toast } from 'sonner';
 
 export function useUsers() {
@@ -26,24 +27,53 @@ export function useUsers() {
 
   useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
-    setError(null);
+    let refreshTimer: number | null = null;
 
-    getUsers()
-      .then(data => {
-        if (!cancelled) {
-          setUsers(data);
-          setIsLoading(false);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
+    const syncUsers = async (isInitialLoad: boolean) => {
+      if (isInitialLoad) {
+        setIsLoading(true);
+        setError(null);
+      }
+
+      try {
+        const data = await getUsers();
+        if (cancelled) return;
+        setUsers(data);
+        if (isInitialLoad) setIsLoading(false);
+      } catch (err: unknown) {
+        if (cancelled) return;
+        if (isInitialLoad) {
           setError(err instanceof Error ? err.message : 'Error al cargar usuarios');
           setIsLoading(false);
+          return;
         }
-      });
+        // Keep the last good state when realtime refresh fails.
+        console.warn('[Realtime] No se pudo sincronizar usuarios', err);
+      }
+    };
 
-    return () => { cancelled = true; };
+    const scheduleBackgroundSync = () => {
+      if (refreshTimer !== null) return;
+      refreshTimer = window.setTimeout(() => {
+        refreshTimer = null;
+        void syncUsers(false);
+      }, 250);
+    };
+
+    void syncUsers(true);
+
+    const unsubscribeRealtime = subscribeToTableChanges({
+      table: 'profiles',
+      onChange: scheduleBackgroundSync,
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribeRealtime();
+      if (refreshTimer !== null) {
+        window.clearTimeout(refreshTimer);
+      }
+    };
   }, []);
 
   // ── Mutaciones optimistas ─────────────────────────────────────────────────

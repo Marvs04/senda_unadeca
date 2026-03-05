@@ -11,9 +11,13 @@
  */
 
 const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string | undefined;
+const VITE_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const VITE_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 export const env = {
   apiBaseUrl:       VITE_API_BASE_URL ?? '',
+  supabaseUrl:      VITE_SUPABASE_URL ?? '',
+  supabaseAnonKey:  VITE_SUPABASE_ANON_KEY ?? '',
   isDev:            import.meta.env.DEV    as boolean,
   isProd:           import.meta.env.PROD   as boolean,
 } as const;
