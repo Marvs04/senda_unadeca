@@ -14,7 +14,7 @@ import {
 import DashboardCard from '../../components/DashboardCard';
 import WorkLogTable from '../../components/WorkLogTable';
 import { Department, User, WorkLog, WorkLogStatus } from '../../types';
-import { formatCurrency, exportToCSV } from '../../lib/utils';
+import { exportToCSV, formatCostaRicaLongDate, formatCostaRicaTime, formatCurrency, formatIsoDate } from '../../lib/utils';
 import { renderPDF } from '../../lib/pdf';
 import { isDateInCycle } from '../../lib/business';
 import { toast } from 'sonner';
@@ -101,24 +101,11 @@ const SORT_OPTIONS: SelectOption[] = [
 ];
 
 function formatDateOnly(dateString: string): string {
-  return new Date(`${dateString}T00:00:00`).toLocaleDateString('es-CR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
+  return formatIsoDate(dateString);
 }
 
-function formatDateTime(value?: string): string {
-  if (!value) return 'No registrado';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'No registrado';
-  return date.toLocaleString('es-CR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+function formatTimeOnly(value?: string): string {
+  return formatCostaRicaTime(value);
 }
 
 function statusLabel(status: WorkLogStatus): string {
@@ -332,15 +319,15 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
         department?.name ?? 'N/A',
         department?.costCenter ?? 'N/A',
         log.date,
-        log.startTime ? formatDateTime(log.startTime) : '',
-        log.endTime ? formatDateTime(log.endTime) : '',
+        log.startTime ? formatTimeOnly(log.startTime) : '',
+        log.endTime ? formatTimeOnly(log.endTime) : '',
         log.hours,
         statusLabel(log.status),
         log.description,
         approvedBy,
-        log.approvedAt ? formatDateTime(log.approvedAt) : '',
+        log.approvedAt ? formatTimeOnly(log.approvedAt) : '',
         rejectedBy,
-        log.rejectedAt ? formatDateTime(log.rejectedAt) : '',
+        log.rejectedAt ? formatTimeOnly(log.rejectedAt) : '',
         log.rejectionReason ?? '',
       ];
     });
@@ -352,7 +339,7 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
     if (type === 'csv') {
       exportToCSV('reporte_general_filtrado.csv', headers, rows);
     } else {
-      const now = new Date().toLocaleDateString('es-CR', { year: 'numeric', month: 'long', day: 'numeric' });
+      const now = formatCostaRicaLongDate();
       renderPDF({
         filename: 'reporte_general_filtrado.pdf',
         reportTitle: 'REPORTE GENERAL DE HORAS BECA',
@@ -562,11 +549,11 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
               </div>
               <div className="bg-surface rounded-2xl px-4 py-3 border border-border-faint">
                 <p className="text-[10px] font-black uppercase tracking-widest text-faint">Hora de inicio</p>
-                <p className="text-sm font-semibold text-foreground mt-1">{formatDateTime(selectedLog.log.startTime)}</p>
+                <p className="text-sm font-semibold text-foreground mt-1">{formatTimeOnly(selectedLog.log.startTime)}</p>
               </div>
               <div className="bg-surface rounded-2xl px-4 py-3 border border-border-faint">
                 <p className="text-[10px] font-black uppercase tracking-widest text-faint">Hora de finalizacion</p>
-                <p className="text-sm font-semibold text-foreground mt-1">{formatDateTime(selectedLog.log.endTime)}</p>
+                <p className="text-sm font-semibold text-foreground mt-1">{formatTimeOnly(selectedLog.log.endTime)}</p>
               </div>
               <div className="bg-surface rounded-2xl px-4 py-3 border border-border-faint">
                 <p className="text-[10px] font-black uppercase tracking-widest text-faint">Horas totales</p>
@@ -590,7 +577,7 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
                   Aprobada por: <span className="font-semibold">{selectedLog.log.approvedBy ? allUsers.find(u => u.id === selectedLog.log.approvedBy)?.name ?? 'N/A' : 'N/A'}</span>
                 </p>
                 <p className="text-sm text-emerald-900 mt-1">
-                  Hora: <span className="font-semibold">{formatDateTime(selectedLog.log.approvedAt)}</span>
+                  Hora: <span className="font-semibold">{formatTimeOnly(selectedLog.log.approvedAt)}</span>
                 </p>
               </div>
             )}
@@ -602,7 +589,7 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
                   Denegada por: <span className="font-semibold">{selectedLog.log.rejectedBy ? allUsers.find(u => u.id === selectedLog.log.rejectedBy)?.name ?? 'N/A' : 'N/A'}</span>
                 </p>
                 <p className="text-sm text-rose-900 mt-1">
-                  Hora: <span className="font-semibold">{formatDateTime(selectedLog.log.rejectedAt)}</span>
+                  Hora: <span className="font-semibold">{formatTimeOnly(selectedLog.log.rejectedAt)}</span>
                 </p>
                 <p className="text-sm text-rose-900 mt-1">
                   Motivo: <span className="font-semibold">{selectedLog.log.rejectionReason ?? 'N/A'}</span>

@@ -12,6 +12,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { WorkLog, LIMITS } from '../types';
+import { getCostaRicaISODate } from '../lib/utils';
 import { useConfirm } from './useConfirm';
 
 interface UseStudentSessionOptions {
@@ -108,7 +109,7 @@ export function useStudentSession({
     addWorkLog({
       studentId:    userId,
       departmentId: departmentId ?? 'N/A',
-      date:         new Date(endedAt).toISOString().split('T')[0],
+      date:         getCostaRicaISODate(endedAt),
       hours:        durationHours,
       description,
       entrySource:  'MANUAL',

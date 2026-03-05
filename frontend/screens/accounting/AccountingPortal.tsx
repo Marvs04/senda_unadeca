@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import { PortalLayout } from '../../components/layout';
 import DashboardCard from '../../components/DashboardCard';
 import { User, WorkLogStatus, WorkLog, Department } from '../../types';
-import { cn, exportToCSV, formatCurrency } from '../../lib/utils';
+import { cn, exportToCSV, formatCostaRicaLongDate, formatCurrency } from '../../lib/utils';
 import { renderDeptGroupedPDF } from '../../lib/pdf';
 import { getBillingCycle, getTrimester } from '../../lib/business';
 import { useAccountingData } from '../../hooks/useAccountingData';
@@ -198,9 +198,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
   };
 
   const handleExportPDF = () => {
-    const now = new Date().toLocaleDateString('es-CR', {
-      year: 'numeric', month: 'long', day: 'numeric',
-    });
+    const now = formatCostaRicaLongDate();
     renderDeptGroupedPDF({
       filename:    `${filenameBase}.pdf`,
       reportTitle: `N\u00d3MINA DE PAGOS \u2014 ${period.toUpperCase()}`,

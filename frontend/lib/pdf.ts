@@ -15,6 +15,7 @@
 
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { formatCostaRicaLongDate } from './utils';
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
 const C = {
@@ -122,7 +123,7 @@ function drawFooter(doc: jsPDF, W: number, H: number, pageNum: number, totalPage
   doc.setFontSize(6.5);
   doc.text('UNADECA | SENDA — Documento Oficial', 14, H - 4.5);
   doc.text(
-    `Generado el ${new Date().toLocaleDateString('es-CR', { year: 'numeric', month: 'long', day: 'numeric' })} — Página ${pageNum} de ${totalPages}`,
+    `Generado el ${formatCostaRicaLongDate()} — Página ${pageNum} de ${totalPages}`,
     W - 14,
     H - 4.5,
     { align: 'right' },

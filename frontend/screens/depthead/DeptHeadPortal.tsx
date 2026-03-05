@@ -18,7 +18,7 @@ import { Button } from '../../components/ui';
 import DashboardCard from '../../components/DashboardCard';
 import WorkLogTable from '../../components/WorkLogTable';
 import { User, WorkLog, WorkLogStatus, Department, LIMITS } from '../../types';
-import { exportToCSV, formatCurrency } from '../../lib/utils';
+import { exportToCSV, formatCostaRicaLongDate, formatCurrency, getCostaRicaISODate } from '../../lib/utils';
 import { renderPDF } from '../../lib/pdf';
 import { getBillingCycle, isDateInCycle } from '../../lib/business';
 import { useConfirm } from '../../hooks/useConfirm';
@@ -86,7 +86,7 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
   const [selectedStudent, setSelectedStudent] = useState(myStudents[0]?.id || '');
   const [hours, setHours] = useState('');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getCostaRicaISODate());
 
   // Rejection state
   const [rejectingLog, setRejectingLog] = useState<WorkLog | null>(null);
@@ -173,7 +173,7 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
     if (type === 'csv') {
       exportToCSV(`reporte_${safeDept}.csv`, headers, rows);
     } else {
-      const now = new Date().toLocaleDateString('es-CR', { year: 'numeric', month: 'long', day: 'numeric' });
+      const now = formatCostaRicaLongDate();
       renderPDF({
         filename: `reporte_${safeDept}.pdf`,
         reportTitle: `REPORTE DE HORAS — ${departmentName.toUpperCase()}`,
