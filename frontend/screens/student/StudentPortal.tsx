@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { PortalLayout } from '../../components/layout';
 import { User, WorkLog } from '../../types';
-import { exportToCSV, formatCurrency } from '../../lib/utils';
+import { exportToCSV, formatCostaRicaLongDate, formatCurrency } from '../../lib/utils';
 import { renderPDF } from '../../lib/pdf';
 import { getTrimester } from '../../lib/business';
 import { useStudentSession } from '../../hooks/useStudentSession';
@@ -64,7 +64,7 @@ const StudentPortal: React.FC<StudentPortalProps> = ({
     if (type === 'csv') {
       exportToCSV(`mis_horas_${safeName}.csv`, headers, rows);
     } else {
-      const now = new Date().toLocaleDateString('es-CR', { year: 'numeric', month: 'long', day: 'numeric' });
+      const now = formatCostaRicaLongDate();
       renderPDF({
         filename: `mis_horas_${safeName}.pdf`,
         reportTitle: `REPORTE DE HORAS — ${user.name.toUpperCase()}`,

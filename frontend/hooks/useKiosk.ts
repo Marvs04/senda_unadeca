@@ -20,6 +20,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { User, UserRole, WorkLog, WorkLogStatus, KioskState, KioskSession, KioskShift } from '../types';
+import { getCostaRicaISODate, getCostaRicaMinutesNow } from '../lib/utils';
 
 // ─── Mock auth ───────────────────────────────────────────────────────────────
 // Temporary: every user's password = their carnet (students) or employee number (staff).
@@ -46,8 +47,7 @@ function timeToMinutes(time: string): number {
 }
 
 function nowMinutes(): number {
-  const now = new Date();
-  return now.getHours() * 60 + now.getMinutes();
+  return getCostaRicaMinutesNow();
 }
 
 function isWithinShift(shifts: KioskShift[]): boolean {
@@ -223,7 +223,7 @@ export function useKiosk({ allUsers, addWorkLog, initialDepartmentId }: UseKiosk
         {
           studentId: session.studentId,
           departmentId: kiosk.departmentId,
-          date: closedAtIso.split('T')[0],
+          date: getCostaRicaISODate(closedAtIso),
           hours: hoursWorked,
           description: 'Sesión kiosco — cierre automático al desactivar',
           entrySource: 'KIOSK',
@@ -296,7 +296,7 @@ export function useKiosk({ allUsers, addWorkLog, initialDepartmentId }: UseKiosk
       {
         studentId: user.id,
         departmentId: kiosk.departmentId,
-        date: endedAtIso.split('T')[0],
+        date: getCostaRicaISODate(endedAtIso),
         hours: Math.max(hoursWorked, 0),
         description: 'Sesión kiosco',
         entrySource: 'KIOSK',
@@ -341,7 +341,7 @@ export function useKiosk({ allUsers, addWorkLog, initialDepartmentId }: UseKiosk
       {
         studentId: session.studentId,
         departmentId: kiosk.departmentId,
-        date: rejectedAtIso.split('T')[0],
+        date: getCostaRicaISODate(rejectedAtIso),
         hours: Math.max(hoursWorked, 0),
         description: 'Sesión kiosco — cancelada por jefe de departamento',
         entrySource: 'KIOSK',
