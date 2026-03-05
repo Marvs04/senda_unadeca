@@ -18,7 +18,7 @@ import {
 } from 'recharts';
 import { BarChart3, CalendarDays, TrendingUp } from 'lucide-react';
 import { cn, formatCurrency } from '../../lib/utils';
-import type { TrimesterSummaryItem } from '../../hooks/useAccountingData';
+import type { TrimesterSummaryItem } from '../../services/reportsService';
 
 interface AccountingChartsProps {
   chartData: { name: string; monto: number; neto: number }[];
