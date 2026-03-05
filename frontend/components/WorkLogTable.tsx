@@ -14,6 +14,8 @@ interface WorkLogTableProps {
   showDepartment?: boolean;
   actions?: (log: WorkLog) => React.ReactNode;
   variant?: 'light' | 'dark';
+  onRowClick?: (log: WorkLog) => void;
+  selectedLogId?: string | null;
 }
 
 const WorkLogTable: React.FC<WorkLogTableProps> = ({ 
@@ -24,7 +26,9 @@ const WorkLogTable: React.FC<WorkLogTableProps> = ({
   showStudent = false, 
   showDepartment = false, 
   actions,
-  variant = 'light'
+  variant = 'light',
+  onRowClick,
+  selectedLogId,
 }) => {
   const isDark = variant === 'dark';
   const getUserName = (id: string) => users.find(u => u.id === id)?.name || 'N/A';
@@ -69,8 +73,11 @@ const WorkLogTable: React.FC<WorkLogTableProps> = ({
                 key={log.id} 
                 className={cn(
                   "group transition-colors",
-                  isDark ? "hover:bg-white/5" : "hover:bg-surface"
+                  isDark ? "hover:bg-white/5" : "hover:bg-surface",
+                  onRowClick && "cursor-pointer",
+                  selectedLogId === log.id && (isDark ? 'bg-white/10' : 'bg-primary/5')
                 )}
+                onClick={onRowClick ? () => onRowClick(log) : undefined}
               >
                 {showStudent && (
                   <td className="px-6 py-4">

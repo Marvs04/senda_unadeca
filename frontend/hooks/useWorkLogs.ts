@@ -78,13 +78,19 @@ export function useWorkLogs() {
         log.id === logId ? { ...log, status: newStatus, rejectionReason: reason } : log,
       ),
     );
-    patchWorkLogStatus(logId, newStatus, reason).catch(() => {
-      if (snapshot) setWorkLogs(prev => prev.map(l => l.id === logId ? snapshot : l));
-      toast.error('Error al actualizar el estado. Intente de nuevo.');
-    });
+    patchWorkLogStatus(logId, newStatus, reason)
+      .then(updated => {
+        setWorkLogs(prev => prev.map(log => (log.id === updated.id ? updated : log)));
+      })
+      .catch(() => {
+        if (snapshot) setWorkLogs(prev => prev.map(l => l.id === logId ? snapshot : l));
+        toast.error('Error al actualizar el estado. Intente de nuevo.');
+      });
   };
 
-  const updateMultipleWorkLogsStatus = (updates: { logId: string; status: WorkLogStatus }[]) => {
+  const updateMultipleWorkLogsStatus = (
+    updates: { logId: string; status: WorkLogStatus; rejectionReason?: string }[],
+  ) => {
     const targetIds = new Set(updates.map(u => u.logId));
     const snapshot = workLogs.filter(log => targetIds.has(log.id));
     const snapshotMap = new Map(snapshot.map(log => [log.id, log]));
@@ -94,10 +100,15 @@ export function useWorkLogs() {
       return prev.map(log => map.has(log.id) ? { ...log, status: map.get(log.id)! } : log);
     });
 
-    bulkPatchWorkLogStatus(updates).catch(() => {
-      setWorkLogs(prev => prev.map(log => snapshotMap.get(log.id) ?? log));
-      toast.error('Error al procesar los registros. Intente de nuevo.');
-    });
+    bulkPatchWorkLogStatus(updates)
+      .then(updatedLogs => {
+        const updatedMap = new Map(updatedLogs.map(log => [log.id, log]));
+        setWorkLogs(prev => prev.map(log => updatedMap.get(log.id) ?? log));
+      })
+      .catch(() => {
+        setWorkLogs(prev => prev.map(log => snapshotMap.get(log.id) ?? log));
+        toast.error('Error al procesar los registros. Intente de nuevo.');
+      });
   };
 
   return { workLogs, isLoading, error, addWorkLog, updateWorkLogStatus, updateMultipleWorkLogsStatus };

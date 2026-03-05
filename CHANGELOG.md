@@ -39,6 +39,26 @@
 - Eliminacion del modo demo roto en login para alinear acceso con autenticacion real por API.
 - Alineacion de `BACKEND_SPEC.md` y `FRONTEND_SPEC.md` con arquitectura API-first vigente.
 
+### Requisitos administrativos y trazabilidad de bitacoras
+- Migracion SQL `20260304_003_admin_requirements_and_worklog_audit.sql` para soportar:
+	- `profiles.institutional_email` (opcional, validado y unico case-insensitive).
+	- `departments.cost_center` obligatorio con formato `NN-NNNN`.
+	- Campos de auditoria en `work_logs`: `entry_source`, `start_time`, `end_time`, `approved_by`, `approved_at`, `rejected_by`, `rejected_at`.
+- Endpoints backend reforzados para validaciones de negocio:
+	- Alta/edicion de usuarios con requeridos por rol (`carnet` en `STUDENT`, `employeeNumber` en `DEPT_HEAD`) y correo institucional opcional validado.
+	- Alta/edicion de departamentos con `costCenter` obligatorio y validado.
+	- Actualizaciones de estado (individual y masiva) con escritura de metadatos de aprobacion/rechazo y respuesta de filas actualizadas.
+- Frontend Admin actualizado:
+	- Formulario de estudiantes y jefes con correo institucional opcional y validaciones requeridas.
+	- Formulario de departamentos con mascara/validacion de centro de costos y visualizacion en tarjetas.
+	- Busqueda de usuarios ampliada (nombre, carnet/empleado, correo institucional).
+- Dashboard "Registros Globales" renovado:
+	- Orden por mas recientes por defecto.
+	- Filtros avanzados (estado, departamento, fuente, resolucion, rango de horas, busqueda) y ordenamientos multiples.
+	- Fila clickeable con modal de detalle completo (estudiante, depto, jefe, fecha, inicio/fin, horas, descripcion, estado y auditoria de aprobacion/rechazo).
+- Registro de horas enriquecido desde frontend:
+	- Sesion estudiante y kiosko ahora envian `entrySource`, `startTime` y `endTime` para auditoria end-to-end.
+
 ---
 
 Si quieres, puedo convertir este changelog en formato por versión (por ejemplo `v1.1.0`, `v1.2.0`) y dejarlo listo para releases de GitHub.

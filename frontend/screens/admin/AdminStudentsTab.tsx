@@ -10,6 +10,8 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { Toolbar, Button, Badge, Modal, EmptyState, Input, Select } from '../../components/ui';
 import type { SelectOption } from '../../components/ui';
 
+const INSTITUTIONAL_EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+
 interface AdminStudentsTabProps {
   allUsers: User[];
   allDepartments: Department[];
@@ -31,10 +33,12 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
   const [isAddingStudent, setIsAddingStudent] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
   const [newStudentCarnet, setNewStudentCarnet] = useState('');
+  const [newStudentInstitutionalEmail, setNewStudentInstitutionalEmail] = useState('');
   const [newStudentDepartmentId, setNewStudentDepartmentId] = useState('');
   const [newStudentPassword, setNewStudentPassword] = useState('');
   const [editName, setEditName] = useState('');
   const [editCarnet, setEditCarnet] = useState('');
+  const [editInstitutionalEmail, setEditInstitutionalEmail] = useState('');
   const [editDepartmentId, setEditDepartmentId] = useState('');
   const { confirm, dialogProps } = useConfirm();
 
@@ -43,6 +47,7 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
   const resetStudentForm = () => {
     setNewStudentName('');
     setNewStudentCarnet('');
+    setNewStudentInstitutionalEmail('');
     setNewStudentDepartmentId('');
     setNewStudentPassword('');
   };
@@ -56,12 +61,17 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
       toast.error('Nombre y carnet son requeridos.');
       return;
     }
+    if (newStudentInstitutionalEmail.trim() && !INSTITUTIONAL_EMAIL_REGEX.test(newStudentInstitutionalEmail.trim())) {
+      toast.error('Correo institucional invalido.');
+      return;
+    }
 
     try {
       await addUser(
         {
           name,
           carnet,
+          institutionalEmail: newStudentInstitutionalEmail.trim() || undefined,
           role: UserRole.STUDENT,
           isActive: true,
           departmentId: newStudentDepartmentId || undefined,
@@ -81,6 +91,7 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
     setEditingStudent(student);
     setEditName(student.name);
     setEditCarnet(student.carnet ?? '');
+    setEditInstitutionalEmail(student.institutionalEmail ?? '');
     setEditDepartmentId(student.departmentId ?? '');
   };
 
@@ -94,11 +105,16 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
       toast.error('Nombre y carnet son requeridos.');
       return;
     }
+    if (editInstitutionalEmail.trim() && !INSTITUTIONAL_EMAIL_REGEX.test(editInstitutionalEmail.trim())) {
+      toast.error('Correo institucional invalido.');
+      return;
+    }
 
     try {
       await updateUser(editingStudent.id, {
         name,
         carnet,
+        institutionalEmail: editInstitutionalEmail.trim() || undefined,
         departmentId: editDepartmentId || undefined,
       });
       toast.success('Estudiante actualizado correctamente', { position: 'top-center' });
@@ -171,6 +187,7 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
             <tr>
               <th className="px-8 py-5">Estudiante</th>
               <th className="px-8 py-5">Carnet</th>
+              <th className="px-8 py-5">Correo Institucional</th>
               <th className="px-8 py-5">Departamento</th>
               <th className="px-8 py-5">Estado</th>
               <th className="px-8 py-5 text-right">Acciones</th>
@@ -181,6 +198,7 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
               <tr key={student.id} className="hover:bg-surface transition-colors group">
                 <td className="px-8 py-5 font-medium text-sm">{student.name}</td>
                 <td className="px-8 py-5 text-sm text-muted font-mono">{student.carnet || '---'}</td>
+                <td className="px-8 py-5 text-sm text-muted">{student.institutionalEmail || '---'}</td>
                 <td className="px-8 py-5">
                   <Badge variant="neutral">
                     {allDepartments.find(d => d.id === student.departmentId)?.name || 'Sin Asignar'}
@@ -212,7 +230,7 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
               </tr>
             ))}
             {filteredStudents.length === 0 && (
-              <EmptyState colSpan={5} message="No se encontraron estudiantes" />
+              <EmptyState colSpan={6} message="No se encontraron estudiantes" />
             )}
           </tbody>
         </table>
@@ -234,12 +252,21 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
             onChange={e => setNewStudentName(e.target.value)}
             placeholder="Ej. María Gómez"
             autoFocus
+            required
           />
           <Input
             label="Carnet"
             value={newStudentCarnet}
             onChange={e => setNewStudentCarnet(e.target.value)}
             placeholder="Ej. 20240001"
+            required
+          />
+          <Input
+            label="Correo Institucional (opcional)"
+            type="email"
+            value={newStudentInstitutionalEmail}
+            onChange={e => setNewStudentInstitutionalEmail(e.target.value)}
+            placeholder="ejemplo@unadeca.ac.cr"
           />
           <Select
             label="Departamento"
@@ -288,6 +315,13 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
             label="Carnet"
             value={editCarnet}
             onChange={e => setEditCarnet(e.target.value)}
+          />
+          <Input
+            label="Correo Institucional (opcional)"
+            type="email"
+            value={editInstitutionalEmail}
+            onChange={e => setEditInstitutionalEmail(e.target.value)}
+            placeholder="ejemplo@unadeca.ac.cr"
           />
           <Select
             label="Departamento"

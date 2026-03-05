@@ -215,16 +215,20 @@ export function useKiosk({ allUsers, addWorkLog, initialDepartmentId }: UseKiosk
     kiosk.sessions.forEach(session => {
       const student = allUsers.find(u => u.id === session.studentId);
       if (!student) return;
+      const closedAtIso = new Date().toISOString();
       const hoursWorked = parseFloat(
-        ((Date.now() - new Date(session.startedAt).getTime()) / 3_600_000).toFixed(2),
+        ((new Date(closedAtIso).getTime() - new Date(session.startedAt).getTime()) / 3_600_000).toFixed(2),
       );
       addWorkLog(
         {
           studentId: session.studentId,
           departmentId: kiosk.departmentId,
-          date: new Date().toISOString().split('T')[0],
+          date: closedAtIso.split('T')[0],
           hours: hoursWorked,
           description: 'Sesión kiosco — cierre automático al desactivar',
+          entrySource: 'KIOSK',
+          startTime: session.startedAt,
+          endTime: closedAtIso,
         },
         WorkLogStatus.PENDING,
       );
@@ -278,8 +282,9 @@ export function useKiosk({ allUsers, addWorkLog, initialDepartmentId }: UseKiosk
     const session = kiosk.sessions.find(s => s.studentId === user.id);
     if (!session) return { ok: false, error: 'No tienes una sesión activa en este kiosco.', code: 'NOT_IN' };
 
+    const endedAtIso = new Date().toISOString();
     const hoursWorked = parseFloat(
-      ((Date.now() - new Date(session.startedAt).getTime()) / 3_600_000).toFixed(2),
+      ((new Date(endedAtIso).getTime() - new Date(session.startedAt).getTime()) / 3_600_000).toFixed(2),
     );
 
     setKiosk(prev => prev ? {
@@ -291,9 +296,12 @@ export function useKiosk({ allUsers, addWorkLog, initialDepartmentId }: UseKiosk
       {
         studentId: user.id,
         departmentId: kiosk.departmentId,
-        date: new Date().toISOString().split('T')[0],
+        date: endedAtIso.split('T')[0],
         hours: Math.max(hoursWorked, 0),
         description: 'Sesión kiosco',
+        entrySource: 'KIOSK',
+        startTime: session.startedAt,
+        endTime: endedAtIso,
       },
       WorkLogStatus.PENDING,
     );
@@ -324,17 +332,21 @@ export function useKiosk({ allUsers, addWorkLog, initialDepartmentId }: UseKiosk
 
     // Save a REJECTED log — this surfaces in student history AND dept head dashboard.
     // rejectionReason is stored so both portals can display why it was cancelled.
+    const rejectedAtIso = new Date().toISOString();
     const hoursWorked = parseFloat(
-      ((Date.now() - new Date(session.startedAt).getTime()) / 3_600_000).toFixed(2),
+      ((new Date(rejectedAtIso).getTime() - new Date(session.startedAt).getTime()) / 3_600_000).toFixed(2),
     );
     // Always create the log (even < 0.05h) so the student sees the rejection.
     addWorkLog(
       {
         studentId: session.studentId,
         departmentId: kiosk.departmentId,
-        date: new Date().toISOString().split('T')[0],
+        date: rejectedAtIso.split('T')[0],
         hours: Math.max(hoursWorked, 0),
         description: 'Sesión kiosco — cancelada por jefe de departamento',
+        entrySource: 'KIOSK',
+        startTime: session.startedAt,
+        endTime: rejectedAtIso,
         rejectionReason: reason,
       },
       WorkLogStatus.REJECTED,

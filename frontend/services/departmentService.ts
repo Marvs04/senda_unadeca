@@ -18,6 +18,7 @@ export async function createDepartment(
   const { data: created } = await apiClient.post<Department>('/departments', {
     name: data.name,
     headId: data.headId,
+    costCenter: data.costCenter,
   });
   return created;
 }

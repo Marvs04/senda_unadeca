@@ -25,23 +25,34 @@ export function useAdminUsersData({
   deptHeadSearch,
 }: UseAdminUsersDataParams) {
   const filteredStudents = useMemo(
-    () =>
-      (allUsers ?? []).filter(
-        u =>
-          u.role === UserRole.STUDENT &&
-          ((u.name ?? '').toLowerCase().includes(studentSearch.toLowerCase()) ||
-            u.carnet?.includes(studentSearch)),
-      ),
+    () => {
+      const query = studentSearch.toLowerCase().trim();
+      return (allUsers ?? []).filter(u => {
+        if (u.role !== UserRole.STUDENT) return false;
+        if (!query) return true;
+        return (
+          (u.name ?? '').toLowerCase().includes(query) ||
+          (u.carnet ?? '').toLowerCase().includes(query) ||
+          (u.institutionalEmail ?? '').toLowerCase().includes(query)
+        );
+      });
+    },
     [allUsers, studentSearch],
   );
 
   const filteredHeads = useMemo(
-    () =>
-      (allUsers ?? []).filter(
-        u =>
-          u.role === UserRole.DEPT_HEAD &&
-          (u.name ?? '').toLowerCase().includes(deptHeadSearch.toLowerCase()),
-      ),
+    () => {
+      const query = deptHeadSearch.toLowerCase().trim();
+      return (allUsers ?? []).filter(u => {
+        if (u.role !== UserRole.DEPT_HEAD) return false;
+        if (!query) return true;
+        return (
+          (u.name ?? '').toLowerCase().includes(query) ||
+          (u.employeeNumber ?? '').toLowerCase().includes(query) ||
+          (u.institutionalEmail ?? '').toLowerCase().includes(query)
+        );
+      });
+    },
     [allUsers, deptHeadSearch],
   );
 
