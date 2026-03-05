@@ -147,8 +147,6 @@ const AuthenticatedArea: React.FC<AuthenticatedAreaProps> = ({ currentUserId, on
               <AccountingPortal
                 user={user}
                 onLogout={onLogout}
-                allLogs={workLogs}
-                allUsers={users}
                 allDepartments={departments}
                 updateMultipleWorkLogsStatus={updateMultipleWorkLogsStatus}
                 currentRate={currentRate}

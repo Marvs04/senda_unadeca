@@ -17,7 +17,7 @@ import {
   ChevronUp,
   Check,
 } from 'lucide-react';
-import type { DeptBook } from '../../hooks/useAccountingData';
+import type { DeptBook } from '../../services/reportsService';
 import { formatCurrency, cn } from '../../lib/utils';
 
 interface AccountingPayrollTableProps {

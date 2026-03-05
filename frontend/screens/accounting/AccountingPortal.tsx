@@ -17,11 +17,11 @@ import {
 import { toast } from 'sonner';
 import { PortalLayout } from '../../components/layout';
 import DashboardCard from '../../components/DashboardCard';
-import { User, WorkLogStatus, WorkLog, Department } from '../../types';
+import { User, WorkLogStatus, Department } from '../../types';
 import { cn, exportToCSV, formatCostaRicaLongDate, formatCurrency } from '../../lib/utils';
 import { renderDeptGroupedPDF } from '../../lib/pdf';
 import { getBillingCycle, getTrimester } from '../../lib/business';
-import { useAccountingData } from '../../hooks/useAccountingData';
+import { useAccountingReport } from '../../hooks/useAccountingReport';
 import { useConfirm } from '../../hooks/useConfirm';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AccountingCharts from './AccountingCharts';
@@ -30,8 +30,6 @@ import AccountingPayrollTable from './AccountingPayrollTable';
 interface AccountingPortalProps {
   user: User;
   onLogout: () => void;
-  allLogs: WorkLog[];
-  allUsers: User[];
   allDepartments: Department[];
   updateMultipleWorkLogsStatus: (updates: { logId: string; status: WorkLogStatus }[]) => void;
   currentRate: number;
@@ -40,8 +38,6 @@ interface AccountingPortalProps {
 const AccountingPortal: React.FC<AccountingPortalProps> = ({
   user,
   onLogout,
-  allLogs,
-  allUsers,
   allDepartments,
   updateMultipleWorkLogsStatus,
   currentRate,
@@ -119,21 +115,8 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
     });
   }, [periodKey]);
 
-  // ── Data ──────────────────────────────────────────────────────────────────
-  const {
-    approvedForPayroll,
-    approvedBooks,
-    processedBooks,
-    totalApprovedAmount,
-    totalProcessedAmount,
-    chartData,
-    deptChartData,
-    weeklySummary,
-    trimesterSummary,
-  } = useAccountingData({
-    allLogs,
-    allUsers,
-    allDepartments,
+  // ── Data (computed on the backend) ──────────────────────────────────────
+  const { data: reportData, isLoading: reportLoading } = useAccountingReport({
     viewMode,
     selectedCycle,
     selectedTrimester,
@@ -143,18 +126,24 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
     currentRate,
   });
 
-  const totalTithe = useMemo(
-    () => approvedForPayroll.reduce((s, i) => s + i.totalTithe, 0),
-    [approvedForPayroll],
-  );
-  const totalNeto = useMemo(
-    () => approvedForPayroll.reduce((s, i) => s + i.totalNeto, 0),
-    [approvedForPayroll],
-  );
-  const totalHours = useMemo(
-    () => approvedForPayroll.reduce((s, i) => s + i.totalHours, 0),
-    [approvedForPayroll],
-  );
+  const approvedForPayroll   = reportData?.approvedForPayroll   ?? [];
+  const approvedBooks        = reportData?.approvedBooks        ?? [];
+  const processedBooks       = reportData?.processedBooks       ?? [];
+  const totalApprovedAmount  = reportData?.totalApprovedAmount  ?? 0;
+  const totalProcessedAmount = reportData?.totalProcessedAmount ?? 0;
+  const chartData            = reportData?.chartData            ?? [];
+  const deptChartData        = reportData?.deptChartData        ?? [];
+  const weeklySummary        = reportData?.weeklySummary        ?? [];
+  const trimesterSummary     = reportData?.trimesterSummary     ?? [];
+
+  const { totalTithe, totalNeto, totalHours } = useMemo(() => {
+    const entries = reportData?.approvedForPayroll ?? [];
+    return {
+      totalTithe: entries.reduce((s, i) => s + i.totalTithe, 0),
+      totalNeto:  entries.reduce((s, i) => s + i.totalNeto,  0),
+      totalHours: entries.reduce((s, i) => s + i.totalHours, 0),
+    };
+  }, [reportData]);
 
   // ── Process payments ──────────────────────────────────────────────────────
   const handleProcessPayments = async () => {
@@ -382,6 +371,9 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
         </div>
       </motion.div>
 
+      {/* ── Data sections (fades while a new report loads) ────────────────── */}
+      <div className={cn('transition-opacity duration-300', reportLoading ? 'opacity-50 pointer-events-none' : 'opacity-100')}>
+
       {/* ── KPI Cards ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <DashboardCard
@@ -427,6 +419,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
       />
 
       <ConfirmDialog {...dialogProps} />
+      </div>
     </PortalLayout>
   );
 };
