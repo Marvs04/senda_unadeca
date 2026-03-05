@@ -9,6 +9,14 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { Button, Modal, Input, Select } from '../../components/ui';
 import type { SelectOption } from '../../components/ui';
 
+const COST_CENTER_REGEX = /^\d{2}-\d{4}$/;
+
+function formatCostCenterInput(rawValue: string): string {
+  const digits = rawValue.replace(/\D/g, '').slice(0, 6);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+}
+
 interface AdminDepartmentsTabProps {
   allDepartments: Department[];
   allUsers: User[];
@@ -32,12 +40,14 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
   const [editingDept, setEditingDept] = useState<Department | null>(null);
   const [newDeptName, setNewDeptName] = useState('');
   const [newDeptHeadId, setNewDeptHeadId] = useState('');
+  const [newDeptCostCenter, setNewDeptCostCenter] = useState('');
   const { confirm, dialogProps } = useConfirm();
 
   const openAdd = () => {
     setEditingDept(null);
     setNewDeptName('');
     setNewDeptHeadId('');
+    setNewDeptCostCenter('');
     setIsAddingDept(true);
   };
 
@@ -45,19 +55,38 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
     setEditingDept(dept);
     setNewDeptName(dept.name);
     setNewDeptHeadId(dept.headId || '');
+    setNewDeptCostCenter(dept.costCenter || '');
     setIsAddingDept(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newDeptName.trim()) return;
+    const normalizedName = newDeptName.trim();
+    const normalizedCostCenter = formatCostCenterInput(newDeptCostCenter);
+
+    if (!normalizedName) {
+      toast.error('El nombre del departamento es requerido.', { position: 'top-center' });
+      return;
+    }
+    if (!COST_CENTER_REGEX.test(normalizedCostCenter)) {
+      toast.error('Centro de costos invalido. Usa formato NN-NNNN.', { position: 'top-center' });
+      return;
+    }
 
     try {
       if (editingDept) {
-        await updateDepartment(editingDept.id, { name: newDeptName.trim(), headId: newDeptHeadId || undefined });
+        await updateDepartment(editingDept.id, {
+          name: normalizedName,
+          headId: newDeptHeadId || undefined,
+          costCenter: normalizedCostCenter,
+        });
         toast.success('Departamento actualizado exitosamente', { position: 'top-center' });
       } else {
-        await addDepartment({ name: newDeptName.trim(), headId: newDeptHeadId || undefined });
+        await addDepartment({
+          name: normalizedName,
+          headId: newDeptHeadId || undefined,
+          costCenter: normalizedCostCenter,
+        });
         toast.success('Departamento creado exitosamente', { position: 'top-center' });
       }
     } catch {
@@ -67,6 +96,7 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
     setIsAddingDept(false);
     setNewDeptName('');
     setNewDeptHeadId('');
+    setNewDeptCostCenter('');
     setEditingDept(null);
   };
 
@@ -135,6 +165,9 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
               <p className="text-xs text-faint mb-6">
                 Jefe: <span className="text-foreground font-medium">{deptHead?.name || 'No asignado'}</span>
               </p>
+              <p className="text-xs text-faint mb-6">
+                Centro de costos: <span className="text-foreground font-semibold font-mono">{dept.costCenter}</span>
+              </p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-faint mb-1">Estudiantes</p>
@@ -164,6 +197,16 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
             onChange={e => setNewDeptName(e.target.value)}
             placeholder="Ej. Recursos Humanos"
             autoFocus
+          />
+          <Input
+            label="Centro de costos"
+            type="text"
+            value={newDeptCostCenter}
+            onChange={e => setNewDeptCostCenter(formatCostCenterInput(e.target.value))}
+            placeholder="Ej. 12-3456"
+            maxLength={7}
+            required
+            hint="Formato contable requerido: 2 digitos, guion, 4 digitos"
           />
           <Select
             label="Jefe de Departamento"

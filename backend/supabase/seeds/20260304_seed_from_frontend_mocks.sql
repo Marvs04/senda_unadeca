@@ -4,9 +4,13 @@ BEGIN;
 -- Ejecutar en Supabase SQL Editor (rol postgres/service_role)
 
 -- 1) Departamentos
-INSERT INTO public.departments (name)
-VALUES ('U Virtual'), ('Mantenimiento'), ('Biblioteca')
-ON CONFLICT (name) DO NOTHING;
+INSERT INTO public.departments (name, cost_center)
+VALUES
+  ('U Virtual', '10-0001'),
+  ('Mantenimiento', '20-0001'),
+  ('Biblioteca', '30-0001')
+ON CONFLICT (name) DO UPDATE
+SET cost_center = EXCLUDED.cost_center;
 
 -- 2) Helper para crear usuarios auth + profile (idempotente)
 CREATE OR REPLACE FUNCTION public.create_senda_auth_user_if_missing(

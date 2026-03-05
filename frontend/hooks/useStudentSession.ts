@@ -94,8 +94,9 @@ export function useStudentSession({
     }
     if (!startTime) return;
 
+    const endedAt = Date.now();
     const durationHours = parseFloat(
-      ((Date.now() - startTime) / (1000 * 60 * 60)).toFixed(2),
+      ((endedAt - startTime) / (1000 * 60 * 60)).toFixed(2),
     );
     if (durationHours < 0.01) {
       toast.error('La sesión es demasiado corta para ser registrada.', {
@@ -107,9 +108,12 @@ export function useStudentSession({
     addWorkLog({
       studentId:    userId,
       departmentId: departmentId ?? 'N/A',
-      date:         new Date().toISOString().split('T')[0],
+      date:         new Date(endedAt).toISOString().split('T')[0],
       hours:        durationHours,
       description,
+      entrySource:  'MANUAL',
+      startTime:    new Date(startTime).toISOString(),
+      endTime:      new Date(endedAt).toISOString(),
     });
 
     setIsTracking(false);

@@ -31,6 +31,9 @@ export async function createWorkLog(
     hours: data.hours,
     description: data.description,
     status,
+    entrySource: data.entrySource,
+    startTime: data.startTime,
+    endTime: data.endTime,
     rejectionReason: data.rejectionReason,
   });
 
@@ -43,16 +46,17 @@ export async function patchWorkLogStatus(
   logId: string,
   status: WorkLogStatus,
   rejectionReason?: string,
-): Promise<{ logId: string; status: WorkLogStatus; rejectionReason?: string }> {
-  await apiClient.patch(`/work-logs/${logId}/status`, {
+): Promise<WorkLog> {
+  const { data } = await apiClient.patch<WorkLog>(`/work-logs/${logId}/status`, {
     status,
     rejectionReason,
   });
-  return { logId, status, rejectionReason };
+  return data;
 }
 
 export async function bulkPatchWorkLogStatus(
-  updates: { logId: string; status: WorkLogStatus }[],
-): Promise<void> {
-  await apiClient.patch('/work-logs/bulk-status', { updates });
+  updates: { logId: string; status: WorkLogStatus; rejectionReason?: string }[],
+): Promise<WorkLog[]> {
+  const { data } = await apiClient.patch<WorkLog[]>('/work-logs/bulk-status', { updates });
+  return data;
 }

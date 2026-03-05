@@ -9,6 +9,8 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { Toolbar, Button, Badge, Modal, Input, Select, EmptyState } from '../../components/ui';
 import type { SelectOption } from '../../components/ui';
 
+const INSTITUTIONAL_EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+
 interface AdminDeptHeadsTabProps {
   allUsers: User[];
   allDepartments: Department[];
@@ -29,6 +31,7 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
   const [editingHead, setEditingHead] = useState<User | null>(null);
   const [editName, setEditName] = useState('');
   const [editEmployeeNumber, setEditEmployeeNumber] = useState('');
+  const [editInstitutionalEmail, setEditInstitutionalEmail] = useState('');
   const [editDepartmentId, setEditDepartmentId] = useState('');
   const { confirm, dialogProps } = useConfirm();
 
@@ -39,15 +42,27 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
     const form = e.currentTarget;
     const name = (form.elements.namedItem('name') as HTMLInputElement).value.trim();
     const employeeNumber = (form.elements.namedItem('employeeNumber') as HTMLInputElement).value.trim();
+    const institutionalEmail = (form.elements.namedItem('institutionalEmail') as HTMLInputElement).value.trim();
     const departmentId = (form.elements.namedItem('departmentId') as HTMLSelectElement).value;
 
     if (!name || !employeeNumber) {
-      toast.error('Por favor complete todos los campos');
+      toast.error('Nombre completo y numero de empleado son obligatorios.');
+      return;
+    }
+    if (institutionalEmail && !INSTITUTIONAL_EMAIL_REGEX.test(institutionalEmail)) {
+      toast.error('Correo institucional invalido.');
       return;
     }
 
     try {
-      await addUser({ name, employeeNumber, departmentId: departmentId || undefined, role: UserRole.DEPT_HEAD, isActive: true });
+      await addUser({
+        name,
+        employeeNumber,
+        institutionalEmail: institutionalEmail || undefined,
+        departmentId: departmentId || undefined,
+        role: UserRole.DEPT_HEAD,
+        isActive: true,
+      });
       setIsAddingDeptHead(false);
       form.reset();
       toast.success('Jefe de Departamento creado exitosamente');
@@ -60,6 +75,7 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
     setEditingHead(head);
     setEditName(head.name);
     setEditEmployeeNumber(head.employeeNumber ?? '');
+    setEditInstitutionalEmail(head.institutionalEmail ?? '');
     setEditDepartmentId(head.departmentId ?? '');
   };
 
@@ -69,8 +85,13 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
 
     const name = editName.trim();
     const employeeNumber = editEmployeeNumber.trim();
+    const institutionalEmail = editInstitutionalEmail.trim();
     if (!name || !employeeNumber) {
       toast.error('Nombre y número de empleado son requeridos.');
+      return;
+    }
+    if (institutionalEmail && !INSTITUTIONAL_EMAIL_REGEX.test(institutionalEmail)) {
+      toast.error('Correo institucional invalido.');
       return;
     }
 
@@ -78,6 +99,7 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
       await updateUser(editingHead.id, {
         name,
         employeeNumber,
+        institutionalEmail: institutionalEmail || undefined,
         departmentId: editDepartmentId || undefined,
       });
       toast.success('Jefe de departamento actualizado', { position: 'top-center' });
@@ -146,6 +168,7 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
             <tr>
               <th className="px-8 py-5">Nombre</th>
               <th className="px-8 py-5">Nº Empleado</th>
+              <th className="px-8 py-5">Correo Institucional</th>
               <th className="px-8 py-5">Departamento</th>
               <th className="px-8 py-5">Estado</th>
               <th className="px-8 py-5 text-right">Acciones</th>
@@ -156,6 +179,7 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
               <tr key={head.id} className="hover:bg-surface transition-colors">
                 <td className="px-8 py-5 font-medium text-sm">{head.name}</td>
                 <td className="px-8 py-5 text-sm text-muted font-mono">{head.employeeNumber || '---'}</td>
+                <td className="px-8 py-5 text-sm text-muted">{head.institutionalEmail || '---'}</td>
                 <td className="px-8 py-5">
                   <Badge variant="neutral">
                     {allDepartments.find(d => d.id === head.departmentId)?.name || 'Sin Asignar'}
@@ -187,7 +211,7 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
               </tr>
             ))}
             {filteredHeads.length === 0 && (
-              <EmptyState colSpan={5} message="No se encontraron jefes de departamento" />
+              <EmptyState colSpan={6} message="No se encontraron jefes de departamento" />
             )}
           </tbody>
         </table>
@@ -200,8 +224,9 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
         title="Nuevo Jefe de Departamento"
       >
         <form onSubmit={handleAddDeptHead} className="space-y-5">
-          <Input label="Nombre Completo" name="name" placeholder="Ej. Juan Pérez" autoFocus />
-          <Input label="Nº de Empleado" name="employeeNumber" placeholder="Ej. EMP-123" />
+          <Input label="Nombre Completo" name="name" placeholder="Ej. Juan Perez" autoFocus required />
+          <Input label="Nº de Empleado" name="employeeNumber" placeholder="Ej. EMP-123" required />
+          <Input label="Correo Institucional (opcional)" name="institutionalEmail" type="email" placeholder="ejemplo@unadeca.ac.cr" />
           <Select label="Departamento" name="departmentId" options={deptOptions} />
           <div className="grid grid-cols-2 gap-3 pt-1">
             <Button type="button" variant="ghost" onClick={() => setIsAddingDeptHead(false)}>
@@ -230,6 +255,13 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
             label="Nº de Empleado"
             value={editEmployeeNumber}
             onChange={e => setEditEmployeeNumber(e.target.value)}
+          />
+          <Input
+            label="Correo Institucional (opcional)"
+            type="email"
+            value={editInstitutionalEmail}
+            onChange={e => setEditInstitutionalEmail(e.target.value)}
+            placeholder="ejemplo@unadeca.ac.cr"
           />
           <Select
             label="Departamento"

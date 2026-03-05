@@ -12,6 +12,7 @@ export interface User {
   role: UserRole;
   carnet?: string;
   employeeNumber?: string;
+  institutionalEmail?: string;
   departmentId?: string;
   isActive?: boolean;
 }
@@ -20,6 +21,7 @@ export interface Department {
   id: string;
   name: string;
   headId?: string; // ID of the Dept Head user
+  costCenter: string;
 }
 
 export enum WorkLogStatus {
@@ -74,5 +76,12 @@ export interface WorkLog {
   hours: number;
   description: string;
   status: WorkLogStatus;
+  entrySource?: 'MANUAL' | 'KIOSK';
+  startTime?: string;
+  endTime?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
   rejectionReason?: string;
 }

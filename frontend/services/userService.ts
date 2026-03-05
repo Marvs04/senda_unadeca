@@ -27,6 +27,7 @@ export async function createUser(data: Omit<User, 'id'>, password?: string): Pro
     role: data.role,
     carnet: data.carnet ?? null,
     employeeNumber: data.employeeNumber ?? null,
+    institutionalEmail: data.institutionalEmail ?? null,
     departmentId: data.departmentId ?? null,
     password: effectivePassword,
   });
