@@ -2,13 +2,11 @@
  * hooks/useAdminRateUpdate.ts
  *
  * Manages the rate-update modal state and submission logic for AdminPortal.
- * Extracted from AdminPortal: modal open/close, password field, value field,
- * and validation against ADMIN_RATE_PASSWORD.
+ * Extracted from AdminPortal: modal open/close, value field and API submit.
  */
 
 import { useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
-import { ADMIN_RATE_PASSWORD } from '../constants';
 import { formatCurrency } from '../lib/utils';
 import { updateRate } from '../services';
 
@@ -19,22 +17,18 @@ interface UseAdminRateUpdateOptions {
 
 export function useAdminRateUpdate({ currentRate, onRateUpdated }: UseAdminRateUpdateOptions) {
   const [isOpen,       setIsOpen]       = useState(false);
-  const [ratePassword, setRatePassword] = useState('');
   const [newRateValue, setNewRateValue] = useState(currentRate.toString());
 
-  const open  = () => setIsOpen(true);
+  const open  = () => {
+    setNewRateValue(currentRate.toString());
+    setIsOpen(true);
+  };
   const close = () => {
     setIsOpen(false);
-    setRatePassword('');
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-
-    if (ratePassword !== ADMIN_RATE_PASSWORD) {
-      toast.error('Contraseña de autorización incorrecta', { position: 'top-center' });
-      return;
-    }
 
     const val = Number(newRateValue);
     if (isNaN(val) || val <= 0) {
@@ -58,8 +52,6 @@ export function useAdminRateUpdate({ currentRate, onRateUpdated }: UseAdminRateU
     isOpen,
     open,
     close,
-    ratePassword,
-    setRatePassword,
     newRateValue,
     setNewRateValue,
     handleSubmit,

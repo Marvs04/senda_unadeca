@@ -4,10 +4,9 @@ import { ShieldCheck, Monitor } from 'lucide-react';
 import { toast } from 'sonner';
 import { PortalLayout } from '../../components/layout';
 import { User, UserRole } from '../../types';
-import { useConfirm } from '../../hooks/useConfirm';
 import { useSuperAdminData } from '../../hooks/useSuperAdminData';
 import { useDebounce } from '../../hooks/useDebounce';
-import ConfirmDialog from '../../components/ConfirmDialog';
+import { Modal, Input, Button } from '../../components/ui';
 import SuperAdminAccountList from './SuperAdminAccountList';
 import SuperAdminStudentHelp from './SuperAdminStudentHelp';
 import SuperAdminCreateForm from './SuperAdminCreateForm';
@@ -18,6 +17,7 @@ interface SuperAdminPortalProps {
   allUsers: User[];
   addUser: (newUser: Omit<User, 'id'>, password?: string) => Promise<void> | void;
   onActivateKiosk: (identifier: string, password: string, departmentId: string) => { ok: boolean; error?: string };
+  resetUserPassword: (userId: string, newPassword: string) => Promise<void> | void;
 }
 
 const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
@@ -26,6 +26,7 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   allUsers,
   addUser,
   onActivateKiosk,
+  resetUserPassword,
 }) => {
   // Kiosk remote-enable state
   const [kioskDeptId, setKioskDeptId]   = useState('');
@@ -48,9 +49,11 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   const [adminPassword, setAdminPassword] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
   const [adminSearch, setAdminSearch] = useState('');
+  const [resetTarget, setResetTarget] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
   const debouncedAdminSearch = useDebounce(adminSearch);
   const debouncedStudentSearch = useDebounce(studentSearch);
-  const { confirm, dialogProps } = useConfirm();
 
   const { filteredAdmins, filteredStudents } = useSuperAdminData({
     allUsers,
@@ -80,13 +83,32 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     }
   };
 
-  const handleResetPassword = async (userName: string) => {
-    const ok = await confirm(
-      `¿Confirmas que deseas resetear la contraseña de ${userName}?`,
-      { title: 'Resetear contraseña', variant: 'danger' },
-    );
-    if (!ok) return;
-    toast.success(`Se ha enviado un enlace de recuperación a ${userName}`);
+  const handleOpenResetPassword = (target: User) => {
+    setResetTarget(target);
+    setNewPassword('');
+  };
+
+  const handleSubmitResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!resetTarget || isResetting) return;
+
+    const trimmedPassword = newPassword.trim();
+    if (trimmedPassword.length < 8) {
+      toast.error('La contraseña temporal debe tener al menos 8 caracteres.');
+      return;
+    }
+
+    try {
+      setIsResetting(true);
+      await resetUserPassword(resetTarget.id, trimmedPassword);
+      toast.success(`Contraseña reseteada para ${resetTarget.name}.`);
+      setResetTarget(null);
+      setNewPassword('');
+    } catch {
+      // El hook useUsers expone el error exacto del backend.
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   return (
@@ -115,13 +137,13 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
               filteredAdmins={filteredAdmins}
               adminSearch={adminSearch}
               setAdminSearch={setAdminSearch}
-              onResetPassword={handleResetPassword}
+              onResetPassword={handleOpenResetPassword}
             />
             <SuperAdminStudentHelp
               filteredStudents={filteredStudents}
               studentSearch={studentSearch}
               setStudentSearch={setStudentSearch}
-              onResetPassword={handleResetPassword}
+              onResetPassword={handleOpenResetPassword}
             />
           </div>
 
@@ -165,7 +187,44 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
             />
           </div>
         </div>
-      <ConfirmDialog {...dialogProps} />
+
+      <Modal
+        open={!!resetTarget}
+        onClose={() => {
+          if (isResetting) return;
+          setResetTarget(null);
+          setNewPassword('');
+        }}
+        title="Resetear contraseña"
+        subtitle={resetTarget ? `Define una nueva contraseña temporal para ${resetTarget.name}.` : ''}
+      >
+        <form onSubmit={handleSubmitResetPassword} className="space-y-5">
+          <Input
+            label="Nueva contraseña temporal"
+            type="password"
+            value={newPassword}
+            onChange={e => setNewPassword(e.target.value)}
+            placeholder="Mínimo 8 caracteres"
+            autoFocus
+          />
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={isResetting}
+              onClick={() => {
+                setResetTarget(null);
+                setNewPassword('');
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" variant="primary" disabled={isResetting}>
+              {isResetting ? 'Guardando...' : 'Resetear'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </PortalLayout>
   );
 };

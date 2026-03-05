@@ -314,6 +314,45 @@ app.delete('/api/v1/users/:id', requireAuth, async (req, res) => {
   }
 });
 
+app.post('/api/v1/users/:id/reset-password', requireAuth, async (req, res) => {
+  try {
+    const requester = await getRequesterProfile(req);
+    if (requester.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ message: 'Solo SUPER_ADMIN puede resetear contraseñas.' });
+    }
+
+    const { id } = req.params;
+    const { newPassword } = req.body ?? {};
+
+    if (typeof newPassword !== 'string' || newPassword.trim().length < 8) {
+      return res.status(400).json({ message: 'newPassword debe tener al menos 8 caracteres.' });
+    }
+
+    const { data: target, error: targetError } = await adminSupabase
+      .from('profiles')
+      .select('id, role')
+      .eq('id', id)
+      .single();
+
+    if (targetError || !target) {
+      return res.status(404).json({ message: 'Usuario no encontrado.' });
+    }
+
+    if (target.role === 'SUPER_ADMIN' && target.id !== requester.id) {
+      return res.status(403).json({ message: 'No se permite resetear otro usuario SUPER_ADMIN.' });
+    }
+
+    const { error } = await adminSupabase.auth.admin.updateUserById(id, {
+      password: newPassword.trim(),
+    });
+
+    if (error) return res.status(400).json({ message: error.message });
+    return res.status(204).send();
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : 'Error interno.' });
+  }
+});
+
 app.get('/api/v1/departments', requireAuth, async (req, res) => {
   const { data, error } = await req.supabase.from('departments').select('*');
   if (error) return res.status(400).json({ message: error.message });
@@ -510,24 +549,33 @@ app.get('/api/v1/rate', requireAuth, async (req, res) => {
 });
 
 app.put('/api/v1/rate', requireAuth, async (req, res) => {
-  const { rate } = req.body ?? {};
-  if (!rate || Number(rate) <= 0) {
-    return res.status(400).json({ message: 'rate debe ser mayor a 0.' });
+  try {
+    const requester = await getRequesterProfile(req);
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(requester.role)) {
+      return res.status(403).json({ message: 'No autorizado para actualizar la tarifa.' });
+    }
+
+    const { rate } = req.body ?? {};
+    if (!rate || Number(rate) <= 0) {
+      return res.status(400).json({ message: 'rate debe ser mayor a 0.' });
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await adminSupabase
+      .from('hourly_rates')
+      .insert({
+        rate,
+        effective_date: today,
+        created_by: req.authUser.id,
+      })
+      .select('rate')
+      .single();
+
+    if (error) return res.status(400).json({ message: error.message });
+    return res.json({ rate: data.rate });
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : 'Error interno.' });
   }
-
-  const today = new Date().toISOString().split('T')[0];
-  const { data, error } = await req.supabase
-    .from('hourly_rates')
-    .insert({
-      rate,
-      effective_date: today,
-      created_by: req.authUser.id,
-    })
-    .select('rate')
-    .single();
-
-  if (error) return res.status(400).json({ message: error.message });
-  return res.json({ rate: data.rate });
 });
 
 app.listen(Number(PORT), () => {

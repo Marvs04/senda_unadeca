@@ -4,6 +4,15 @@
 **Frontend stack:** React + TypeScript + Vite + `@supabase/supabase-js`  
 **Document purpose:** Complete reference to implement the Supabase backend â€” tables, auth, RLS, queries, and screen-by-screen breakdown.
 
+## Estado actual (2026-03-04)
+
+- La arquitectura vigente en producciÃ³n/local es: `frontend -> backend API (Express) -> Supabase`.
+- El frontend no debe consultar Supabase de forma directa.
+- La implementaciÃ³n de referencia del backend vive en `backend/server.mjs` y expone rutas REST en `/api/v1/*`.
+- Este documento conserva secciones histÃ³ricas de integraciÃ³n directa con Supabase para trazabilidad, pero la fuente de verdad de comportamiento actual es la API REST.
+- Flujos actualmente operativos en API REST: autenticaciÃ³n, usuarios, departamentos, work logs y tarifa.
+- El modo kiosko en frontend sigue siendo un flujo local/in-memory (`useKiosk`) hasta exponer endpoints REST dedicados.
+
 ---
 
 ## Table of Contents

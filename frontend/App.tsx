@@ -25,7 +25,15 @@ interface AuthenticatedAreaProps {
 
 const AuthenticatedArea: React.FC<AuthenticatedAreaProps> = ({ currentUserId, onLogout }) => {
 
-  const { users, isLoading: usersLoading, error: usersError, addUser, deleteUser, updateUser } = useUsers();
+  const {
+    users,
+    isLoading: usersLoading,
+    error: usersError,
+    addUser,
+    deleteUser,
+    updateUser,
+    resetUserPassword,
+  } = useUsers();
   const { workLogs, isLoading: logsLoading, error: logsError, addWorkLog, updateWorkLogStatus, updateMultipleWorkLogsStatus } = useWorkLogs();
   const { departments, isLoading: deptsLoading, error: deptsError, addDepartment, updateDepartment, deleteDepartment } = useDepartments();
   const { currentRate, isLoading: rateLoading, error: rateError, setCurrentRate, billingCycle } = useRate();
@@ -81,13 +89,10 @@ const AuthenticatedArea: React.FC<AuthenticatedAreaProps> = ({ currentUserId, on
                 onLogout={onLogout}
                 allUsers={users}
                 addUser={addUser}
-                onActivateKiosk={(identifier, password, _departmentId) => {
-                  const targetUser = users.find(
-                    u => (u.employeeNumber ?? u.id).toLowerCase() === identifier.toLowerCase(),
-                  );
-                  if (!targetUser) return { ok: false, error: 'Credenciales incorrectas.' };
-                  return kioskActions.activate(identifier, password);
+                onActivateKiosk={(identifier, password, departmentId) => {
+                  return kioskActions.activate(identifier, password, departmentId);
                 }}
+                resetUserPassword={resetUserPassword}
               />
             );
           case UserRole.ADMIN:
@@ -208,7 +213,7 @@ const App: React.FC = () => {
             <AuthenticatedArea currentUserId={currentUserId} onLogout={handleLogout} />
           ) : (
             <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <LoginScreen onLogin={handleLogin} users={[]} departments={[]} />
+              <LoginScreen onLogin={handleLogin} />
             </motion.div>
           )}
         </AnimatePresence>

@@ -51,8 +51,6 @@ const AdminPortal: React.FC<AdminPortalProps> = ({
     isOpen: isUpdatingRate,
     open: openRateModal,
     close: closeRateModal,
-    ratePassword,
-    setRatePassword,
     newRateValue,
     setNewRateValue,
     handleSubmit: handleRateUpdate,
@@ -127,7 +125,7 @@ const AdminPortal: React.FC<AdminPortalProps> = ({
         open={isUpdatingRate}
         onClose={closeRateModal}
         title="Actualizar Tarifa"
-        subtitle="Se requiere autorización para cambiar la tarifa global."
+        subtitle="Solo cuentas con permisos administrativos pueden aplicar este cambio."
       >
         <form onSubmit={handleRateUpdate} className="space-y-5">
           <Input
@@ -137,13 +135,6 @@ const AdminPortal: React.FC<AdminPortalProps> = ({
             onChange={e => setNewRateValue(e.target.value)}
             placeholder="1500"
             autoFocus
-          />
-          <Input
-            label="Contraseña de Admin"
-            type="password"
-            value={ratePassword}
-            onChange={e => setRatePassword(e.target.value)}
-            placeholder="••••••••"
           />
           <div className="grid grid-cols-2 gap-3 pt-1">
             <Button type="button" variant="ghost" onClick={closeRateModal}>

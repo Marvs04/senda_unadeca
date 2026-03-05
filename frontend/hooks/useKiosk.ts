@@ -95,7 +95,7 @@ export interface KioskActionResult {
 
 export interface KioskActions {
   /** Dept head or super admin activates kiosk for their department. */
-  activate: (identifier: string, password: string) => KioskActionResult;
+  activate: (identifier: string, password: string, targetDepartmentId?: string) => KioskActionResult;
   /** Dept head or super admin deactivates kiosk. Requires auth. */
   deactivate: (identifier: string, password: string) => KioskActionResult;
   /** Student clocks in. Requires their own credentials. Returns name on success. */
@@ -154,7 +154,7 @@ export function useKiosk({ allUsers, addWorkLog, initialDepartmentId }: UseKiosk
     return false;
   }, []);
 
-  const activate = useCallback((identifier: string, password: string): KioskActionResult => {
+  const activate = useCallback((identifier: string, password: string, targetDepartmentId?: string): KioskActionResult => {
     // Block a second kiosk from ever being opened in the same app session.
     // On Supabase: the UNIQUE(department_id) constraint on kiosk_state enforces this server-side.
     if (kiosk) {
@@ -168,11 +168,18 @@ export function useKiosk({ allUsers, addWorkLog, initialDepartmentId }: UseKiosk
     const user = mockValidateCredentials(identifier, password, allUsers);
     if (!user) return { ok: false, error: 'Credenciales incorrectas.', code: 'BAD_CREDS' };
 
-    const departmentId = user.departmentId;
+    const departmentId =
+      user.role === UserRole.SUPER_ADMIN
+        ? (targetDepartmentId?.trim() || user.departmentId)
+        : user.departmentId;
+
     if (!departmentId && user.role !== UserRole.SUPER_ADMIN) {
       return { ok: false, error: 'No tienes un departamento asignado.', code: 'NOT_FOUND' };
     }
-    // Super admin must have a target dept — handled by the UI passing a selected dept
+    if (user.role === UserRole.SUPER_ADMIN && !departmentId) {
+      return { ok: false, error: 'Debes indicar el ID del departamento objetivo.', code: 'NOT_FOUND' };
+    }
+
     const targetDept = departmentId ?? '';
     if (!canManageKiosk(user, targetDept)) {
       return {

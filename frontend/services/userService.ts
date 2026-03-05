@@ -44,3 +44,9 @@ export async function patchUser(
 export async function deleteUser(userId: string): Promise<void> {
   await apiClient.del(`/users/${userId}`);
 }
+
+export async function resetUserPassword(userId: string, newPassword: string): Promise<void> {
+  await apiClient.post(`/users/${userId}/reset-password`, {
+    newPassword,
+  });
+}

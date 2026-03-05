@@ -7,7 +7,7 @@ interface SuperAdminStudentHelpProps {
   filteredStudents: User[];
   studentSearch: string;
   setStudentSearch: (v: string) => void;
-  onResetPassword: (name: string) => void;
+  onResetPassword: (user: User) => void;
 }
 
 const SuperAdminStudentHelp: React.FC<SuperAdminStudentHelpProps> = ({
@@ -58,7 +58,7 @@ const SuperAdminStudentHelp: React.FC<SuperAdminStudentHelpProps> = ({
               variant="outline"
               size="sm"
               icon={<Lock className="w-3 h-3" />}
-              onClick={() => onResetPassword(student.name)}
+              onClick={() => onResetPassword(student)}
             >
               Resetear Clave
             </Button>
