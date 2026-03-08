@@ -5,7 +5,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 
 export default ts.config(
   // Archivos ignorados
-  { ignores: ['dist/**', 'node_modules/**', 'vite.config.ts', 'vitest.config.ts'] },
+  { ignores: ['dist/**', 'node_modules/**', 'vite.config.ts', 'vitest.config.ts', 'senda_unadeca/**'] },
 
   // JS recomendado
   js.configs.recommended,

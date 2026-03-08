@@ -1,85 +1,122 @@
-<div align="center">
+ <div align="center">
 
-# SENDA — Sistema de Horas Beca UNADECA
+# SENDA — Sistema de Horas Beca
+### UNADECA · Universidad Adventista de Centroamérica
 
-**Multi-role work-hours management portal for UNADECA student workers.**  
-Track hours, approve logs, run payroll reports — all in one place.
+**A role-based portal for managing student work-scholarship hours — from clock-in to payroll.**
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind-4-38BDF8?style=flat-square&logo=tailwindcss&logoColor=white)
 ![Supabase Ready](https://img.shields.io/badge/Supabase-Ready-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-32%20passing-22c55e?style=flat-square&logo=vitest&logoColor=white)
+![CI](https://github.com/Marvs04/senda_unadeca/actions/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)
 
 </div>
 
 ---
 
-## Overview
+## What is SENDA?
 
-SENDA is a full frontend portal system built for UNADECA's student work-scholarship program (*Horas Beca*). It replaces manual tracking with a role-based digital workflow — from a student logging hours to accounting exporting payroll reports.
+SENDA (*Sistema Estratégico de Normalización y Desarrollo Académico*) is UNADECA's internal platform for the *Horas Beca* program — a work-scholarship where students earn per logged and approved hour.
 
-The app ships with a complete mock data layer so every role works out of the box today. The backend layer is fully designed and documented, ready to connect to Supabase when deployment begins.
+The system replaces spreadsheets and manual processes with a structured digital workflow:
+
+1. **Students** log their hours through a portal or a kiosk check-in system
+2. **Department Heads** review, approve or reject those logs
+3. **Admins** manage the user roster, departments and the global hourly rate
+4. **Accounting** consolidates approved hours into payroll reports and exports branded PDF documents
+5. **Super Admins** oversee all accounts across the institution
+
+Each role gets its own dedicated portal — same app, different views and permissions.
 
 ---
 
-## Roles
+## Roles & Features
 
-| Role | Portal | Responsibilities |
-|---|---|---|
-| **Student** | StudentPortal | Log hours, view history, track earnings |
-| **Department Head** | DeptHeadPortal | Approve / reject logs, export dept reports |
-| **Admin** | AdminPortal | Manage users, departments, set hourly rate |
-| **Accounting** | AccountingPortal | View payroll by cycle, export PDF/CSV |
-| **Super Admin** | SuperAdminPortal | Manage all accounts, reset passwords |
+###  Student
+- View total hours and estimated earnings for the current billing cycle
+- Manual hour logging with description and date
+- Real-time kiosk clock-in / clock-out (managed by department heads)
+- Full history filterable by billing cycle, trimester and year
+- Download personal report as PDF (institutional letterhead) or CSV
+
+###  Department Head
+- Dashboard with pending, approved and rejected log counts for the cycle
+- Approve or reject individual logs, with mandatory written reason on rejection
+- Bulk-approve all pending logs in one click
+- Log hours directly on behalf of students (auto-approved)
+- Activate / deactivate the kiosk for their department
+- Export department report as PDF or CSV
+
+###  Admin
+- Full user management — create, edit and suspend students, dept heads and accounting users
+- Department management — assign and reassign department heads
+- Update the global hourly rate (password-protected action)
+- Dashboard with total hours, active students and global payroll estimate for the current cycle
+- Export general report across all departments as PDF or CSV
+
+###  Accounting
+- Consolidated payroll view by billing cycle or trimester
+- Per-student breakdown: total hours, gross amount, 10% tithe deduction and net pay
+- Filter by department and search by student name
+- Process payments in bulk (marks approved logs as Processed)
+- Export payroll as PDF with institutional letterhead and multi-page support
+
+###  Super Admin
+- Create and manage all institutional accounts (Admins, Dept Heads, Accounting users)
+- View and assist individual students across all departments
 
 ---
 
 ## Tech Stack
 
-### Core
-| Tool | Version | Purpose |
+| Layer | Tool | Notes |
 |---|---|---|
-| [React](https://react.dev) | 19 | UI framework |
-| [TypeScript](https://www.typescriptlang.org) | 5.8 | Type safety across the entire codebase |
-| [Vite](https://vitejs.dev) | 6 | Dev server and build tool |
+| UI Framework | React 19 | `React.lazy` code-splitting per portal |
+| Language | TypeScript 5.8 | Strict mode — `tsc --noEmit` on every commit |
+| Build | Vite 6 | esbuild under the hood, chunked output |
+| Styling | Tailwind CSS 4 | Semantic design tokens via `@theme { --color-* }` |
+| Animation | Motion 12 | Page transitions and modal animations |
+| Charts | Recharts 3 | Payroll and hours bar / pie charts |
+| Notifications | Sonner 2 | Action and error toasts |
+| PDF Export | jsPDF 4 + jspdf-autotable 5 | Letterhead, grid tables, dated page footers |
+| Icons | Lucide React | Consistent icon set throughout the UI |
+| Testing | Vitest 4 | 32 unit tests for billing cycle and payroll logic |
+| Linting | ESLint + typescript-eslint | 0-warning policy enforced pre-commit |
+| Git Hooks | Husky | Runs lint before every commit |
 
-### Styling
-| Tool | Version | Purpose |
-|---|---|---|
-| [Tailwind CSS](https://tailwindcss.com) | 4 | Utility-first styling |
-| [clsx](https://github.com/lukeed/clsx) + [tailwind-merge](https://github.com/dcastil/tailwind-merge) | latest | Conditional class composition without conflicts |
+---
 
-### Animation
-| Tool | Version | Purpose |
-|---|---|---|
-| [Motion](https://motion.dev) (Framer Motion) | 12 | Page transitions, modal animations |
+## Getting Started
 
-### Data & Charts
-| Tool | Version | Purpose |
-|---|---|---|
-| [Recharts](https://recharts.org) | 3 | Payroll and hours charts in Accounting portal |
-| [date-fns](https://date-fns.org) | 4 | Date formatting and billing cycle logic |
+```bash
+git clone https://github.com/Marvs04/senda_unadeca.git
+cd senda_unadeca
+git checkout develop
+npm install
+npm run dev
+```
 
-### Notifications
-| Tool | Version | Purpose |
-|---|---|---|
-| [Sonner](https://sonner.emilkowal.ski) | 2 | Toast notifications |
+App runs at `http://localhost:5173` — no backend or environment variables required.
 
-### Export
-| Tool | Version | Purpose |
-|---|---|---|
-| [jsPDF](https://github.com/parallax/jsPDF) + [jspdf-autotable](https://github.com/simonbengtsson/jsPDF-AutoTable) | 4 / 5 | PDF export for payroll and department reports |
+---
 
-### Icons
-| Tool | Purpose |
-|---|---|
-| [Lucide React](https://lucide.dev) | Consistent icon set throughout the UI |
+## Demo Accounts
 
-### Backend (ready, not yet connected)
-| Tool | Purpose |
-|---|---|
-| [Supabase](https://supabase.com) | PostgreSQL database, Auth, Row Level Security, Edge Functions |
+Use these on the login screen. Any password works in demo mode.
+
+| Role | Login | Name | Department |
+|---|---|---|---|
+| Student | `20240101` | Marvin Moncada | U Virtual |
+| Student | `20240202` | Santiago Zuniga | U Virtual |
+| Student | `20240303` | Yefry Benitez | Maintenance |
+| Dept Head | `EMP-001` | Ing. Edy Echenique | U Virtual |
+| Dept Head | `EMP-002` | Bismark Tinoco | Maintenance |
+
+For **Admin**, **Accounting** and **Super Admin** — click **"Activate Demo Mode"** at the bottom of the login screen (only visible in development).
 
 ---
 
@@ -87,91 +124,51 @@ The app ships with a complete mock data layer so every role works out of the box
 
 ```
 senda_unadeca/
-├── api/                    # HTTP client + Supabase client + mock data
-│   ├── apiClient.ts        # Centralized HTTP client with token management
-│   ├── supabaseClient.ts   # Supabase client + table mappers
-│   ├── __mocks__.ts        # Mock data (replace when Supabase is live)
-│   └── index.ts            # Barrel export
+├── api/                      # Supabase client + mock data layer
+│   ├── __mocks__.ts          # All mock data (swap out when backend is live)
+│   ├── supabaseClient.ts     # Supabase client + table mappers
+│   └── apiClient.ts          # Centralized HTTP client
 ├── components/
-│   ├── ui/                 # Atomic UI components (Button, Modal, Input, ...)
-│   └── layout/             # Page containers and portal layout shell
-├── hooks/                  # Feature hooks (data fetching, UI state)
+│   ├── ui/                   # Atomic components (Button, Modal, Input, Select…)
+│   ├── layout/               # PortalLayout shell + PageContainer
+│   ├── ErrorBoundary.tsx     # Global error boundary with debug details
+│   └── Header.tsx            # Sticky header — style driven by user role
+├── hooks/                    # Data + UI hooks (one per feature)
 ├── lib/
-│   ├── business.ts         # Billing cycle, pay calculations
-│   ├── utils.ts            # CSV/PDF export, helpers
-│   └── uiConfig.ts         # Status colors, label maps
+│   ├── business.ts           # Billing cycle logic and pay calculations
+│   ├── pdf.ts                # Letterhead PDF engine (shared by all roles)
+│   ├── env.ts                # Env variable validation at startup
+│   └── utils.ts              # formatCurrency, exportToCSV, helpers
 ├── screens/
-│   ├── admin/              # Admin portal + tab components
-│   ├── accounting/         # Accounting portal + charts + payroll table
-│   ├── depthead/           # Department Head portal + log form + modals
-│   ├── student/            # Student portal + timer + history + financials
-│   ├── superadmin/         # Super Admin portal + account management
+│   ├── admin/                # Admin portal + dashboard, students, dept tabs
+│   ├── accounting/           # Accounting portal + payroll table + charts
+│   ├── depthead/             # Dept Head portal + log form + approval flow
+│   ├── student/              # Student portal + timer + history + financials
+│   ├── superadmin/           # Super Admin portal + account management
+│   ├── kiosk/                # Kiosk check-in / check-out screen
 │   └── LoginScreen.tsx
-├── services/               # Data-access layer (mock today → Supabase tomorrow)
-├── types.ts                # All shared TypeScript types and enums
-└── constants.ts            # App-wide constants
+├── services/                 # Data-access layer — mock today, Supabase tomorrow
+├── types.ts                  # All shared TypeScript types and enums
+└── constants.ts              # App-wide constants
 ```
 
 ---
 
-## Getting Started
-
-### Prerequisites
-- Node.js 18+
-- npm
-
-### Install & Run
+## Commands
 
 ```bash
-git clone https://github.com/Marvs04/senda_unadeca.git
-cd senda_unadeca
-npm install
-npm run dev
+npm run dev          # Dev server (http://localhost:5173)
+npm run build        # Production build
+npm run preview      # Preview production build locally
+npm run typecheck    # TypeScript strict check
+npm run lint         # ESLint — 0 warnings allowed
+npm run lint:fix     # ESLint with auto-fix
+npm run test         # Run 32 unit tests
+npm run test:ui      # Vitest interactive UI
 ```
-
-The app runs at `http://localhost:5173` with full mock data — no backend needed.
-
-### Build
-
-```bash
-npm run build
-```
-
-### Type Check
-
-```bash
-npm run lint
-```
-
----
-
-## Backend Migration
-
-The backend is fully specced in [`BACKEND_SPEC.md`](./BACKEND_SPEC.md). When ready:
-
-1. Create a Supabase project and set environment variables:
-   ```
-   VITE_SUPABASE_URL=your_project_url
-   VITE_SUPABASE_ANON_KEY=your_anon_key
-   ```
-2. Run the schema SQL from the spec (tables, RLS policies, triggers, Edge Functions)
-3. In each `services/*.ts` file — uncomment the Supabase block, delete the mock return
-4. Delete `api/__mocks__.ts`
-
-Everything else stays the same.
-
----
-
-## Branch Strategy
-
-| Branch | Purpose |
-|---|---|
-| `main` | Stable, production-ready code |
-| `dev` | Integration branch for active development |
-| `feature/*` | Individual feature branches |
 
 ---
 
 <div align="center">
-  Built for <strong>UNADECA</strong> · 2026
+  Built for <strong>UNADECA</strong>  2026
 </div>
