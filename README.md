@@ -1,4 +1,4 @@
-<div align="center">
+ <div align="center">
 
 # SENDA — Sistema de Horas Beca
 ### UNADECA · Universidad Adventista de Centroamérica
@@ -11,6 +11,8 @@
 ![TailwindCSS](https://img.shields.io/badge/Tailwind-4-38BDF8?style=flat-square&logo=tailwindcss&logoColor=white)
 ![Supabase Ready](https://img.shields.io/badge/Supabase-Ready-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
 ![Tests](https://img.shields.io/badge/Tests-32%20passing-22c55e?style=flat-square&logo=vitest&logoColor=white)
+![CI](https://github.com/Marvs04/senda_unadeca/actions/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)
 
 </div>
 
