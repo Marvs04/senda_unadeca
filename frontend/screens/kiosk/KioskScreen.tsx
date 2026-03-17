@@ -356,17 +356,17 @@ const KioskScreen: React.FC<KioskScreenProps> = ({
     return () => clearInterval(id);
   }, []);
 
-  const handleClockAction = (identifier: string, password: string) => {
+  const handleClockAction = async (identifier: string, password: string) => {
     const alreadyIn = activeSessions.some(s => s.user.carnet === identifier);
     if (alreadyIn) {
-      const result = actions.clockOut(identifier, password);
+      const result = await actions.clockOut(identifier, password);
       if (!result.ok) { showKioskError(result.error!, result.code); return; }
       toast.success(
         result.name ? `Hasta luego, ${result.name}. Salida registrada.` : 'Salida registrada correctamente.',
         { position: 'top-center' },
       );
     } else {
-      const result = actions.clockIn(identifier, password);
+      const result = await actions.clockIn(identifier, password);
       if (!result.ok) { showKioskError(result.error!, result.code); return; }
       toast.success(
         result.name ? `¡Bienvenido/a, ${result.name}! Entrada registrada.` : 'Entrada registrada. ¡Buen trabajo!',
@@ -375,23 +375,23 @@ const KioskScreen: React.FC<KioskScreenProps> = ({
     }
   };
 
-  const handleCancel = (headId: string, headPass: string, reason: string) => {
+  const handleCancel = async (headId: string, headPass: string, reason: string) => {
     if (!cancelTarget) return;
-    const result = actions.cancelSession(headId, headPass, cancelTarget, reason);
+    const result = await actions.cancelSession(headId, headPass, cancelTarget, reason);
     if (!result.ok) { showKioskError(result.error!, result.code); return; }
     toast.info('Sesión cancelada. Las horas quedan registradas como rechazadas.', { position: 'top-center' });
     setCancelTarget(null);
   };
 
-  const handleSaveShifts = (headId: string, headPass: string, shifts: KioskShift[]) => {
-    const result = actions.updateShifts(headId, headPass, shifts);
+  const handleSaveShifts = async (headId: string, headPass: string, shifts: KioskShift[]) => {
+    const result = await actions.updateShifts(headId, headPass, shifts);
     if (!result.ok) { showKioskError(result.error!, result.code); return; }
     toast.success('Turnos actualizados.', { position: 'top-center' });
     setShowShiftPanel(false);
   };
 
-  const handleDeactivate = (identifier: string, password: string) => {
-    const result = actions.deactivate(identifier, password);
+  const handleDeactivate = async (identifier: string, password: string) => {
+    const result = await actions.deactivate(identifier, password);
     if (!result.ok) { showKioskError(result.error!, result.code); return; }
     toast.info('Kiosco desactivado.', { position: 'top-center' });
   };
@@ -538,7 +538,10 @@ const KioskScreen: React.FC<KioskScreenProps> = ({
                 Las sesiones activas se cerrarán y se registrarán sus horas como pendientes de aprobación.
               </p>
               <CredentialForm
-                onSubmit={(id, pass) => { handleDeactivate(id, pass); setShowDeactivate(false); }}
+                onSubmit={async (id, pass) => {
+                  await handleDeactivate(id, pass);
+                  setShowDeactivate(false);
+                }}
                 submitLabel="Desactivar"
                 submitIcon={<Power className="w-4 h-4" />}
                 submitClass="bg-rose-600 hover:bg-rose-700 text-white"
