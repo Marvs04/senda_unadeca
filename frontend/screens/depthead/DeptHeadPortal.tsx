@@ -39,7 +39,7 @@ interface DeptHeadPortalProps {
   addWorkLog: (newLogData: Omit<WorkLog, 'id' | 'status'>, status?: WorkLogStatus) => void;
   billingCycle: string;
   currentRate: number;
-  onActivateKiosk: (identifier: string, password: string) => { ok: boolean; error?: string };
+  onActivateKiosk: (identifier: string, password: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
 const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
@@ -60,9 +60,9 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
   const [kioskPass, setKioskPass] = useState('');
   const [showKioskModal, setShowKioskModal] = useState(false);
 
-  const handleActivateKiosk = (e: React.FormEvent) => {
+  const handleActivateKiosk = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = onActivateKiosk(kioskId.trim(), kioskPass.trim());
+    const result = await onActivateKiosk(kioskId.trim(), kioskPass.trim());
     if (!result.ok) { toast.error(result.error ?? 'Error al activar kiosco.', { position: 'top-center' }); return; }
     toast.success('Kiosco activado correctamente.', { position: 'top-center' });
     setShowKioskModal(false);

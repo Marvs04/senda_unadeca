@@ -16,7 +16,7 @@ interface SuperAdminPortalProps {
   onLogout: () => void;
   allUsers: User[];
   addUser: (newUser: Omit<User, 'id'>, password?: string) => Promise<void> | void;
-  onActivateKiosk: (identifier: string, password: string, departmentId: string) => { ok: boolean; error?: string };
+  onActivateKiosk: (identifier: string, password: string, departmentId: string) => Promise<{ ok: boolean; error?: string }>;
   resetUserPassword: (userId: string, newPassword: string) => Promise<void> | void;
 }
 
@@ -34,9 +34,9 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   const [kioskPass, setKioskPass]       = useState('');
   const [kioskError, setKioskError]     = useState<string | null>(null);
 
-  const handleRemoteKiosk = (e: React.FormEvent) => {
+  const handleRemoteKiosk = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = onActivateKiosk(kioskId.trim(), kioskPass.trim(), kioskDeptId.trim());
+    const result = await onActivateKiosk(kioskId.trim(), kioskPass.trim(), kioskDeptId.trim());
     if (!result.ok) { setKioskError(result.error ?? 'Error.'); return; }
     setKioskError(null);
     setKioskId('');

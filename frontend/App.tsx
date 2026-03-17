@@ -46,10 +46,7 @@ const AuthenticatedArea: React.FC<AuthenticatedAreaProps> = ({ currentUserId, on
     activeSessions,
     isWithinScheduledShift,
     actions: kioskActions,
-  } = useKiosk({
-    allUsers: users,
-    addWorkLog,
-  });
+  } = useKiosk();
 
   if (isAppLoading) return <AppLoader state="loading" />;
   if (appError)     return <AppLoader state="error" message={appError} />;
