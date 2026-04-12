@@ -1,4 +1,4 @@
-﻿/**
+/**
  * hooks/useKiosk.ts
  *
  * Manages kiosk mode state for a department.
@@ -215,7 +215,7 @@ export function useKiosk({ initialDepartmentId }: UseKioskOptions = {}): UseKios
   ): Promise<KioskActionResult> => {
     if (!apiState) return { ok: false, error: 'El kiosco no está activo.', code: 'NOT_FOUND' };
     try {
-      await kioskApi.deactivateKiosk(identifier, password);
+      await kioskApi.deactivateKiosk(identifier, password, apiState.departmentId);
       setApiState(null);
       return { ok: true };
     } catch (err) {

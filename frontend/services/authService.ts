@@ -1,4 +1,4 @@
-import { apiClient, TokenManager } from '../api';
+import { apiClient, ApiError, TokenManager } from '../api';
 import { User } from '../types';
 
 export async function login(identifier: string, password: string): Promise<User> {
@@ -29,8 +29,11 @@ export async function getSessionProfile(): Promise<User | null> {
   try {
     const { data } = await apiClient.get<User>('/auth/me');
     return data;
-  } catch {
-    TokenManager.clear();
+  } catch (err) {
+    // Only clear token on 401 (invalid/expired); keep it for transient errors
+    if (err instanceof ApiError && err.status === 401) {
+      TokenManager.clear();
+    }
     return null;
   }
 }

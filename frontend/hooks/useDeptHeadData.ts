@@ -6,7 +6,7 @@
  *
  * Returns:
  *   myLogs       — all logs belonging to the head's department
- *   pendingLogs  — subset of myLogs with PENDING status
+ *   pendingLogs  — subset of myLogs with PENDING status in selected cycle
  *   myStudents   — students assigned to the department
  *   totalHours   — sum of hours in the selected billing cycle
  *   pendingHours — pending hours in the cycle
@@ -39,10 +39,10 @@ export function useDeptHeadData({
     [allLogs, departmentId],
   );
 
-  // Logs waiting for head's review
+  // Logs waiting for head's review in the selected cycle
   const pendingLogs = useMemo(
-    () => myLogs.filter(log => log.status === WorkLogStatus.PENDING),
-    [myLogs],
+    () => myLogs.filter(log => log.status === WorkLogStatus.PENDING && isDateInCycle(log.date, selectedCycle)),
+    [myLogs, selectedCycle],
   );
 
   // Cycle-level stats
