@@ -11,6 +11,7 @@ import DashboardCard from '../../components/DashboardCard';
 import SuperAdminAccountList from './SuperAdminAccountList';
 import SuperAdminStudentHelp from './SuperAdminStudentHelp';
 import SuperAdminCreateForm from './SuperAdminCreateForm';
+import AdminDepartmentsTab from '../admin/AdminDepartmentsTab';
 
 interface SuperAdminPortalProps {
   user: User;
@@ -21,6 +22,9 @@ interface SuperAdminPortalProps {
   onActivateKiosk: (identifier: string, password: string, departmentId: string) => Promise<{ ok: boolean; error?: string }>;
   resetUserPassword: (userId: string, newPassword: string) => Promise<void> | void;
   toggleUserActive: (userId: string, isActive: boolean) => Promise<void> | void;
+  addDepartment: (newDepartment: Omit<Department, 'id'>) => Promise<void> | void;
+  updateDepartment: (deptId: string, updates: Partial<Department>) => Promise<void> | void;
+  deleteDepartment: (deptId: string) => Promise<void> | void;
 }
 
 const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
@@ -32,6 +36,9 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   onActivateKiosk,
   resetUserPassword,
   toggleUserActive,
+  addDepartment,
+  updateDepartment,
+  deleteDepartment,
 }) => {
   // Kiosk remote-enable state
   const [kioskDeptId, setKioskDeptId]   = useState('');
@@ -309,6 +316,19 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
               onSubmit={handleAddAdmin}
             />
           </div>
+        </div>
+
+        {/* ── Department Management ──────────────────────────────────────── */}
+        <div className="mt-10">
+          <AdminDepartmentsTab
+            allDepartments={allDepartments}
+            allUsers={allUsers}
+            allLogs={[]}
+            selectedCycle=""
+            addDepartment={addDepartment}
+            updateDepartment={updateDepartment}
+            deleteDepartment={deleteDepartment}
+          />
         </div>
 
       <Modal

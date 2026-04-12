@@ -92,6 +92,9 @@ const AuthenticatedArea: React.FC<AuthenticatedAreaProps> = ({ currentUserId, on
                 }}
                 resetUserPassword={resetUserPassword}
                 toggleUserActive={(userId, isActive) => updateUser(userId, { isActive })}
+                addDepartment={addDepartment}
+                updateDepartment={updateDepartment}
+                deleteDepartment={deleteDepartment}
               />
             );
           case UserRole.ADMIN:
