@@ -8,6 +8,7 @@ export function toUser(row) {
     institutionalEmail: row.institutional_email ?? undefined,
     departmentId: row.department_id ?? undefined,
     isActive: row.is_active !== false,
+    createdAt: row.created_at ?? undefined,
   };
 }
 

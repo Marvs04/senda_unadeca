@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { ShieldCheck, Monitor } from 'lucide-react';
+import { ShieldCheck, Monitor, Users, GraduationCap, Briefcase, Building2, Calculator, UserCheck, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 import { PortalLayout } from '../../components/layout';
-import { User, UserRole } from '../../types';
-import { useSuperAdminData } from '../../hooks/useSuperAdminData';
+import { User, UserRole, Department } from '../../types';
+import { useSuperAdminData, type SortField, type SortDir, type ActiveFilter } from '../../hooks/useSuperAdminData';
 import { useDebounce } from '../../hooks/useDebounce';
 import { Modal, Input, Button } from '../../components/ui';
+import DashboardCard from '../../components/DashboardCard';
 import SuperAdminAccountList from './SuperAdminAccountList';
 import SuperAdminStudentHelp from './SuperAdminStudentHelp';
 import SuperAdminCreateForm from './SuperAdminCreateForm';
@@ -15,6 +16,7 @@ interface SuperAdminPortalProps {
   user: User;
   onLogout: () => void;
   allUsers: User[];
+  allDepartments: Department[];
   addUser: (newUser: Omit<User, 'id'>, password?: string) => Promise<void> | void;
   onActivateKiosk: (identifier: string, password: string, departmentId: string) => Promise<{ ok: boolean; error?: string }>;
   resetUserPassword: (userId: string, newPassword: string) => Promise<void> | void;
@@ -24,6 +26,7 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   user,
   onLogout,
   allUsers,
+  allDepartments,
   addUser,
   onActivateKiosk,
   resetUserPassword,
@@ -49,16 +52,34 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   const [adminPassword, setAdminPassword] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
   const [adminSearch, setAdminSearch] = useState('');
+
+  // ── Sorting / filtering state ──────────────────────────────────────────
+  const [adminSort, setAdminSort] = useState<SortField>('name');
+  const [adminSortDir, setAdminSortDir] = useState<SortDir>('asc');
+  const [adminActiveFilter, setAdminActiveFilter] = useState<ActiveFilter>('all');
+  const [studentSort, setStudentSort] = useState<SortField>('name');
+  const [studentSortDir, setStudentSortDir] = useState<SortDir>('asc');
+  const [studentActiveFilter, setStudentActiveFilter] = useState<ActiveFilter>('all');
+
+  // ── Detail modal state ─────────────────────────────────────────────────
+  const [detailUser, setDetailUser] = useState<User | null>(null);
+
   const [resetTarget, setResetTarget] = useState<User | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const debouncedAdminSearch = useDebounce(adminSearch);
   const debouncedStudentSearch = useDebounce(studentSearch);
 
-  const { filteredAdmins, filteredStudents } = useSuperAdminData({
+  const { filteredAdmins, filteredStudents, counts } = useSuperAdminData({
     allUsers,
     adminSearch: debouncedAdminSearch,
     studentSearch: debouncedStudentSearch,
+    adminSort,
+    adminSortDir,
+    adminActiveFilter,
+    studentSort,
+    studentSortDir,
+    studentActiveFilter,
   });
 
   const handleAddAdmin = async (e: React.FormEvent) => {
@@ -131,6 +152,17 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
           </p>
         </motion.div>
 
+        {/* ── Summary Cards ──────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 mb-10">
+          <DashboardCard title="Total Perfiles" value={counts.total} icon={<Users className="w-4 h-4" />} />
+          <DashboardCard title="Estudiantes" value={counts.students} icon={<GraduationCap className="w-4 h-4" />} />
+          <DashboardCard title="Administradores" value={counts.admins} icon={<Briefcase className="w-4 h-4" />} />
+          <DashboardCard title="Jefes Depto" value={counts.deptHeads} icon={<Building2 className="w-4 h-4" />} />
+          <DashboardCard title="Contabilidad" value={counts.accounting} icon={<Calculator className="w-4 h-4" />} />
+          <DashboardCard title="Activos" value={counts.active} icon={<UserCheck className="w-4 h-4" />} />
+          <DashboardCard title="Inactivos" value={counts.inactive} icon={<UserX className="w-4 h-4" />} />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 space-y-8">
             <SuperAdminAccountList
@@ -138,12 +170,28 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
               adminSearch={adminSearch}
               setAdminSearch={setAdminSearch}
               onResetPassword={handleOpenResetPassword}
+              sortField={adminSort}
+              setSortField={setAdminSort}
+              sortDir={adminSortDir}
+              setSortDir={setAdminSortDir}
+              activeFilter={adminActiveFilter}
+              setActiveFilter={setAdminActiveFilter}
+              onViewDetail={setDetailUser}
+              allDepartments={allDepartments}
             />
             <SuperAdminStudentHelp
               filteredStudents={filteredStudents}
               studentSearch={studentSearch}
               setStudentSearch={setStudentSearch}
               onResetPassword={handleOpenResetPassword}
+              sortField={studentSort}
+              setSortField={setStudentSort}
+              sortDir={studentSortDir}
+              setSortDir={setStudentSortDir}
+              activeFilter={studentActiveFilter}
+              setActiveFilter={setStudentActiveFilter}
+              onViewDetail={setDetailUser}
+              allDepartments={allDepartments}
             />
           </div>
 
@@ -160,9 +208,16 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                 </div>
               </div>
               <form onSubmit={handleRemoteKiosk} className="flex flex-col gap-3">
-                <input type="text" placeholder="ID del departamento"
-                  value={kioskDeptId} onChange={e => { setKioskDeptId(e.target.value); setKioskError(null); }}
-                  className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                <select
+                  value={kioskDeptId}
+                  onChange={e => { setKioskDeptId(e.target.value); setKioskError(null); }}
+                  className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card"
+                >
+                  <option value="">— Selecciona un departamento —</option>
+                  {allDepartments.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
                 <input type="text" placeholder="Número de empleado (Super Admin)"
                   value={kioskId} onChange={e => { setKioskId(e.target.value); setKioskError(null); }}
                   className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
@@ -225,8 +280,40 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
           </div>
         </form>
       </Modal>
+
+      {/* ── Detail Modal ─────────────────────────────────────────────────── */}
+      <Modal
+        open={!!detailUser}
+        onClose={() => setDetailUser(null)}
+        title="Detalle de usuario"
+        subtitle={detailUser?.name ?? ''}
+      >
+        {detailUser && (
+          <div className="space-y-3 text-sm">
+            <Row label="Nombre" value={detailUser.name} />
+            <Row label="Rol" value={detailUser.role.replace('_', ' ')} />
+            {detailUser.carnet && <Row label="Carnet" value={detailUser.carnet} />}
+            {detailUser.employeeNumber && <Row label="No. Empleado" value={detailUser.employeeNumber} />}
+            {detailUser.institutionalEmail && <Row label="Email institucional" value={detailUser.institutionalEmail} />}
+            {detailUser.departmentId && (
+              <Row label="Departamento" value={allDepartments.find(d => d.id === detailUser.departmentId)?.name ?? detailUser.departmentId} />
+            )}
+            <Row label="Estado" value={detailUser.isActive !== false ? 'Activo' : 'Inactivo'} />
+            {detailUser.createdAt && (
+              <Row label="Creado" value={new Date(detailUser.createdAt).toLocaleDateString('es-HN', { year: 'numeric', month: 'long', day: 'numeric' })} />
+            )}
+          </div>
+        )}
+      </Modal>
     </PortalLayout>
   );
 };
+
+const Row: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div className="flex justify-between border-b border-border-faint pb-2">
+    <span className="text-muted font-medium">{label}</span>
+    <span className="text-foreground">{value}</span>
+  </div>
+);
 
 export default SuperAdminPortal;
