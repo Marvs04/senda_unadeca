@@ -7,10 +7,21 @@ import {
   ShieldAlert,
   UserPlus,
   Briefcase,
+  GraduationCap,
+  Building2,
+  Calculator,
 } from 'lucide-react';
-import { UserRole } from '../../types';
+import { UserRole, Department } from '../../types';
 import { cn } from '../../lib/utils';
 import { Input, Button } from '../../components/ui';
+
+const ROLE_OPTIONS: { role: UserRole; label: string; icon: React.ReactNode }[] = [
+  { role: UserRole.ADMIN,      label: 'Admin',     icon: <ShieldCheck className="w-3 h-3" /> },
+  { role: UserRole.ACCOUNTING, label: 'Conta',     icon: <Calculator className="w-3 h-3" /> },
+  { role: UserRole.DEPT_HEAD,  label: 'Jefe Depto', icon: <Building2 className="w-3 h-3" /> },
+  { role: UserRole.STUDENT,    label: 'Estudiante', icon: <GraduationCap className="w-3 h-3" /> },
+  { role: UserRole.SUPER_ADMIN, label: 'Super Admin', icon: <Briefcase className="w-3 h-3" /> },
+];
 
 interface SuperAdminCreateFormProps {
   adminName: string;
@@ -19,6 +30,13 @@ interface SuperAdminCreateFormProps {
   setAdminRole: (v: UserRole) => void;
   adminPassword: string;
   setAdminPassword: (v: string) => void;
+  adminCarnet: string;
+  setAdminCarnet: (v: string) => void;
+  adminEmployeeNumber: string;
+  setAdminEmployeeNumber: (v: string) => void;
+  adminDepartmentId: string;
+  setAdminDepartmentId: (v: string) => void;
+  allDepartments: Department[];
   onSubmit: (e: React.FormEvent) => void;
 }
 
@@ -29,6 +47,13 @@ const SuperAdminCreateForm: React.FC<SuperAdminCreateFormProps> = ({
   setAdminRole,
   adminPassword,
   setAdminPassword,
+  adminCarnet,
+  setAdminCarnet,
+  adminEmployeeNumber,
+  setAdminEmployeeNumber,
+  adminDepartmentId,
+  setAdminDepartmentId,
+  allDepartments,
   onSubmit,
 }) => {
   return (
@@ -47,32 +72,22 @@ const SuperAdminCreateForm: React.FC<SuperAdminCreateFormProps> = ({
               Tipo de Cuenta
             </label>
             <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setAdminRole(UserRole.ADMIN)}
-                className={cn(
-                  'py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all flex items-center justify-center space-x-2',
-                  adminRole === UserRole.ADMIN
-                    ? 'bg-primary border-primary text-primary-fg'
-                    : 'bg-surface border-border-faint text-faint hover:bg-surface-hover',
-                )}
-              >
-                <ShieldCheck className="w-3 h-3" />
-                <span>Admin</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setAdminRole(UserRole.ACCOUNTING)}
-                className={cn(
-                  'py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all flex items-center justify-center space-x-2',
-                  adminRole === UserRole.ACCOUNTING
-                    ? 'bg-primary border-primary text-primary-fg'
-                    : 'bg-surface border-border-faint text-faint hover:bg-surface-hover',
-                )}
-              >
-                <Briefcase className="w-3 h-3" />
-                <span>Conta</span>
-              </button>
+              {ROLE_OPTIONS.map(({ role, label, icon }) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => setAdminRole(role)}
+                  className={cn(
+                    'py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all flex items-center justify-center space-x-2',
+                    adminRole === role
+                      ? 'bg-primary border-primary text-primary-fg'
+                      : 'bg-surface border-border-faint text-faint hover:bg-surface-hover',
+                  )}
+                >
+                  {icon}
+                  <span>{label}</span>
+                </button>
+              ))}
             </div>
           </div>
 
@@ -83,6 +98,47 @@ const SuperAdminCreateForm: React.FC<SuperAdminCreateFormProps> = ({
             onChange={e => setAdminName(e.target.value)}
             placeholder="Ej. Juan Pérez"
           />
+
+          {/* Conditional: STUDENT needs carnet */}
+          {adminRole === UserRole.STUDENT && (
+            <Input
+              label="Carnet *"
+              type="text"
+              value={adminCarnet}
+              onChange={e => setAdminCarnet(e.target.value)}
+              placeholder="Ej. 11911088"
+            />
+          )}
+
+          {/* Conditional: DEPT_HEAD needs employeeNumber */}
+          {adminRole === UserRole.DEPT_HEAD && (
+            <Input
+              label="No. de Empleado *"
+              type="text"
+              value={adminEmployeeNumber}
+              onChange={e => setAdminEmployeeNumber(e.target.value)}
+              placeholder="Ej. EMP-001"
+            />
+          )}
+
+          {/* Optional: Department select (useful for DEPT_HEAD and STUDENT) */}
+          {(adminRole === UserRole.DEPT_HEAD || adminRole === UserRole.STUDENT) && (
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-faint uppercase tracking-widest ml-1">
+                Departamento
+              </label>
+              <select
+                value={adminDepartmentId}
+                onChange={e => setAdminDepartmentId(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card"
+              >
+                <option value="">— Sin asignar —</option>
+                {allDepartments.map(d => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <Input
             label="Contraseña Temporal"

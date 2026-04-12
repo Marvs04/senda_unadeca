@@ -50,6 +50,9 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   const [adminName, setAdminName] = useState('');
   const [adminRole, setAdminRole] = useState<UserRole>(UserRole.ADMIN);
   const [adminPassword, setAdminPassword] = useState('');
+  const [adminCarnet, setAdminCarnet] = useState('');
+  const [adminEmployeeNumber, setAdminEmployeeNumber] = useState('');
+  const [adminDepartmentId, setAdminDepartmentId] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
   const [adminSearch, setAdminSearch] = useState('');
 
@@ -92,12 +95,27 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
       toast.error('Debes ingresar una contraseña temporal.');
       return;
     }
+    if (adminRole === UserRole.STUDENT && !adminCarnet.trim()) {
+      toast.error('El carnet es requerido para estudiantes.');
+      return;
+    }
+    if (adminRole === UserRole.DEPT_HEAD && !adminEmployeeNumber.trim()) {
+      toast.error('El número de empleado es requerido para jefes de departamento.');
+      return;
+    }
 
     try {
-      await addUser({ name: adminName, role: adminRole }, adminPassword);
-      const loginIdentifier = adminName.trim().toLowerCase().replace(/\s+/g, '-');
+      const newUser: Omit<User, 'id'> = { name: adminName, role: adminRole };
+      if (adminCarnet.trim()) newUser.carnet = adminCarnet.trim();
+      if (adminEmployeeNumber.trim()) newUser.employeeNumber = adminEmployeeNumber.trim();
+      if (adminDepartmentId) newUser.departmentId = adminDepartmentId;
+      await addUser(newUser, adminPassword);
+      const loginIdentifier = adminCarnet.trim() || adminEmployeeNumber.trim() || adminName.trim().toLowerCase().replace(/\s+/g, '-');
       setAdminName('');
       setAdminPassword('');
+      setAdminCarnet('');
+      setAdminEmployeeNumber('');
+      setAdminDepartmentId('');
       toast.success(`Cuenta creada. Login: ${loginIdentifier} | Clave: ${adminPassword}`);
     } catch {
       // El hook useUsers ya maneja y muestra el error exacto del backend.
@@ -238,6 +256,13 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
               setAdminRole={setAdminRole}
               adminPassword={adminPassword}
               setAdminPassword={setAdminPassword}
+              adminCarnet={adminCarnet}
+              setAdminCarnet={setAdminCarnet}
+              adminEmployeeNumber={adminEmployeeNumber}
+              setAdminEmployeeNumber={setAdminEmployeeNumber}
+              adminDepartmentId={adminDepartmentId}
+              setAdminDepartmentId={setAdminDepartmentId}
+              allDepartments={allDepartments}
               onSubmit={handleAddAdmin}
             />
           </div>
