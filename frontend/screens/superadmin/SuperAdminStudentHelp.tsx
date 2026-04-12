@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Users, Search, Lock, HelpCircle, ChevronUp, ChevronDown, Eye, Inbox } from 'lucide-react';
+import { Users, Search, Lock, HelpCircle, ChevronUp, ChevronDown, Eye, Inbox, UserCheck, UserX } from 'lucide-react';
 import { User, Department } from '../../types';
 import { Input, Button } from '../../components/ui';
 import type { SortField, SortDir, ActiveFilter } from '../../hooks/useSuperAdminData';
@@ -11,6 +11,7 @@ interface SuperAdminStudentHelpProps {
   studentSearch: string;
   setStudentSearch: (v: string) => void;
   onResetPassword: (user: User) => void;
+  onToggleActive: (user: User) => void;
   sortField: SortField;
   setSortField: (f: SortField) => void;
   sortDir: SortDir;
@@ -26,6 +27,7 @@ const SuperAdminStudentHelp: React.FC<SuperAdminStudentHelpProps> = ({
   studentSearch,
   setStudentSearch,
   onResetPassword,
+  onToggleActive,
   sortField,
   setSortField,
   sortDir,
@@ -142,6 +144,14 @@ const SuperAdminStudentHelp: React.FC<SuperAdminStudentHelpProps> = ({
               </Button>
               <Button variant="outline" size="sm" icon={<Lock className="w-3 h-3" />} onClick={() => onResetPassword(student)}>
                 Resetear
+              </Button>
+              <Button
+                variant={student.isActive !== false ? 'danger' : 'success'}
+                size="sm"
+                icon={student.isActive !== false ? <UserX className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
+                onClick={() => onToggleActive(student)}
+              >
+                {student.isActive !== false ? 'Desactivar' : 'Activar'}
               </Button>
             </div>
           </div>
