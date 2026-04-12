@@ -108,9 +108,10 @@ const StudentHistory: React.FC<StudentHistoryProps> = ({
                     onChange={e => setSelectedYear(Number(e.target.value))}
                     className="select-custom pr-10"
                   >
-                    {[2024, 2025]
-                      .filter(y => y <= getTrimester().year)
-                      .map(y => (
+                    {Array.from(
+                        { length: getTrimester().year - 2024 + 1 },
+                        (_, i) => 2024 + i,
+                      ).map(y => (
                         <option key={y} value={y}>
                           {y}
                         </option>

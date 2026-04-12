@@ -61,13 +61,19 @@ export function useAccountingReport(params: PayrollReportParams) {
       }, 250);
     };
 
-    const unsubscribe = subscribeToTableChanges({
+    const unsubscribeLogs = subscribeToTableChanges({
       table:    'work_logs',
       onChange: scheduleBackgroundRefresh,
     });
 
+    const unsubscribeReceivables = subscribeToTableChanges({
+      table:    'student_receivables',
+      onChange: scheduleBackgroundRefresh,
+    });
+
     return () => {
-      unsubscribe();
+      unsubscribeLogs();
+      unsubscribeReceivables();
       if (refreshTimer !== null) window.clearTimeout(refreshTimer);
     };
   }, []); // mount once — paramsRef always current

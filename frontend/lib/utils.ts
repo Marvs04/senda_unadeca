@@ -56,6 +56,27 @@ export function formatCostaRicaTime(value?: Date | string | number): string {
   }).format(date);
 }
 
+/** Formats an ISO timestamp as "DD/MM/YYYY HH:MM" in Costa Rica timezone. Useful for audit reports. */
+export function formatCostaRicaDateTime(value?: Date | string | number): string {
+  if (value === undefined || value === null || value === '') return 'No registrado';
+  const date = toValidDate(value);
+  if (!date) return 'No registrado';
+  const datePart = new Intl.DateTimeFormat('es-CR', {
+    timeZone: COSTA_RICA_TIME_ZONE,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
+  const timePart = new Intl.DateTimeFormat('es-CR', {
+    timeZone: COSTA_RICA_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+  return `${datePart} ${timePart}`;
+}
+
+
 export function getCostaRicaMinutesNow(reference: Date | string | number = new Date()): number {
   const date = toValidDate(reference);
   if (!date) return 0;

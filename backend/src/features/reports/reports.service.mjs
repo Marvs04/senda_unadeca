@@ -14,11 +14,12 @@ const ALLOWED_ROLES = new Set(['ACCOUNTING', 'SUPER_ADMIN', 'ADMIN']);
 
 // ─── Helper: per-student aggregation ────────────────────────────────────────
 
-function aggregate(logList, users, rateNum) {
+function aggregate(logList, users, rateNum, periodReceivables = []) {
   const map = {};
   for (const log of logList) {
     if (!map[log.studentId]) {
       const student = users.find(u => u.id === log.studentId);
+      const recItem = periodReceivables.find(r => r.studentId === log.studentId);
       map[log.studentId] = {
         studentId:    log.studentId,
         studentName:  student?.name ?? 'N/A',
@@ -28,6 +29,8 @@ function aggregate(logList, users, rateNum) {
         totalBruto:   0,
         totalTithe:   0,
         totalNeto:    0,
+        manualReceivable: recItem ? Number(recItem.amount) : 0,
+        totalPayable: 0,
         logIds:       [],
       };
     }
@@ -36,6 +39,7 @@ function aggregate(logList, users, rateNum) {
     map[log.studentId].totalBruto += bruto;
     map[log.studentId].totalTithe += bruto * TITHE_PERCENTAGE;
     map[log.studentId].totalNeto  += bruto * (1 - TITHE_PERCENTAGE);
+    map[log.studentId].totalPayable = Math.max(0, map[log.studentId].totalNeto - map[log.studentId].manualReceivable);
     map[log.studentId].logIds.push(log.id);
   }
   return Object.values(map);
@@ -52,11 +56,14 @@ function buildDeptBooks(entries, departments) {
       map.set(entry.departmentId, {
         departmentId:   entry.departmentId,
         departmentName: deptName,
+        costCenter:     dept?.costCenter || dept?.cost_center || '',
         students:       [],
         totalHours:     0,
         totalBruto:     0,
         totalTithe:     0,
         totalNeto:      0,
+        totalReceivable:0,
+        totalPayable:   0,
       });
     }
     const book = map.get(entry.departmentId);
@@ -65,6 +72,8 @@ function buildDeptBooks(entries, departments) {
     book.totalBruto += entry.totalBruto;
     book.totalTithe += entry.totalTithe;
     book.totalNeto  += entry.totalNeto;
+    book.totalReceivable += entry.manualReceivable;
+    book.totalPayable += entry.totalPayable;
   }
   return [...map.values()].sort((a, b) =>
     a.departmentName.localeCompare(b.departmentName),
@@ -89,7 +98,11 @@ export async function getPayrollReport(requesterProfile, params, adminSupa) {
   const trimNum     = Number(params.trimester) || 1;
 
   // ── 1. Fetch raw data (already camelCase via mappers) ─────────────────────
-  const { logs, users, departments } = await repo.fetchAllData(adminSupa);
+  const { logs, users, departments, receivables } = await repo.fetchAllData(adminSupa);
+
+  // Determine period_key for fetching receivables
+  const periodKey = mode === 'cycle' ? `cycle_${cycle}` : `q${trimNum}_${yearNum}`;
+  const periodReceivables = receivables.filter(r => r.periodKey === periodKey);
 
   // ── 2. Filter by period ───────────────────────────────────────────────────
   let periodLogs = logs.filter(log =>
@@ -119,8 +132,8 @@ export async function getPayrollReport(requesterProfile, params, adminSupa) {
   const processedLogs = periodLogs.filter(l => l.status === 'PROCESSED' && matchesSearch(l));
 
   // ── 6. Aggregate per student ──────────────────────────────────────────────
-  const approvedForPayroll  = aggregate(approvedLogs,  users, rateNum);
-  const processedForPayroll = aggregate(processedLogs, users, rateNum);
+  const approvedForPayroll  = aggregate(approvedLogs,  users, rateNum, periodReceivables);
+  const processedForPayroll = aggregate(processedLogs, users, rateNum, periodReceivables);
 
   // ── 7. Grand totals ───────────────────────────────────────────────────────
   const totalApprovedAmount  = approvedForPayroll.reduce((s, i)  => s + i.totalBruto, 0);
@@ -193,5 +206,79 @@ export async function getPayrollReport(requesterProfile, params, adminSupa) {
     deptChartData,
     weeklySummary: Object.values(weeklySummaryMap),
     trimesterSummary,
+  };
+}
+
+export async function getStudentReportData(requesterProfile, studentId, params, adminSupa) {
+  if (!ALLOWED_ROLES.has(requesterProfile.role)) {
+    throw new AppError('Acceso denegado.', 403);
+  }
+  const mode        = params.mode || 'cycle';
+  const cycle       = params.cycle || '';
+  const yearNum     = Number(params.year) || new Date().getFullYear();
+  const trimNum     = Number(params.trimester) || 1;
+  const rateNum     = Number(params.rate) || 1000;
+
+  const { logs, users, departments, receivables } = await repo.fetchAllData(adminSupa);
+  const student = users.find(u => u.id === studentId);
+  if (!student) throw new AppError('Estudiante no encontrado.', 404);
+
+  const periodKey = mode === 'cycle' ? `cycle_${cycle}` : `q${trimNum}_${yearNum}`;
+  const recItem = receivables.find(r => r.periodKey === periodKey && r.studentId === studentId);
+  const manualReceivable = recItem ? Number(recItem.amount) : 0;
+
+  let periodLogs = logs.filter(l => l.studentId === studentId && (l.status === 'APPROVED' || l.status === 'PROCESSED'));
+  periodLogs = periodLogs.filter(log =>
+    mode === 'cycle'
+      ? isDateInCycle(log.date, cycle)
+      : isDateInTrimester(log.date, trimNum, yearNum),
+  );
+  periodLogs.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+  let totalHours = 0;
+  let totalBruto = 0;
+
+  const logsDetail = periodLogs.map(l => {
+    const bruto = l.hours * rateNum;
+    const tithe = bruto * TITHE_PERCENTAGE;
+    const neto = bruto - tithe;
+    const dept = departments.find(d => d.id === l.departmentId);
+    
+    totalHours += l.hours;
+    totalBruto += bruto;
+
+    return {
+      id: l.id,
+      date: l.date,
+      description: l.description,
+      departmentName: dept ? dept.name : 'N/A',
+      status: l.status,
+      hours: l.hours,
+      bruto,
+      tithe,
+      neto
+    };
+  });
+
+  const totalTithe = totalBruto * TITHE_PERCENTAGE;
+  const totalNeto = totalBruto - totalTithe;
+  const totalPayable = Math.max(0, totalNeto - manualReceivable);
+
+  return {
+    student: {
+      id: student.id,
+      name: student.name,
+      carnet: student.carnet,
+    },
+    periodKey,
+    logs: logsDetail,
+    summary: {
+      totalHours,
+      totalBruto,
+      totalTithe,
+      totalNeto,
+      manualReceivable,
+      totalPayable
+    }
   };
 }

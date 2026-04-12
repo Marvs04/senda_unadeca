@@ -11,3 +11,4 @@ export * from './departmentService';
 export * from './rateService';
 export * from './authService';
 export * from './reportsService';
+export * from './accountingService';

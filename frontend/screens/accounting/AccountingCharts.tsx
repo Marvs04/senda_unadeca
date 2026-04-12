@@ -98,7 +98,7 @@ const AccountingCharts: React.FC<AccountingChartsProps> = ({
                     type="number"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 9, fill: '#a1a1aa' }}
+                    tick={{ fontSize: 9, fill: '#7a8aa8' }}
                     tickFormatter={v => `₡${(v / 1000).toFixed(0)}k`}
                   />
                   <YAxis
@@ -106,7 +106,7 @@ const AccountingCharts: React.FC<AccountingChartsProps> = ({
                     dataKey="name"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 10, fontWeight: 600, fill: '#52525b' }}
+                    tick={{ fontSize: 10, fontWeight: 600, fill: '#3a5a99' }}
                     width={90}
                   />
                   <Tooltip content={<MonoTooltip />} cursor={{ fill: '#f4f4f5' }} />
@@ -114,7 +114,7 @@ const AccountingCharts: React.FC<AccountingChartsProps> = ({
                     {deptChartData.map((_, i) => (
                       <Cell
                         key={`cell-${i}`}
-                        fill={i === 0 ? '#18181b' : i % 2 === 0 ? '#52525b' : '#a1a1aa'}
+                        fill={i === 0 ? '#1d3261' : i % 2 === 0 ? '#3a5a99' : '#7a8aa8'}
                       />
                     ))}
                   </Bar>
@@ -150,18 +150,18 @@ const AccountingCharts: React.FC<AccountingChartsProps> = ({
                     dataKey="name"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 10, fontWeight: 700, fill: '#52525b' }}
+                    tick={{ fontSize: 10, fontWeight: 700, fill: '#3a5a99' }}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 9, fill: '#a1a1aa' }}
+                    tick={{ fontSize: 9, fill: '#7a8aa8' }}
                     tickFormatter={v => `₡${(v / 1000).toFixed(0)}k`}
                   />
                   <Tooltip content={<MonoTooltip />} cursor={{ fill: '#f4f4f5' }} />
                   <Bar dataKey="monto" name="monto" radius={[6, 6, 0, 0]} maxBarSize={36}>
                     {chartData.map((_, i) => (
-                      <Cell key={`cell-${i}`} fill={i === 0 ? '#18181b' : '#d4d4d8'} />
+                      <Cell key={`cell-${i}`} fill={i === 0 ? '#1d3261' : '#c8d0e0'} />
                     ))}
                   </Bar>
                 </BarChart>

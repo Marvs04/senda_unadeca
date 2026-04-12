@@ -14,10 +14,11 @@
 
 import { Router }       from 'express';
 import { requireAuth }  from '../../shared/middleware/requireAuth.mjs';
-import { getPayroll }   from './reports.controller.mjs';
+import { getPayroll, getStudentReport }   from './reports.controller.mjs';
 
 const router = Router();
 
 router.get('/payroll', requireAuth, getPayroll);
+router.get('/student/:studentId', requireAuth, getStudentReport);
 
 export default router;
