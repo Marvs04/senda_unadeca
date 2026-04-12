@@ -29,14 +29,13 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
       <div className="max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4">
-            <div className={cn(
-              "flex items-center justify-center w-10 h-10 rounded-xl border transition-all duration-300",
-              isDark ? "bg-white/10 border-white/20" : "bg-surface border-border"
-            )}>
-              <IconComponent className="h-5 w-5" />
-            </div>
+            <img
+              src="/senda-logo.svg"
+              alt="SENDA"
+              className="w-10 h-10 rounded-full flex-shrink-0"
+            />
             <div className="flex flex-col">
-              <h1 className="text-base font-bold tracking-tight font-display">UNADECA</h1>
+              <h1 className="text-base font-bold tracking-tight font-display">SENDA</h1>
               <p className={cn(
                 "text-[10px] uppercase tracking-[0.2em] font-bold opacity-60",
                 isDark ? "text-white/70" : "text-muted"

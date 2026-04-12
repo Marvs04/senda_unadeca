@@ -23,7 +23,7 @@ interface UseSuperAdminDataParams {
   studentActiveFilter?: ActiveFilter;
 }
 
-function sortUsers(users: User[], field: SortField, dir: SortDir): User[] {
+export function sortUsers(users: User[], field: SortField, dir: SortDir): User[] {
   const sorted = [...users].sort((a, b) => {
     if (field === 'name') return (a.name ?? '').localeCompare(b.name ?? '');
     if (field === 'role') return (a.role ?? '').localeCompare(b.role ?? '');
@@ -43,7 +43,7 @@ function sortUsers(users: User[], field: SortField, dir: SortDir): User[] {
   return dir === 'desc' ? sorted.reverse() : sorted;
 }
 
-function filterByActive(users: User[], filter: ActiveFilter): User[] {
+export function filterByActive(users: User[], filter: ActiveFilter): User[] {
   if (filter === 'active') return users.filter(u => u.isActive !== false);
   if (filter === 'inactive') return users.filter(u => u.isActive === false);
   return users;
