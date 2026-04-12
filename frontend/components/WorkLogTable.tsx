@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { WorkLog, User, Department } from '../types';
 import { cn, truncate } from '../lib/utils';
-import { Calendar, Clock, FileText, User as UserIcon, Building } from 'lucide-react';
+import { Calendar, Clock, FileText, Building } from 'lucide-react';
 import { StatusBadge, EmptyState } from './ui';
 
 interface WorkLogTableProps {
@@ -33,6 +33,14 @@ const WorkLogTable: React.FC<WorkLogTableProps> = ({
   const isDark = variant === 'dark';
   const getUserName = (id: string) => users.find(u => u.id === id)?.name || 'N/A';
   const getDepartmentName = (id: string) => departments.find(d => d.id === id)?.name || 'N/A';
+
+  const formatHours = (hours: number) => {
+    if (hours < 0.1) {
+      const minutes = Math.round(hours * 60);
+      return `${minutes} min`;
+    }
+    return `${hours}h`;
+  };
 
   return (
     <div className={cn(
@@ -82,8 +90,8 @@ const WorkLogTable: React.FC<WorkLogTableProps> = ({
                 {showStudent && (
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-2">
-                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                        <UserIcon className="w-3 h-3 opacity-50" />
+                      <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold shrink-0">
+                        {getUserName(log.studentId).charAt(0).toUpperCase()}
                       </div>
                       <span className="text-sm font-medium">{getUserName(log.studentId)}</span>
                     </div>
@@ -106,7 +114,7 @@ const WorkLogTable: React.FC<WorkLogTableProps> = ({
                 <td className="px-6 py-4">
                   <div className="flex items-center space-x-2">
                     <Clock className="w-3 h-3 opacity-40" />
-                    <span className="text-sm font-bold font-display">{log.hours}h</span>
+                    <span className="text-sm font-bold font-display">{formatHours(log.hours)}</span>
                   </div>
                 </td>
                 <td className="px-6 py-4">
