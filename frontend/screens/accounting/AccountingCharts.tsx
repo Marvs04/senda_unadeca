@@ -17,6 +17,9 @@ import {
   Cell,
 } from 'recharts';
 import { BarChart3, CalendarDays, TrendingUp } from 'lucide-react';
+
+// Palette for Top-5 students (5 distinct hues)
+const TOP5_COLORS = ['#1d3261', '#2563eb', '#0891b2', '#7c3aed', '#b45309'];
 import { cn, formatCurrency } from '../../lib/utils';
 import type { TrimesterSummaryItem } from '../../services/reportsService';
 
@@ -161,7 +164,7 @@ const AccountingCharts: React.FC<AccountingChartsProps> = ({
                   <Tooltip content={<MonoTooltip />} cursor={{ fill: '#f4f4f5' }} />
                   <Bar dataKey="monto" name="monto" radius={[6, 6, 0, 0]} maxBarSize={36}>
                     {chartData.map((_, i) => (
-                      <Cell key={`cell-${i}`} fill={i === 0 ? '#1d3261' : '#c8d0e0'} />
+                      <Cell key={`cell-${i}`} fill={TOP5_COLORS[i % TOP5_COLORS.length]} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -190,28 +193,49 @@ const AccountingCharts: React.FC<AccountingChartsProps> = ({
               <p className="text-[10px] text-faint mt-0.5">Horas y monto por semana</p>
             </div>
           </div>
-          <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-            {weeklySummary.length > 0 ? (
-              weeklySummary.map(item => (
-                <div
-                  key={item.key}
-                  className="flex items-center justify-between px-4 py-3 bg-surface rounded-xl"
-                >
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-faint">
-                      {item.key}
-                    </p>
-                    <p className="text-sm font-bold">{item.hours.toFixed(1)} h</p>
-                  </div>
-                  <p className="text-xs font-black font-mono">{formatCurrency(item.amount)}</p>
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-faint italic text-center py-8">
-                Sin datos en este período
-              </p>
-            )}
-          </div>
+          {weeklySummary.length > 0 ? (
+            <div className="h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={weeklySummary} margin={{ left: -16, right: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e4e7" />
+                  <XAxis
+                    dataKey="key"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 9, fill: '#7a8aa8' }}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 9, fill: '#7a8aa8' }}
+                    tickFormatter={v => `${v}h`}
+                  />
+                  <Tooltip
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0]?.payload as (typeof weeklySummary)[0];
+                      return (
+                        <div className="bg-card border border-border rounded-xl shadow-lg px-3 py-2 text-xs">
+                          <p className="font-bold text-foreground mb-1">{label}</p>
+                          <p className="text-muted">{d.hours.toFixed(1)} h &nbsp;·&nbsp; {formatCurrency(d.amount)}</p>
+                        </div>
+                      );
+                    }}
+                    cursor={{ fill: '#f4f4f5' }}
+                  />
+                  <Bar dataKey="hours" name="Horas" radius={[4, 4, 0, 0]} maxBarSize={28}>
+                    {weeklySummary.map((_, i) => (
+                      <Cell key={`w-${i}`} fill={i % 2 === 0 ? '#1d3261' : '#3a5a99'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-[220px] flex items-center justify-center">
+              <p className="text-xs text-faint italic">Sin datos en este período</p>
+            </div>
+          )}
         </div>
 
         {/* Quarterly breakdown */}
@@ -238,40 +262,36 @@ const AccountingCharts: React.FC<AccountingChartsProps> = ({
                   className={cn(
                     'p-5 rounded-2xl border transition-all',
                     active
-                      ? 'bg-foreground text-background border-transparent'
+                      ? 'bg-card border-primary shadow-md ring-2 ring-primary/20'
                       : 'bg-surface border-border-faint',
                   )}
                 >
                   <p className={cn(
                     'text-[9px] font-black uppercase tracking-widest mb-3',
-                    active ? 'text-background/50' : 'text-faint',
+                    active ? 'text-primary' : 'text-faint',
                   )}>
                     {trimesterLabel(t.trimester)}
+                    {active && <span className="ml-1.5 normal-case">&#x2022; actual</span>}
                   </p>
-                  <p className={cn('text-2xl font-black mb-2', active ? 'text-background' : 'text-foreground')}>
+                  <p className={cn('text-2xl font-black mb-2 text-foreground')}>
                     {t.hours.toFixed(0)} h
                   </p>
                   <div className="space-y-1">
                     <div className="flex justify-between text-[10px]">
-                      <span className={active ? 'text-background/60' : 'text-faint'}>Bruto</span>
-                      <span className={cn('font-mono font-bold', active ? 'text-background' : 'text-foreground')}>
+                      <span className="text-faint">Bruto</span>
+                      <span className="font-mono font-bold text-foreground">
                         {formatCurrency(t.bruto)}
                       </span>
                     </div>
                     <div className="flex justify-between text-[10px]">
-                      <span className={active ? 'text-background/60' : 'text-faint'}>Diezmo</span>
-                      <span className={cn('font-mono', active ? 'text-background/70' : 'text-muted')}>
+                      <span className="text-faint">Diezmo</span>
+                      <span className="font-mono text-muted">
                         −{formatCurrency(t.tithe)}
                       </span>
                     </div>
-                    <div className={cn(
-                      'flex justify-between text-[10px] pt-1 border-t',
-                      active ? 'border-background/20' : 'border-border-faint',
-                    )}>
-                      <span className={cn('font-bold', active ? 'text-background/70' : 'text-muted')}>
-                        Neto
-                      </span>
-                      <span className={cn('font-mono font-bold', active ? 'text-background' : 'text-foreground')}>
+                    <div className="flex justify-between text-[10px] pt-1 border-t border-border-faint">
+                      <span className="font-bold text-muted">Neto</span>
+                      <span className="font-mono font-bold text-foreground">
                         {formatCurrency(t.neto)}
                       </span>
                     </div>

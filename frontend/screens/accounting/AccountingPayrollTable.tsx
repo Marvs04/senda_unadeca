@@ -16,9 +16,19 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import type { DeptBook } from '../../services/reportsService';
 import { formatCurrency, cn } from '../../lib/utils';
+
+/** Display hours; values under 6 min show as minutes */
+function formatHours(h: number): string {
+  if (h > 0 && h < 0.1) {
+    return `${Math.round(h * 60)} min`;
+  }
+  return `${h.toFixed(2)} h`;
+}
 
 interface AccountingPayrollTableProps {
   approvedBooks:      DeptBook[];
@@ -73,10 +83,19 @@ const DeptBookCard: React.FC<{
   onUpdateReceivable: (id: string, val: number) => void;
   onStudentClick?:    (id: string) => void;
   dimmed?:            boolean; // processed books look dimmer
-}> = ({ book, registeredIds, onToggleRegistered, onUpdateReceivable, onStudentClick, dimmed }) => {
+  showCarnet:         boolean;
+}> = ({ book, registeredIds, onToggleRegistered, onUpdateReceivable, onStudentClick, dimmed, showCarnet }) => {
   const [collapsed, setCollapsed] = useState(false);
   const registeredCount = book.students.filter(s => registeredIds.has(s.studentId)).length;
   const allRegistered   = registeredCount === book.students.length && book.students.length > 0;
+  const allZeroReceivable = book.students.every(s => (s.manualReceivable ?? 0) === 0);
+
+  const handleSelectAll = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    book.students.forEach(s => {
+      if (!registeredIds.has(s.studentId)) onToggleRegistered(s.studentId);
+    });
+  };
 
   return (
     <motion.div
@@ -113,6 +132,11 @@ const DeptBookCard: React.FC<{
                   Completo
                 </span>
               )}
+              {!allRegistered && registeredCount > 0 && (
+                <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 bg-amber-500/10 text-amber-600 border border-amber-500/30 rounded-full">
+                  Pendiente
+                </span>
+              )}
             </div>
             <p className="text-[10px] text-faint mt-0.5">
               {book.students.length} estudiante{book.students.length !== 1 ? 's' : ''} &nbsp;·&nbsp;{' '}
@@ -124,8 +148,15 @@ const DeptBookCard: React.FC<{
         </div>
 
         {/* Dept totals + collapse toggle */}
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:grid grid-cols-5 gap-x-6 text-right">
+        <div className="flex items-center gap-4">            {/* Select all button */}
+            {!dimmed && !allRegistered && (
+              <button
+                onClick={handleSelectAll}
+                className="text-[9px] font-bold uppercase tracking-widest text-muted hover:text-foreground transition-colors border border-border-faint rounded-lg px-2.5 py-1"
+              >
+                Seleccionar todos
+              </button>
+            )}          <div className="hidden sm:grid grid-cols-5 gap-x-6 text-right">
             <div>
               <p className="text-[9px] font-bold uppercase tracking-widest text-faint">Horas</p>
               <p className="text-sm font-black font-mono">{book.totalHours.toFixed(1)} h</p>
@@ -172,12 +203,12 @@ const DeptBookCard: React.FC<{
                       <Check className="w-3 h-3" />
                     </th>
                     <th className="px-3 py-3">Estudiante</th>
-                    <th className="px-3 py-3">Carnet</th>
+                    {showCarnet && <th className="px-3 py-3">Carnet</th>}
                     <th className="px-3 py-3 text-right">Horas</th>
                     <th className="px-3 py-3 text-right">Bruto</th>
                     <th className="px-3 py-3 text-right">Diezmo</th>
                     <th className="px-3 py-3 text-right">Neto</th>
-                    <th className="px-3 py-3 text-right">Por Cobrar</th>
+                    {!allZeroReceivable && <th className="px-3 py-3 text-right">Por Cobrar</th>}
                     <th className="px-3 py-3 text-right">Por Pagar</th>
                   </tr>
                 </thead>
@@ -220,14 +251,16 @@ const DeptBookCard: React.FC<{
                             </span>
                           </button>
                         </td>
-                        <td className="px-3 py-3">
-                          <span className="text-xs font-mono text-faint">
-                            {student.carnet ?? '—'}
-                          </span>
-                        </td>
+                        {showCarnet && (
+                          <td className="px-3 py-3">
+                            <span className="text-xs font-mono text-faint">
+                              {student.carnet ?? '—'}
+                            </span>
+                          </td>
+                        )}
                         <td className="px-3 py-3 text-right">
                           <span className="text-sm font-bold font-mono">
-                            {student.totalHours.toFixed(2)} h
+                            {formatHours(student.totalHours)}
                           </span>
                         </td>
                         <td className="px-3 py-3 text-right">
@@ -245,13 +278,15 @@ const DeptBookCard: React.FC<{
                             {formatCurrency(student.totalNeto)}
                           </span>
                         </td>
-                        <td className="px-3 py-3 text-right">
-                          <ReceivableInput
-                            initialValue={student.manualReceivable}
-                            disabled={dimmed}
-                            onSave={(val) => onUpdateReceivable(student.studentId, val)}
-                          />
-                        </td>
+                        {!allZeroReceivable && (
+                          <td className="px-3 py-3 text-right">
+                            <ReceivableInput
+                              initialValue={student.manualReceivable}
+                              disabled={dimmed}
+                              onSave={(val) => onUpdateReceivable(student.studentId, val)}
+                            />
+                          </td>
+                        )}
                         <td className="px-3 py-3 text-right">
                           <span className="text-sm font-black font-mono text-primary">
                             {formatCurrency(student.totalPayable)}
@@ -264,7 +299,7 @@ const DeptBookCard: React.FC<{
                 {/* Dept totals footer */}
                 <tfoot>
                   <tr className="border-t-2 border-border bg-surface font-black text-xs">
-                    <td className="px-6 py-3" colSpan={3}>
+                    <td className="px-6 py-3" colSpan={showCarnet ? 3 : 2}>
                       <span className="text-[9px] uppercase tracking-widest text-faint">
                         Total {book.departmentName}
                       </span>
@@ -281,9 +316,11 @@ const DeptBookCard: React.FC<{
                     <td className="px-3 py-3 text-right font-mono">
                       {formatCurrency(book.totalNeto)}
                     </td>
-                    <td className="px-3 py-3 text-right font-mono text-muted">
-                      {formatCurrency(book.totalReceivable)}
-                    </td>
+                    {!allZeroReceivable && (
+                      <td className="px-3 py-3 text-right font-mono text-muted">
+                        {formatCurrency(book.totalReceivable)}
+                      </td>
+                    )}
                     <td className="px-3 py-3 text-right font-mono text-primary">
                       {formatCurrency(book.totalPayable)}
                     </td>
@@ -309,6 +346,7 @@ const AccountingPayrollTable: React.FC<AccountingPayrollTableProps> = ({
   onStudentClick,
 }) => {
   const [tab, setTab] = useState<'approved' | 'processed'>('approved');
+  const [showCarnet, setShowCarnet] = useState(false);
   const books    = tab === 'approved' ? approvedBooks : processedBooks;
   const hasBooks = books.length > 0;
 
@@ -328,7 +366,16 @@ const AccountingPayrollTable: React.FC<AccountingPayrollTableProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Tab toggle */}
+          {/* Show/hide carnet toggle */}
+          <button
+            onClick={() => setShowCarnet(p => !p)}
+            title={showCarnet ? 'Ocultar carnet' : 'Mostrar carnet'}
+            className="p-2 rounded-xl border border-border-faint bg-card hover:bg-surface transition-colors text-muted"
+          >
+            {showCarnet ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+
+          {/* Tab toggle */}}
           <div className="flex items-center bg-surface p-1 rounded-xl border border-border-faint">
             <button
               onClick={() => setTab('approved')}
@@ -368,6 +415,7 @@ const AccountingPayrollTable: React.FC<AccountingPayrollTableProps> = ({
               onUpdateReceivable={onUpdateReceivable}
               onStudentClick={onStudentClick}
               dimmed={tab === 'processed'}
+              showCarnet={showCarnet}
             />
           ))
         ) : (

@@ -8,9 +8,10 @@ interface DashboardCardProps {
   icon: React.ReactNode;
   variant?: 'light' | 'dark';
   subtitle?: string;
+  footer?: React.ReactNode;
 }
 
-const DashboardCard: React.FC<DashboardCardProps> = ({ title, value, icon, variant = 'light', subtitle }) => {
+const DashboardCard: React.FC<DashboardCardProps> = ({ title, value, icon, variant = 'light', subtitle, footer }) => {
   const isDark = variant === 'dark';
 
   return (
@@ -47,6 +48,7 @@ const DashboardCard: React.FC<DashboardCardProps> = ({ title, value, icon, varia
             {subtitle}
           </p>
         )}
+        {footer && <div className="mt-2">{footer}</div>}
       </div>
     </motion.div>
   );
