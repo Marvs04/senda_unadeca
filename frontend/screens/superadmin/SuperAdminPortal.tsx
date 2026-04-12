@@ -54,8 +54,8 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   const [adminSearch, setAdminSearch] = useState('');
 
   // ── Sorting / filtering state ──────────────────────────────────────────
-  const [adminSort, setAdminSort] = useState<SortField>('name');
-  const [adminSortDir, setAdminSortDir] = useState<SortDir>('asc');
+  const [adminSort, setAdminSort] = useState<SortField>('createdAt');
+  const [adminSortDir, setAdminSortDir] = useState<SortDir>('desc');
   const [adminActiveFilter, setAdminActiveFilter] = useState<ActiveFilter>('all');
   const [studentSort, setStudentSort] = useState<SortField>('name');
   const [studentSortDir, setStudentSortDir] = useState<SortDir>('asc');

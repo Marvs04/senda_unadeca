@@ -106,8 +106,14 @@ const SuperAdminAccountList: React.FC<SuperAdminAccountListProps> = ({
               <th className="px-6 py-4 cursor-pointer select-none" onClick={() => toggleSort('name')}>
                 Nombre <SortIcon field="name" />
               </th>
+              <th className="px-6 py-4 cursor-pointer select-none" onClick={() => toggleSort('employeeNumber')}>
+                No. Empleado <SortIcon field="employeeNumber" />
+              </th>
               <th className="px-6 py-4 cursor-pointer select-none" onClick={() => toggleSort('role')}>
                 Rol <SortIcon field="role" />
+              </th>
+              <th className="px-6 py-4 cursor-pointer select-none" onClick={() => toggleSort('isActive')}>
+                Estado <SortIcon field="isActive" />
               </th>
               <th className="px-6 py-4 cursor-pointer select-none" onClick={() => toggleSort('createdAt')}>
                 Creado <SortIcon field="createdAt" />
@@ -125,15 +131,11 @@ const SuperAdminAccountList: React.FC<SuperAdminAccountListProps> = ({
                         {admin.name.charAt(0)}
                       </span>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">{admin.name}</p>
-                      {admin.employeeNumber && (
-                        <p className="text-[10px] text-faint font-mono">
-                          {admin.employeeNumber}
-                        </p>
-                      )}
-                    </div>
+                    <p className="text-sm font-medium">{admin.name}</p>
                   </div>
+                </td>
+                <td className="px-6 py-4 text-xs text-muted font-mono">
+                  {admin.employeeNumber || '—'}
                 </td>
                 <td className="px-6 py-4">
                   <Badge
@@ -144,6 +146,11 @@ const SuperAdminAccountList: React.FC<SuperAdminAccountListProps> = ({
                     }
                   >
                     {admin.role.replace('_', ' ')}
+                  </Badge>
+                </td>
+                <td className="px-6 py-4">
+                  <Badge variant={admin.isActive !== false ? 'success' : 'danger'}>
+                    {admin.isActive !== false ? 'Activo' : 'Inactivo'}
                   </Badge>
                 </td>
                 <td className="px-6 py-4 text-xs text-muted">
