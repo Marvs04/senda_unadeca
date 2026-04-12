@@ -188,7 +188,14 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
           <tbody className="divide-y divide-border-faint">
             {paginatedHeads.map(head => (
               <tr key={head.id} className="hover:bg-surface transition-colors">
-                <td className="px-8 py-5 font-medium text-sm">{head.name}</td>
+                <td className="px-8 py-5 font-medium text-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold shrink-0">
+                      {head.name.charAt(0).toUpperCase()}
+                    </div>
+                    {head.name}
+                  </div>
+                </td>
                 <td className="px-8 py-5 text-sm text-muted font-mono">{head.employeeNumber || '---'}</td>
                 <td className="px-8 py-5 text-sm text-muted">{head.institutionalEmail || '---'}</td>
                 <td className="px-8 py-5">

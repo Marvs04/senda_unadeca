@@ -207,7 +207,14 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
           <tbody className="divide-y divide-border-faint">
             {paginatedStudents.map(student => (
               <tr key={student.id} className="hover:bg-surface transition-colors group">
-                <td className="px-8 py-5 font-medium text-sm">{student.name}</td>
+                <td className="px-8 py-5 font-medium text-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold shrink-0">
+                      {student.name.charAt(0).toUpperCase()}
+                    </div>
+                    {student.name}
+                  </div>
+                </td>
                 <td className="px-8 py-5 text-sm text-muted font-mono">{student.carnet || '---'}</td>
                 <td className="px-8 py-5 text-sm text-muted">{student.institutionalEmail || '---'}</td>
                 <td className="px-8 py-5">
