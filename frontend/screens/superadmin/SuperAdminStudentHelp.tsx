@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Users, Search, Lock, HelpCircle, ChevronUp, ChevronDown, Eye } from 'lucide-react';
+import { Users, Search, Lock, HelpCircle, ChevronUp, ChevronDown, Eye, Inbox } from 'lucide-react';
 import { User, Department } from '../../types';
 import { Input, Button } from '../../components/ui';
 import type { SortField, SortDir, ActiveFilter } from '../../hooks/useSuperAdminData';
@@ -69,6 +69,9 @@ const SuperAdminStudentHelp: React.FC<SuperAdminStudentHelpProps> = ({
             </p>
           </div>
         </div>
+        <span className="text-xs font-medium text-muted bg-surface px-3 py-1 rounded-full">
+          {filteredStudents.length} estudiante{filteredStudents.length !== 1 ? 's' : ''}
+        </span>
       </div>
 
       <div className="mb-4">
@@ -97,17 +100,29 @@ const SuperAdminStudentHelp: React.FC<SuperAdminStudentHelpProps> = ({
           </button>
         ))}
         <span className="ml-4 text-muted font-medium">Ordenar:</span>
-        <button onClick={() => toggleSort('name')} className="px-3 py-1 rounded-lg border border-border-faint bg-surface text-muted hover:border-border transition-colors">
+        <button onClick={() => toggleSort('name')} className={`px-3 py-1 rounded-lg border transition-colors ${
+          sortField === 'name' ? 'bg-primary text-primary-fg border-primary' : 'bg-surface text-muted border-border-faint hover:border-border'
+        }`}>
           Nombre <SortIcon field="name" />
         </button>
-        <button onClick={() => toggleSort('createdAt')} className="px-3 py-1 rounded-lg border border-border-faint bg-surface text-muted hover:border-border transition-colors">
+        <button onClick={() => toggleSort('createdAt')} className={`px-3 py-1 rounded-lg border transition-colors ${
+          sortField === 'createdAt' ? 'bg-primary text-primary-fg border-primary' : 'bg-surface text-muted border-border-faint hover:border-border'
+        }`}>
           Creado <SortIcon field="createdAt" />
         </button>
       </div>
 
       {/* ── Student list ─────────────────────────────────────────────────── */}
       <div className="space-y-2">
-        {paged.map(student => (
+        {paged.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="p-4 bg-surface rounded-2xl mb-4">
+              <Inbox className="w-8 h-8 text-faint" />
+            </div>
+            <p className="text-sm font-medium text-muted">Sin resultados</p>
+            <p className="text-xs text-faint mt-1">Intenta con otro término de búsqueda o filtro.</p>
+          </div>
+        ) : paged.map(student => (
           <div
             key={student.id}
             className="flex items-center justify-between p-4 rounded-2xl border border-border-faint hover:border-border transition-all group"

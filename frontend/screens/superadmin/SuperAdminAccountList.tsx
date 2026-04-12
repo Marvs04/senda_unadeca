@@ -1,10 +1,56 @@
-import React, { useState, useMemo } from 'react';
-import { Users, Search, RefreshCw, ChevronUp, ChevronDown, Eye } from 'lucide-react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { Users, Search, RefreshCw, ChevronUp, ChevronDown, Eye, MoreHorizontal } from 'lucide-react';
 import { User, UserRole, Department } from '../../types';
 import { Badge, Button } from '../../components/ui';
 import type { SortField, SortDir, ActiveFilter } from '../../hooks/useSuperAdminData';
 
 const PAGE_OPTIONS = [10, 25, 50];
+
+const ROLE_AVATAR_COLORS: Record<string, string> = {
+  [UserRole.ADMIN]:      'bg-indigo-100 text-indigo-700',
+  [UserRole.ACCOUNTING]: 'bg-amber-100 text-amber-700',
+  [UserRole.DEPT_HEAD]:  'bg-emerald-100 text-emerald-700',
+};
+
+/* ── Inline dropdown menu ───────────────────────────────────────────────── */
+const ActionsMenu: React.FC<{ user: User; onView: (u: User) => void; onReset: (u: User) => void }> = ({ user, onView, onReset }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative inline-block">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="p-1.5 rounded-lg hover:bg-surface transition-colors text-muted hover:text-foreground"
+      >
+        <MoreHorizontal className="w-4 h-4" />
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-1 w-36 bg-card rounded-xl border border-border-faint shadow-lg z-20 py-1 text-xs">
+          <button
+            onClick={() => { onView(user); setOpen(false); }}
+            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-surface transition-colors text-left"
+          >
+            <Eye className="w-3 h-3" /> Ver detalle
+          </button>
+          <button
+            onClick={() => { onReset(user); setOpen(false); }}
+            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-surface transition-colors text-left"
+          >
+            <RefreshCw className="w-3 h-3" /> Resetear clave
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface SuperAdminAccountListProps {
   filteredAdmins: User[];
@@ -126,16 +172,18 @@ const SuperAdminAccountList: React.FC<SuperAdminAccountListProps> = ({
               <tr key={admin.id} className="hover:bg-surface transition-colors group">
                 <td className="px-6 py-4">
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded-full bg-surface flex items-center justify-center">
-                      <span className="text-xs font-bold text-faint">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${ROLE_AVATAR_COLORS[admin.role] ?? 'bg-surface text-faint'}`}>
+                      <span className="text-xs font-bold">
                         {admin.name.charAt(0)}
                       </span>
                     </div>
                     <p className="text-sm font-medium">{admin.name}</p>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-xs text-muted font-mono">
-                  {admin.employeeNumber || '—'}
+                <td className="px-6 py-4 text-xs font-mono">
+                  {admin.employeeNumber
+                    ? <span className="text-muted">{admin.employeeNumber}</span>
+                    : <span className="text-faint italic">Sin asignar</span>}
                 </td>
                 <td className="px-6 py-4">
                   <Badge
@@ -158,13 +206,8 @@ const SuperAdminAccountList: React.FC<SuperAdminAccountListProps> = ({
                     ? new Date(admin.createdAt).toLocaleDateString('es-HN', { day: '2-digit', month: 'short', year: 'numeric' })
                     : '—'}
                 </td>
-                <td className="px-6 py-4 text-right space-x-1">
-                  <Button variant="ghost" size="sm" icon={<Eye className="w-3 h-3" />} onClick={() => onViewDetail(admin)}>
-                    Ver
-                  </Button>
-                  <Button variant="ghost" size="sm" icon={<RefreshCw className="w-3 h-3" />} onClick={() => onResetPassword(admin)}>
-                    Resetear
-                  </Button>
+                <td className="px-6 py-4 text-right">
+                  <ActionsMenu user={admin} onView={onViewDetail} onReset={onResetPassword} />
                 </td>
               </tr>
             ))}

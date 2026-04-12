@@ -7,9 +7,10 @@ interface DashboardCardProps {
   value: string | number;
   icon: React.ReactNode;
   variant?: 'light' | 'dark';
+  subtitle?: string;
 }
 
-const DashboardCard: React.FC<DashboardCardProps> = ({ title, value, icon, variant = 'light' }) => {
+const DashboardCard: React.FC<DashboardCardProps> = ({ title, value, icon, variant = 'light', subtitle }) => {
   const isDark = variant === 'dark';
 
   return (
@@ -38,6 +39,14 @@ const DashboardCard: React.FC<DashboardCardProps> = ({ title, value, icon, varia
           {title}
         </p>
         <p className="text-3xl font-bold tracking-tight font-display">{value}</p>
+        {subtitle && (
+          <p className={cn(
+            "text-[10px] mt-1",
+            isDark ? "text-white/40" : "text-faint"
+          )}>
+            {subtitle}
+          </p>
+        )}
       </div>
     </motion.div>
   );
