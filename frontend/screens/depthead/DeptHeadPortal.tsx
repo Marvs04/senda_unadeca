@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Users,
@@ -83,7 +83,18 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
     });
 
   // Form state
-  const [selectedStudent, setSelectedStudent] = useState(myStudents[0]?.id || '');
+  const [selectedStudent, setSelectedStudent] = useState('');
+
+  // Sync selectedStudent when myStudents loads or changes (B8 fix: useState initial is evaluated once at mount)
+  useEffect(() => {
+    if (!selectedStudent && myStudents.length > 0) {
+      setSelectedStudent(myStudents[0].id);
+    }
+    // If current selectedStudent no longer belongs to this dept, reset
+    if (selectedStudent && myStudents.length > 0 && !myStudents.some(s => s.id === selectedStudent)) {
+      setSelectedStudent(myStudents[0].id);
+    }
+  }, [myStudents]); // eslint-disable-line react-hooks/exhaustive-deps
   const [hours, setHours] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(getCostaRicaISODate());
@@ -160,8 +171,9 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
   };
 
   const handleExport = (type: 'csv' | 'pdf') => {
+    const cycleLogs = (myLogs || []).filter(log => isDateInCycle(log.date, selectedCycle));
     const headers = ['Estudiante', 'Fecha', 'Horas', 'Descripción', 'Estado', 'Razón Rechazo'];
-    const rows = (myLogs || []).map(log => [
+    const rows = cycleLogs.map(log => [
       (allUsers || []).find(u => u.id === log.studentId)?.name || 'N/A',
       log.date,
       log.hours,
@@ -169,6 +181,10 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
       log.status,
       log.rejectionReason || '',
     ]);
+    if (rows.length === 0) {
+      toast.info('No hay registros en el ciclo seleccionado para exportar.', { position: 'top-center' });
+      return;
+    }
     const safeDept = departmentName.replace(/\s+/g, '_');
     if (type === 'csv') {
       exportToCSV(`reporte_${safeDept}.csv`, headers, rows);

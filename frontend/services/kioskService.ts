@@ -76,10 +76,12 @@ export async function activateKiosk(
 export async function deactivateKiosk(
   identifier: string,
   password: string,
+  departmentId?: string,
 ): Promise<DeactivateResult> {
   const { data } = await apiClient.post<DeactivateResult>('/kiosk/deactivate', {
     identifier,
     password,
+    ...(departmentId ? { departmentId } : {}),
   });
   return data;
 }

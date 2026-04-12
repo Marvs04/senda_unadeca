@@ -40,6 +40,14 @@ export function useStudentSession({
     const saved = localStorage.getItem(SESSION_KEY(userId));
     if (!saved) return;
     const { start, desc } = JSON.parse(saved) as { start: number; desc: string };
+
+    // Discard sessions older than MAX_HOURS — stale from a previous day/session
+    const elapsedHours = (Date.now() - start) / (1000 * 60 * 60);
+    if (elapsedHours > LIMITS.MAX_HOURS) {
+      localStorage.removeItem(SESSION_KEY(userId));
+      return;
+    }
+
     setStartTime(start);
     setDescription(desc);
     setIsTracking(true);
@@ -103,6 +111,13 @@ export function useStudentSession({
       toast.error('La sesión es demasiado corta para ser registrada.', {
         position: 'top-center',
       });
+      return;
+    }
+    if (durationHours > LIMITS.MAX_HOURS) {
+      toast.error(
+        `La sesión excede el límite de ${LIMITS.MAX_HOURS} horas (${durationHours.toFixed(1)}h registradas). Cancela y registra manualmente si es necesario.`,
+        { position: 'top-center', duration: 8000 },
+      );
       return;
     }
 

@@ -85,6 +85,7 @@ const AuthenticatedArea: React.FC<AuthenticatedAreaProps> = ({ currentUserId, on
                 user={user}
                 onLogout={onLogout}
                 allUsers={users}
+                allDepartments={departments}
                 addUser={addUser}
                 onActivateKiosk={(identifier, password, departmentId) => {
                   return kioskActions.activate(identifier, password, departmentId);
@@ -191,9 +192,10 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     logout()
-      .then(() => setCurrentUserId(null))
-      .catch((error: unknown) => {
-        setAuthError(error instanceof Error ? error.message : 'No fue posible cerrar sesión.');
+      .catch(() => { /* token already cleared by logout() finally block */ })
+      .finally(() => {
+        setCurrentUserId(null);
+        setAuthError(null);
       });
   };
 

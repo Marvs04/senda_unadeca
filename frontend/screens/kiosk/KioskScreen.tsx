@@ -172,6 +172,9 @@ const CancelModal: React.FC<CancelModalProps> = ({ studentName, onConfirm, onClo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!headId.trim() || !headPass.trim()) {
+      toast.error('Ingresa las credenciales del jefe de departamento.'); return;
+    }
     if (!reason.trim()) { toast.error('Debes ingresar una razón.'); return; }
     if (reason.length > LIMITS.KIOSK_CANCEL_REASON) {
       toast.error(`Máximo ${LIMITS.KIOSK_CANCEL_REASON} caracteres.`); return;
@@ -260,6 +263,10 @@ const ShiftPanel: React.FC<ShiftPanelProps> = ({ shifts: initialShifts, onSave, 
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!headId.trim() || !headPass.trim()) {
+      toast.error('Ingresa las credenciales del jefe de departamento.');
+      return;
+    }
     onSave(headId.trim(), headPass.trim(), shifts);
   };
 
@@ -401,7 +408,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({
     : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-800 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a1428] via-[#0f1b33] to-[#1d3261] flex flex-col">
 
       {/* Top bar */}
       <div className="flex items-center justify-between px-8 py-5 border-b border-white/5">
@@ -477,8 +484,8 @@ const KioskScreen: React.FC<KioskScreenProps> = ({
 
           {activeSessions.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3">
-              <LogOut className="w-8 h-8 text-zinc-700" />
-              <p className="text-sm text-zinc-600">No hay estudiantes activos en este momento.</p>
+              <LogOut className="w-8 h-8 text-[#2a4075]" />
+              <p className="text-sm text-[#2a4075]">No hay estudiantes activos en este momento.</p>
             </div>
           ) : (
             <div className="space-y-3 overflow-y-auto">
