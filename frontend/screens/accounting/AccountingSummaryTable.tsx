@@ -1,16 +1,13 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Download } from 'lucide-react';
 import type { DeptBook } from '../../services/reportsService';
 import { formatCurrency } from '../../lib/utils';
-import { Button } from '../../components/ui';
 
 interface AccountingSummaryTableProps {
   books: DeptBook[];
-  onExportPDF: () => void;
 }
 
-const AccountingSummaryTable: React.FC<AccountingSummaryTableProps> = ({ books, onExportPDF }) => {
+const AccountingSummaryTable: React.FC<AccountingSummaryTableProps> = ({ books }) => {
   const totals = books.reduce(
     (acc, book) => {
       acc.hours += book.totalHours;
@@ -39,9 +36,6 @@ const AccountingSummaryTable: React.FC<AccountingSummaryTableProps> = ({ books, 
             Reporte concentrado de becas, diezmos y retenciones
           </p>
         </div>
-        <Button variant="outline" onClick={onExportPDF} icon={<Download className="w-4 h-4" />}>
-          Descargar PDF
-        </Button>
       </div>
 
       <div className="overflow-x-auto">
@@ -93,16 +87,16 @@ const AccountingSummaryTable: React.FC<AccountingSummaryTableProps> = ({ books, 
           </tbody>
           {books.length > 0 && (
             <tfoot>
-              <tr className="border-t-2 border-border bg-surface font-black text-xs">
-                <td className="px-4 py-4 uppercase tracking-widest text-faint rounded-bl-xl text-left">
-                  Grandes Totales
+              <tr className="border-t-2 border-primary/30 bg-primary/5 font-black text-xs">
+                <td className="px-4 py-4 rounded-bl-xl text-left">
+                  <span className="text-xs font-black tracking-tight text-foreground">Grandes Totales</span>
                 </td>
-                <td className="px-4 py-4 text-center font-mono">{totals.hours.toFixed(1)} h</td>
-                <td className="px-4 py-4 text-right font-mono text-muted">{formatCurrency(totals.bruto)}</td>
-                <td className="px-4 py-4 text-right font-mono text-faint">{formatCurrency(-totals.tithe)}</td>
-                <td className="px-4 py-4 text-right font-mono">{formatCurrency(totals.neto)}</td>
-                <td className="px-4 py-4 text-right font-mono text-muted">{formatCurrency(totals.receivable)}</td>
-                <td className="px-4 py-4 text-right font-mono text-primary rounded-br-xl">{formatCurrency(totals.payable)}</td>
+                <td className="px-4 py-4 text-center font-mono font-black">{totals.hours.toFixed(1)} h</td>
+                <td className="px-4 py-4 text-right font-mono font-black">{formatCurrency(totals.bruto)}</td>
+                <td className="px-4 py-4 text-right font-mono font-black text-faint">{formatCurrency(-totals.tithe)}</td>
+                <td className="px-4 py-4 text-right font-mono font-black">{formatCurrency(totals.neto)}</td>
+                <td className="px-4 py-4 text-right font-mono font-black text-muted">{formatCurrency(totals.receivable)}</td>
+                <td className="px-4 py-4 text-right font-mono font-black text-primary rounded-br-xl">{formatCurrency(totals.payable)}</td>
               </tr>
             </tfoot>
           )}

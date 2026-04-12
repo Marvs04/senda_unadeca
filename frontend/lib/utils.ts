@@ -104,11 +104,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('es-CR', {
-    style: 'currency',
-    currency: 'CRC',
+  const formatted = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
-  }).format(amount);
+    maximumFractionDigits: 0,
+  }).format(Math.round(amount));
+  return `₡${formatted}`;
 }
 
 export function exportToCSV(filename: string, headers: string[], rows: (string | number)[][]) {

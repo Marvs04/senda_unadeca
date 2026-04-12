@@ -64,6 +64,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
   const [selectedDeptId, setSelectedDeptId]   = useState('all');
   const [mainTab, setMainTab]                 = useState<'payroll' | 'summary'>('payroll');
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen]   = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const { confirm, dialogProps }              = useConfirm();
 
@@ -471,41 +472,61 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
             </div>
           )}
 
+          {/* Config — gear icon only */}
           <button
             onClick={() => setIsConfigModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-card hover:bg-surface rounded-xl border border-border transition-all text-[10px] font-bold uppercase tracking-widest text-muted"
+            className="p-2.5 bg-card hover:bg-surface rounded-xl border border-border transition-all text-muted"
             title="Configurar cuentas contables y centros de costo"
           >
-            <Settings className="w-3.5 h-3.5" />
-            Config
+            <Settings className="w-4 h-4" />
           </button>
 
-          {/* Export */}
-          <div className="flex items-center space-x-1 bg-card p-1 rounded-xl border border-border">
+          {/* Export dropdown */}
+          <div className="relative">
             <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-1.5 px-3 py-2 hover:bg-surface rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest text-muted"
-              title="Exportar CSV"
+              onClick={() => setExportMenuOpen(p => !p)}
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-card hover:bg-surface rounded-xl border border-border transition-all text-[10px] font-bold uppercase tracking-widest text-muted"
             >
               <Download className="w-3.5 h-3.5" />
-              CSV
+              Exportar
+              <ChevronDown className="w-3 h-3" />
             </button>
-            <button
-              onClick={handleExportPDF}
-              className="flex items-center gap-1.5 px-3 py-2 hover:bg-surface rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest text-muted"
-              title="Exportar PDF por departamento"
-            >
-              <FileText className="w-3.5 h-3.5" />
-              PDF
-            </button>
-            <button
-              onClick={handleExportAccountingTxt}
-              className="flex items-center gap-1.5 px-3 py-2 hover:bg-surface rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest text-muted"
-              title="Exportar asiento contable en TXT (ancho fijo)"
-            >
-              <FileCode className="w-3.5 h-3.5" />
-              TXT
-            </button>
+            {exportMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setExportMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50 min-w-[180px]">
+                  <button
+                    onClick={() => { handleExportCSV(); setExportMenuOpen(false); }}
+                    className="w-full flex items-center gap-2 px-4 py-3 hover:bg-surface text-xs font-medium text-foreground transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5 text-faint" />
+                    CSV Nómina
+                  </button>
+                  <button
+                    onClick={() => { handleExportPDF(); setExportMenuOpen(false); }}
+                    className="w-full flex items-center gap-2 px-4 py-3 hover:bg-surface text-xs font-medium text-foreground transition-colors"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-faint" />
+                    PDF Nómina
+                  </button>
+                  <button
+                    onClick={() => { handleExportSummaryPDF(); setExportMenuOpen(false); }}
+                    className="w-full flex items-center gap-2 px-4 py-3 hover:bg-surface text-xs font-medium text-foreground transition-colors"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-faint" />
+                    PDF Resumen
+                  </button>
+                  <div className="border-t border-border-faint" />
+                  <button
+                    onClick={() => { handleExportAccountingTxt(); setExportMenuOpen(false); }}
+                    className="w-full flex items-center gap-2 px-4 py-3 hover:bg-surface text-xs font-medium text-foreground transition-colors"
+                  >
+                    <FileCode className="w-3.5 h-3.5 text-faint" />
+                    TXT Asiento
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </motion.div>
@@ -524,12 +545,28 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
         <DashboardCard
           title="Total Facturado"
           value={formatCurrency(totalApprovedAmount)}
+          subtitle={period}
           icon={<DollarSign className="h-5 w-5" />}
         />
         <DashboardCard
           title="Diezmo (10%)"
           value={formatCurrency(totalTithe)}
           icon={<Minus className="h-5 w-5" />}
+          footer={
+            totalApprovedAmount > 0 ? (
+              <div>
+                <div className="h-1.5 bg-surface rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-faint rounded-full transition-all"
+                    style={{ width: `${Math.min((totalTithe / totalApprovedAmount) * 100, 100)}%` }}
+                  />
+                </div>
+                <p className="text-[9px] text-faint mt-0.5">
+                  {((totalTithe / totalApprovedAmount) * 100).toFixed(1)}% del bruto
+                </p>
+              </div>
+            ) : null
+          }
         />
         <DashboardCard
           title="Total Neto a Pagar"
@@ -540,6 +577,14 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
           title="Ya Procesado"
           value={formatCurrency(totalProcessedAmount)}
           icon={<CheckSquare className="h-5 w-5" />}
+          footer={
+            totalProcessedAmount > totalApprovedAmount && totalApprovedAmount > 0 ? (
+              <p className="text-[9px] text-amber-500 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3 shrink-0" />
+                Incluye períodos anteriores
+              </p>
+            ) : null
+          }
         />
       </div>
 
@@ -591,9 +636,8 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
           onStudentClick={(id) => setSelectedStudentId(id)}
         />
       ) : (
-        <AccountingSummaryTable 
-          books={approvedBooks} 
-          onExportPDF={handleExportSummaryPDF} 
+        <AccountingSummaryTable
+          books={approvedBooks}
         />
       )}
 
