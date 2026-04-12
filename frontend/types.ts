@@ -15,6 +15,7 @@ export interface User {
   institutionalEmail?: string;
   departmentId?: string;
   isActive?: boolean;
+  createdAt?: string;
 }
 
 export interface Department {

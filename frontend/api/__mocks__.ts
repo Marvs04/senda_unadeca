@@ -24,9 +24,9 @@ import { User, Department, WorkLog, UserRole, WorkLogStatus } from '../types';
 // ─── Departments ──────────────────────────────────────────────────────────────
 
 export const MOCK_DEPARTMENTS: Department[] = [
-  { id: 'dept-uv',   name: 'U Virtual',      headId: 'user-head-1', costCenter: '10-0001' },
-  { id: 'dept-maint', name: 'Mantenimiento', headId: 'user-head-2', costCenter: '20-0001' },
-  { id: 'dept-lib',  name: 'Biblioteca',     headId: undefined,     costCenter: '30-0001' },
+  { id: 'dept-uv',   name: 'U Virtual',      headId: 'user-head-1', costCenter: '10-00-01' },
+  { id: 'dept-maint', name: 'Mantenimiento', headId: 'user-head-2', costCenter: '20-00-01' },
+  { id: 'dept-lib',  name: 'Biblioteca',     headId: undefined,     costCenter: '30-00-01' },
 ];
 
 // ─── Users ────────────────────────────────────────────────────────────────────

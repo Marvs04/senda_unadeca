@@ -5,27 +5,39 @@ import {
   DollarSign,
   CheckSquare,
   Download,
+  Settings,
   Calendar,
   Building,
   FileText,
+  FileCode,
   ChevronDown,
   CalendarDays,
   Search,
   Receipt,
   Minus,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PortalLayout } from '../../components/layout';
 import DashboardCard from '../../components/DashboardCard';
 import { User, WorkLogStatus, Department } from '../../types';
 import { cn, exportToCSV, formatCostaRicaLongDate, formatCurrency } from '../../lib/utils';
-import { renderDeptGroupedPDF } from '../../lib/pdf';
+import { renderDeptGroupedPDF, renderPDF } from '../../lib/pdf';
 import { getBillingCycle, getTrimester } from '../../lib/business';
 import { useAccountingReport } from '../../hooks/useAccountingReport';
 import { useConfirm } from '../../hooks/useConfirm';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AccountingCharts from './AccountingCharts';
 import AccountingPayrollTable from './AccountingPayrollTable';
+import AccountingSummaryTable from './AccountingSummaryTable';
+import AccountingConfigModal from './AccountingConfigModal';
+import StudentDetailModal from './StudentDetailModal';
+import { getAccountingConfig, upsertStudentReceivable } from '../../services/accountingService';
+import {
+  buildAccountingEntryTxt,
+  downloadPlainTextFile,
+  findInvalidLineLengths,
+} from '../../lib/accountingTxt';
 
 interface AccountingPortalProps {
   user: User;
@@ -50,6 +62,9 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
   const [searchTerm, setSearchTerm]           = useState('');
   const debouncedSearch                       = useDebounce(searchTerm);
   const [selectedDeptId, setSelectedDeptId]   = useState('all');
+  const [mainTab, setMainTab]                 = useState<'payroll' | 'summary'>('payroll');
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const { confirm, dialogProps }              = useConfirm();
 
   // ── Period key for localStorage registered state ──────────────────────────
@@ -116,7 +131,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
   }, [periodKey]);
 
   // ── Data (computed on the backend) ──────────────────────────────────────
-  const { data: reportData, isLoading: reportLoading } = useAccountingReport({
+  const { data: reportData, isLoading: reportLoading, error: reportError } = useAccountingReport({
     viewMode,
     selectedCycle,
     selectedTrimester,
@@ -136,12 +151,14 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
   const weeklySummary        = reportData?.weeklySummary        ?? [];
   const trimesterSummary     = reportData?.trimesterSummary     ?? [];
 
-  const { totalTithe, totalNeto, totalHours } = useMemo(() => {
+  const { totalTithe, totalNeto, totalHours, totalReceivable, totalPayable } = useMemo(() => {
     const entries = reportData?.approvedForPayroll ?? [];
     return {
       totalTithe: entries.reduce((s, i) => s + i.totalTithe, 0),
       totalNeto:  entries.reduce((s, i) => s + i.totalNeto,  0),
       totalHours: entries.reduce((s, i) => s + i.totalHours, 0),
+      totalReceivable: entries.reduce((s, i) => s + i.manualReceivable, 0),
+      totalPayable: entries.reduce((s, i) => s + i.totalPayable, 0),
     };
   }, [reportData]);
 
@@ -162,6 +179,14 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
     }
   };
 
+  const handleUpdateReceivable = async (studentId: string, amount: number) => {
+    try {
+      await upsertStudentReceivable(studentId, periodKey, amount);
+    } catch {
+      toast.error('Error al guardar Cuenta por Cobrar', { position: 'top-center' });
+    }
+  };
+
   // ── Export ────────────────────────────────────────────────────────────────
   const period = viewMode === 'cycle'
     ? `Ciclo ${selectedCycle}`
@@ -169,8 +194,10 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
 
   const filenameBase = `nomina_${viewMode === 'cycle' ? selectedCycle : `q${selectedTrimester}_${selectedYear}`}`;
 
+  const hasAccountingData = approvedBooks.length > 0;
+
   const handleExportCSV = () => {
-    const headers = ['Departamento', 'Estudiante', 'Carnet', 'Horas', 'Bruto', 'Diezmo', 'Neto'];
+    const headers = ['Departamento', 'Estudiante', 'Carnet', 'Horas', 'Bruto', 'Diezmo', 'Neto', 'Por Cobrar', 'Por Pagar'];
     const rows = approvedBooks.flatMap(book =>
       book.students.map(s => [
         book.departmentName,
@@ -178,8 +205,10 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
         s.carnet ?? '—',
         s.totalHours.toFixed(2),
         formatCurrency(s.totalBruto),
-        formatCurrency(s.totalTithe),
+        formatCurrency(-s.totalTithe),
         formatCurrency(s.totalNeto),
+        formatCurrency(s.manualReceivable),
+        formatCurrency(s.totalPayable),
       ]),
     );
     exportToCSV(`${filenameBase}.csv`, headers, rows);
@@ -207,22 +236,113 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
           carnet: s.carnet ?? '—',
           hours:  s.totalHours.toFixed(2),
           bruto:  formatCurrency(s.totalBruto),
-          tithe:  formatCurrency(s.totalTithe),
+          tithe:  formatCurrency(-s.totalTithe),
           neto:   formatCurrency(s.totalNeto),
         })),
         totalHours: book.totalHours.toFixed(2),
         totalBruto: formatCurrency(book.totalBruto),
-        totalTithe: formatCurrency(book.totalTithe),
+        totalTithe: formatCurrency(-book.totalTithe),
         totalNeto:  formatCurrency(book.totalNeto),
       })),
       grandTotals: {
         hours: totalHours.toFixed(2),
         bruto: formatCurrency(totalApprovedAmount),
-        tithe: formatCurrency(totalTithe),
+        tithe: formatCurrency(-totalTithe),
         neto:  formatCurrency(totalNeto),
       },
     });
     toast.success('PDF generado', { position: 'top-center' });
+  };
+
+  const handleExportAccountingTxt = async () => {
+    if (!hasAccountingData) {
+      toast.error('No hay datos aprobados para exportar asiento.', { position: 'top-center' });
+      return;
+    }
+
+    // Warn if any approved department is missing its cost center
+    const booksWithoutCostCenter = approvedBooks.filter(b => !b.costCenter?.trim());
+    if (booksWithoutCostCenter.length > 0) {
+      const names = booksWithoutCostCenter.map(b => b.departmentName).join(', ');
+      toast.warning(`${booksWithoutCostCenter.length} departamento(s) sin centro de costo: ${names}. Configuralos antes de exportar para un asiento completo.`, {
+        position: 'top-center',
+        duration: 6000,
+      });
+    }
+
+    try {
+      const config = await getAccountingConfig();
+      const requiredFields = [
+        config.becasAccount,
+        config.becasName,
+        config.diezmoAccount,
+        config.diezmoName,
+        config.payableAccount,
+        config.payableName,
+        config.receivableAccount,
+        config.receivableName,
+      ];
+
+      if (requiredFields.some(value => !String(value).trim())) {
+        toast.error('Complete la configuracion de cuentas contables antes de exportar el asiento TXT.', {
+          position: 'top-center',
+        });
+        setIsConfigModalOpen(true);
+        return;
+      }
+
+      const content = buildAccountingEntryTxt(approvedBooks, config, period);
+      const invalidLineLengths = findInvalidLineLengths(content);
+
+      if (invalidLineLengths.length > 0) {
+        toast.error('El archivo TXT generado tiene lineas con ancho invalido.', {
+          position: 'top-center',
+        });
+        return;
+      }
+
+      downloadPlainTextFile(`asiento_${filenameBase}.txt`, content);
+      toast.success('Asiento TXT generado con formato fijo.', { position: 'top-center' });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'No fue posible exportar el asiento TXT.', {
+        position: 'top-center',
+      });
+    }
+  };
+
+  const handleExportSummaryPDF = () => {
+    const now = formatCostaRicaLongDate();
+    renderPDF({
+      filename: `resumen_general_${filenameBase}.pdf`,
+      reportTitle: `RESUMEN GENERAL POR DEPARTAMENTO \u2014 ${period.toUpperCase()}`,
+      meta: [
+        { label: 'Per\u00edodo',          value: period },
+        { label: 'Fecha de Emisi\u00f3n', value: now },
+        { label: 'Responsable',       value: user.name },
+      ],
+      headers: ['Departamento', 'Horas', 'Bruto', 'Diezmo', 'Neto', 'Cobrar', 'Pagar'],
+      rows: [
+        ...approvedBooks.map(b => [
+          b.departmentName,
+          b.totalHours.toFixed(2),
+          formatCurrency(b.totalBruto),
+          formatCurrency(-b.totalTithe),
+          formatCurrency(b.totalNeto),
+          formatCurrency(b.totalReceivable),
+          formatCurrency(b.totalPayable),
+        ]),
+        [
+          'TOTALES',
+          totalHours.toFixed(2),
+          formatCurrency(totalApprovedAmount),
+          formatCurrency(-totalTithe),
+          formatCurrency(totalNeto),
+          formatCurrency(totalReceivable),
+          formatCurrency(totalPayable),
+        ]
+      ]
+    });
+    toast.success('PDF Resumen general generado', { position: 'top-center' });
   };
 
   return (
@@ -338,8 +458,10 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
                   onChange={e => handleYearChange(Number(e.target.value))}
                   className="select-custom pr-10"
                 >
-                  {[2024, 2025, 2026]
-                    .filter(y => y <= currentTrimester.year)
+                  {Array.from(
+                    { length: currentTrimester.year - 2024 + 1 },
+                    (_, i) => 2024 + i,
+                  )
                     .map(y => (
                       <option key={y} value={y}>{y}</option>
                     ))}
@@ -348,6 +470,15 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
               </div>
             </div>
           )}
+
+          <button
+            onClick={() => setIsConfigModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-card hover:bg-surface rounded-xl border border-border transition-all text-[10px] font-bold uppercase tracking-widest text-muted"
+            title="Configurar cuentas contables y centros de costo"
+          >
+            <Settings className="w-3.5 h-3.5" />
+            Config
+          </button>
 
           {/* Export */}
           <div className="flex items-center space-x-1 bg-card p-1 rounded-xl border border-border">
@@ -367,11 +498,25 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
               <FileText className="w-3.5 h-3.5" />
               PDF
             </button>
+            <button
+              onClick={handleExportAccountingTxt}
+              className="flex items-center gap-1.5 px-3 py-2 hover:bg-surface rounded-lg transition-all text-[10px] font-bold uppercase tracking-widest text-muted"
+              title="Exportar asiento contable en TXT (ancho fijo)"
+            >
+              <FileCode className="w-3.5 h-3.5" />
+              TXT
+            </button>
           </div>
         </div>
       </motion.div>
 
       {/* ── Data sections (fades while a new report loads) ────────────────── */}
+      {reportError && !reportLoading && (
+        <div className="mb-6 flex items-center gap-3 bg-danger/10 border border-danger/30 rounded-2xl px-5 py-4 text-sm text-danger">
+          <AlertTriangle className="w-5 h-5 shrink-0" />
+          <span>No se pudo cargar el reporte: <strong>{reportError}</strong>. Verifica la conexión e intenta nuevamente.</span>
+        </div>
+      )}
       <div className={cn('transition-opacity duration-300', reportLoading ? 'opacity-50 pointer-events-none' : 'opacity-100')}>
 
       {/* ── KPI Cards ─────────────────────────────────────────────────────── */}
@@ -409,13 +554,68 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
         currentRate={currentRate}
       />
 
-      {/* ── Department Books ──────────────────────────────────────────────── */}
-      <AccountingPayrollTable
-        approvedBooks={approvedBooks}
-        processedBooks={processedBooks}
-        registeredIds={registeredIds}
-        onToggleRegistered={toggleRegistered}
-        onProcessPayments={handleProcessPayments}
+      {/* ── Main Tab Toggle ────────────────────────────────────────────────── */}
+      <div className="flex space-x-4 mb-6 pt-4 border-b border-border-faint">
+        <button
+          onClick={() => setMainTab('payroll')}
+          className={cn(
+            'pb-3 text-sm font-bold uppercase tracking-widest transition-all border-b-2',
+            mainTab === 'payroll'
+              ? 'border-foreground text-foreground'
+              : 'border-transparent text-muted hover:text-foreground hover:border-border'
+          )}
+        >
+          Nómina por Departamento
+        </button>
+        <button
+          onClick={() => setMainTab('summary')}
+          className={cn(
+            'pb-3 text-sm font-bold uppercase tracking-widest transition-all border-b-2',
+            mainTab === 'summary'
+              ? 'border-foreground text-foreground'
+              : 'border-transparent text-muted hover:text-foreground hover:border-border'
+          )}
+        >
+          Resumen General
+        </button>
+      </div>
+
+      {mainTab === 'payroll' ? (
+        <AccountingPayrollTable
+          approvedBooks={approvedBooks}
+          processedBooks={processedBooks}
+          registeredIds={registeredIds}
+          onToggleRegistered={toggleRegistered}
+          onProcessPayments={handleProcessPayments}
+          onUpdateReceivable={handleUpdateReceivable}
+          onStudentClick={(id) => setSelectedStudentId(id)}
+        />
+      ) : (
+        <AccountingSummaryTable 
+          books={approvedBooks} 
+          onExportPDF={handleExportSummaryPDF} 
+        />
+      )}
+
+      {selectedStudentId && (
+        <StudentDetailModal
+          studentId={selectedStudentId}
+          periodKey={periodKey}
+          queryParams={{
+            mode: viewMode,
+            cycle: selectedCycle,
+            trimester: selectedTrimester.toString(),
+            year: selectedYear.toString(),
+            rate: currentRate.toString()
+          }}
+          onClose={() => setSelectedStudentId(null)}
+        />
+      )}
+
+      <AccountingConfigModal
+        open={isConfigModalOpen}
+        onClose={() => setIsConfigModalOpen(false)}
+        departments={allDepartments}
       />
 
       <ConfirmDialog {...dialogProps} />

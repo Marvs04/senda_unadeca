@@ -17,17 +17,22 @@ export interface PayrollEntry {
   totalBruto:   number;
   totalTithe:   number;
   totalNeto:    number;
+  manualReceivable: number;
+  totalPayable: number;
   logIds:       string[];
 }
 
 export interface DeptBook {
   departmentId:   string;
   departmentName: string;
+  costCenter?:    string;
   students:       PayrollEntry[];
   totalHours:     number;
   totalBruto:     number;
   totalTithe:     number;
   totalNeto:      number;
+  totalReceivable: number;
+  totalPayable:   number;
 }
 
 export interface TrimesterSummaryItem {

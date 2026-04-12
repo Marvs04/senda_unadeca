@@ -9,12 +9,13 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { Button, Modal, Input, Select } from '../../components/ui';
 import type { SelectOption } from '../../components/ui';
 
-const COST_CENTER_REGEX = /^\d{2}-\d{4}$/;
+const COST_CENTER_REGEX = /^\d{2}-\d{2}-\d{2}$/;
 
 function formatCostCenterInput(rawValue: string): string {
   const digits = rawValue.replace(/\D/g, '').slice(0, 6);
   if (digits.length <= 2) return digits;
-  return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
 }
 
 interface AdminDepartmentsTabProps {
@@ -69,7 +70,7 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
       return;
     }
     if (!COST_CENTER_REGEX.test(normalizedCostCenter)) {
-      toast.error('Centro de costos invalido. Usa formato NN-NNNN.', { position: 'top-center' });
+      toast.error('Centro de costos inválido. Usa formato NN-NN-NN.', { position: 'top-center' });
       return;
     }
 
@@ -203,10 +204,10 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
             type="text"
             value={newDeptCostCenter}
             onChange={e => setNewDeptCostCenter(formatCostCenterInput(e.target.value))}
-            placeholder="Ej. 12-3456"
-            maxLength={7}
+            placeholder="Ej. 10-00-01"
+            maxLength={8}
             required
-            hint="Formato contable requerido: 2 digitos, guion, 4 digitos"
+            hint="Formato contable requerido: 2 dígitos, guion, 2 dígitos, guion, 2 dígitos"
           />
           <Select
             label="Jefe de Departamento"

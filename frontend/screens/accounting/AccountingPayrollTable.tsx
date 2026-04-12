@@ -26,15 +26,54 @@ interface AccountingPayrollTableProps {
   registeredIds:      Set<string>;
   onToggleRegistered: (studentId: string) => void;
   onProcessPayments:  () => void;
+  onUpdateReceivable: (studentId: string, amount: number) => void;
+  onStudentClick?: (studentId: string) => void;
 }
+
+// ─── Component: Editable Input ────────────────────────────────────────────────
+const ReceivableInput: React.FC<{ initialValue: number; disabled: boolean; onSave: (val: number) => void }> = ({ initialValue, disabled, onSave }) => {
+  const [val, setVal] = useState(initialValue?.toString() || '0');
+  
+  React.useEffect(() => setVal(initialValue?.toString() || '0'), [initialValue]);
+
+  const handleBlur = () => {
+    const num = parseFloat(val);
+    if (!isNaN(num) && num >= 0 && num !== initialValue) {
+      onSave(num);
+    }
+  };
+
+  return (
+    <div className="relative flex items-center justify-end">
+      <span className="text-[10px] text-faint absolute left-2 pointer-events-none">₡</span>
+      <input
+        type="number"
+        min="0"
+        step="0.01"
+        disabled={disabled}
+        className={cn(
+          "w-[85px] pl-6 pr-2 py-1.5 text-right font-mono text-xs rounded-lg transition-all",
+          disabled
+            ? "bg-transparent border-transparent text-muted"
+            : "bg-background border border-border hover:border-foreground/30 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+        )}
+        value={val}
+        onChange={e => setVal(e.target.value)}
+        onBlur={handleBlur}
+      />
+    </div>
+  );
+};
 
 // ─── Single department book ────────────────────────────────────────────────────
 const DeptBookCard: React.FC<{
   book:               DeptBook;
   registeredIds:      Set<string>;
   onToggleRegistered: (id: string) => void;
+  onUpdateReceivable: (id: string, val: number) => void;
+  onStudentClick?:    (id: string) => void;
   dimmed?:            boolean; // processed books look dimmer
-}> = ({ book, registeredIds, onToggleRegistered, dimmed }) => {
+}> = ({ book, registeredIds, onToggleRegistered, onUpdateReceivable, onStudentClick, dimmed }) => {
   const [collapsed, setCollapsed] = useState(false);
   const registeredCount = book.students.filter(s => registeredIds.has(s.studentId)).length;
   const allRegistered   = registeredCount === book.students.length && book.students.length > 0;
@@ -85,8 +124,8 @@ const DeptBookCard: React.FC<{
         </div>
 
         {/* Dept totals + collapse toggle */}
-        <div className="flex items-center gap-6">
-          <div className="hidden sm:grid grid-cols-3 gap-x-8 text-right">
+        <div className="flex items-center gap-4">
+          <div className="hidden sm:grid grid-cols-5 gap-x-6 text-right">
             <div>
               <p className="text-[9px] font-bold uppercase tracking-widest text-faint">Horas</p>
               <p className="text-sm font-black font-mono">{book.totalHours.toFixed(1)} h</p>
@@ -96,8 +135,16 @@ const DeptBookCard: React.FC<{
               <p className="text-sm font-black font-mono">{formatCurrency(book.totalBruto)}</p>
             </div>
             <div>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-faint">Diezmo</p>
+              <p className="text-sm font-black font-mono text-faint">{formatCurrency(-book.totalTithe)}</p>
+            </div>
+            <div>
               <p className="text-[9px] font-bold uppercase tracking-widest text-faint">Neto</p>
               <p className="text-sm font-black font-mono">{formatCurrency(book.totalNeto)}</p>
+            </div>
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-faint">Por Pagar</p>
+              <p className="text-sm font-black font-mono text-primary">{formatCurrency(book.totalPayable)}</p>
             </div>
           </div>
           {collapsed
@@ -130,6 +177,8 @@ const DeptBookCard: React.FC<{
                     <th className="px-3 py-3 text-right">Bruto</th>
                     <th className="px-3 py-3 text-right">Diezmo</th>
                     <th className="px-3 py-3 text-right">Neto</th>
+                    <th className="px-3 py-3 text-right">Por Cobrar</th>
+                    <th className="px-3 py-3 text-right">Por Pagar</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-faint">
@@ -158,13 +207,18 @@ const DeptBookCard: React.FC<{
                             {isRegistered && <Check className="w-3 h-3" />}
                           </button>
                         </td>
-                        <td className="px-3 py-3">
-                          <span className={cn(
-                            'text-sm font-medium',
-                            isRegistered ? 'text-muted line-through' : 'text-foreground',
-                          )}>
-                            {student.studentName}
-                          </span>
+                        <td className="px-3 py-3 relative">
+                          <button
+                            onClick={() => onStudentClick?.(student.studentId)}
+                            className="group/btn flex flex-col items-start text-left focus:outline-none"
+                          >
+                            <span className={cn(
+                              'text-sm font-medium text-foreground group-hover/btn:text-primary transition-colors underline decoration-transparent group-hover/btn:decoration-primary/30 underline-offset-4',
+                              isRegistered && 'line-through'
+                            )}>
+                              {student.studentName}
+                            </span>
+                          </button>
                         </td>
                         <td className="px-3 py-3">
                           <span className="text-xs font-mono text-faint">
@@ -183,12 +237,24 @@ const DeptBookCard: React.FC<{
                         </td>
                         <td className="px-3 py-3 text-right">
                           <span className="text-xs font-mono text-faint">
-                            −{formatCurrency(student.totalTithe)}
+                            {formatCurrency(-student.totalTithe)}
                           </span>
                         </td>
                         <td className="px-3 py-3 text-right">
                           <span className="text-sm font-black font-mono">
                             {formatCurrency(student.totalNeto)}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 text-right">
+                          <ReceivableInput
+                            initialValue={student.manualReceivable}
+                            disabled={dimmed}
+                            onSave={(val) => onUpdateReceivable(student.studentId, val)}
+                          />
+                        </td>
+                        <td className="px-3 py-3 text-right">
+                          <span className="text-sm font-black font-mono text-primary">
+                            {formatCurrency(student.totalPayable)}
                           </span>
                         </td>
                       </tr>
@@ -210,10 +276,16 @@ const DeptBookCard: React.FC<{
                       {formatCurrency(book.totalBruto)}
                     </td>
                     <td className="px-3 py-3 text-right font-mono text-faint text-xs">
-                      −{formatCurrency(book.totalTithe)}
+                      {formatCurrency(-book.totalTithe)}
                     </td>
                     <td className="px-3 py-3 text-right font-mono">
                       {formatCurrency(book.totalNeto)}
+                    </td>
+                    <td className="px-3 py-3 text-right font-mono text-muted">
+                      {formatCurrency(book.totalReceivable)}
+                    </td>
+                    <td className="px-3 py-3 text-right font-mono text-primary">
+                      {formatCurrency(book.totalPayable)}
                     </td>
                   </tr>
                 </tfoot>
@@ -233,6 +305,8 @@ const AccountingPayrollTable: React.FC<AccountingPayrollTableProps> = ({
   registeredIds,
   onToggleRegistered,
   onProcessPayments,
+  onUpdateReceivable,
+  onStudentClick,
 }) => {
   const [tab, setTab] = useState<'approved' | 'processed'>('approved');
   const books    = tab === 'approved' ? approvedBooks : processedBooks;
@@ -291,6 +365,8 @@ const AccountingPayrollTable: React.FC<AccountingPayrollTableProps> = ({
               book={book}
               registeredIds={registeredIds}
               onToggleRegistered={onToggleRegistered}
+              onUpdateReceivable={onUpdateReceivable}
+              onStudentClick={onStudentClick}
               dimmed={tab === 'processed'}
             />
           ))

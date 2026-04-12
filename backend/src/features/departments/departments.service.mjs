@@ -37,7 +37,7 @@ export async function createDepartment(body, requester) {
     throw err;
   }
   if (!COST_CENTER_REGEX.test(normalizedCostCenter)) {
-    const err = new Error('Centro de costos invalido. Use formato NN-NNNN.');
+    const err = new Error('Centro de costos inválido. Use formato NN-NN-NN.');
     err.statusCode = 400;
     throw err;
   }
@@ -56,12 +56,19 @@ export async function createDepartment(body, requester) {
 }
 
 export async function updateDepartment(id, body, requester) {
-  if (!['ADMIN', 'SUPER_ADMIN'].includes(requester.role)) {
+  if (!['ADMIN', 'SUPER_ADMIN', 'ACCOUNTING'].includes(requester.role)) {
     const err = new Error('No autorizado para actualizar departamentos.');
     err.statusCode = 403;
     throw err;
   }
   const { name, headId, costCenter } = body ?? {};
+
+  if (requester.role === 'ACCOUNTING' && (name !== undefined || headId !== undefined)) {
+    const err = new Error('No autorizado para actualizar nombre o jefe de departamento.');
+    err.statusCode = 403;
+    throw err;
+  }
+
   const updates = {};
 
   if (name !== undefined) {
@@ -78,12 +85,13 @@ export async function updateDepartment(id, body, requester) {
   }
   if (costCenter !== undefined) {
     const normalizedCostCenter = String(costCenter).trim();
-    if (!COST_CENTER_REGEX.test(normalizedCostCenter)) {
-      const err = new Error('Centro de costos invalido. Use formato NN-NNNN.');
+    // Allow empty string (department not yet configured); only validate format when non-empty
+    if (normalizedCostCenter && !COST_CENTER_REGEX.test(normalizedCostCenter)) {
+      const err = new Error('Centro de costos inválido. Use formato NN-NN-NN (ej. 10-00-01).');
       err.statusCode = 400;
       throw err;
     }
-    updates.cost_center = normalizedCostCenter;
+    updates.cost_center = normalizedCostCenter || null;
   }
   if (Object.keys(updates).length === 0) {
     const err = new Error('No hay campos para actualizar.');

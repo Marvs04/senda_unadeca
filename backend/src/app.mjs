@@ -9,6 +9,7 @@ import workLogsRouter from './features/workLogs/workLogs.routes.mjs';
 import ratesRouter from './features/rates/rates.routes.mjs';
 import reportsRouter from './features/reports/reports.routes.mjs';
 import kioskRouter from './features/kiosk/kiosk.routes.mjs';
+import accountingRouter from './features/accounting/accounting.routes.mjs';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use('/api/v1/work-logs', workLogsRouter);
 app.use('/api/v1/rate', ratesRouter);
 app.use('/api/v1/reports', reportsRouter);
 app.use('/api/v1/kiosk', kioskRouter);
+app.use('/api/v1/accounting', accountingRouter);
 
 app.use(errorHandler);
 

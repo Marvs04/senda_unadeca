@@ -15,3 +15,13 @@ export async function getPayroll(req, res, next) {
     next(err);
   }
 }
+
+export async function getStudentReport(req, res, next) {
+  try {
+    const requesterProfile = await getRequesterProfile(req);
+    const result = await reportsService.getStudentReportData(requesterProfile, req.params.studentId, req.query, adminSupabase);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
