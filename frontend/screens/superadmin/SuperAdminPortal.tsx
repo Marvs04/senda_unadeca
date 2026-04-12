@@ -11,7 +11,7 @@ import DashboardCard from '../../components/DashboardCard';
 import SuperAdminAccountList from './SuperAdminAccountList';
 import SuperAdminStudentHelp from './SuperAdminStudentHelp';
 import SuperAdminCreateForm from './SuperAdminCreateForm';
-import AdminDepartmentsTab from '../admin/AdminDepartmentsTab';
+import SuperAdminDepartmentList from './SuperAdminDepartmentList';
 
 interface SuperAdminPortalProps {
   user: User;
@@ -200,12 +200,13 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
         </motion.div>
 
         {/* ── Summary Cards ──────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 mb-10">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 mb-10">
           <DashboardCard title="Total Perfiles" value={counts.total} icon={<Users className="w-4 h-4" />} subtitle="Todos los usuarios" />
           <DashboardCard title="Estudiantes" value={counts.students} icon={<GraduationCap className="w-4 h-4" />} subtitle={counts.total ? `${Math.round((counts.students / counts.total) * 100)}% del total` : undefined} />
           <DashboardCard title="Administradores" value={counts.admins} icon={<Briefcase className="w-4 h-4" />} subtitle={counts.total ? `${Math.round((counts.admins / counts.total) * 100)}% del total` : undefined} />
           <DashboardCard title="Jefes Depto" value={counts.deptHeads} icon={<Building2 className="w-4 h-4" />} subtitle={counts.total ? `${Math.round((counts.deptHeads / counts.total) * 100)}% del total` : undefined} />
           <DashboardCard title="Contabilidad" value={counts.accounting} icon={<Calculator className="w-4 h-4" />} subtitle={counts.total ? `${Math.round((counts.accounting / counts.total) * 100)}% del total` : undefined} />
+          <DashboardCard title="Departamentos" value={allDepartments.length} icon={<Building2 className="w-4 h-4" />} subtitle={`${allDepartments.filter(d => d.headId).length} con jefe`} />
           <DashboardCard title="Activos" value={counts.active} icon={<UserCheck className="w-4 h-4" />} subtitle={counts.total ? `${Math.round((counts.active / counts.total) * 100)}% del total` : undefined} />
           <DashboardCard title="Inactivos" value={counts.inactive} icon={<UserX className="w-4 h-4" />} subtitle={counts.inactive === 0 ? 'Óptimo' : `${counts.inactive} requieren atención`} />
         </div>
@@ -241,6 +242,13 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
               setActiveFilter={setStudentActiveFilter}
               onViewDetail={setDetailUser}
               allDepartments={allDepartments}
+            />
+            <SuperAdminDepartmentList
+              allDepartments={allDepartments}
+              allUsers={allUsers}
+              addDepartment={addDepartment}
+              updateDepartment={updateDepartment}
+              deleteDepartment={deleteDepartment}
             />
           </div>
 
@@ -316,19 +324,6 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
               onSubmit={handleAddAdmin}
             />
           </div>
-        </div>
-
-        {/* ── Department Management ──────────────────────────────────────── */}
-        <div className="mt-10">
-          <AdminDepartmentsTab
-            allDepartments={allDepartments}
-            allUsers={allUsers}
-            allLogs={[]}
-            selectedCycle=""
-            addDepartment={addDepartment}
-            updateDepartment={updateDepartment}
-            deleteDepartment={deleteDepartment}
-          />
         </div>
 
       <Modal
