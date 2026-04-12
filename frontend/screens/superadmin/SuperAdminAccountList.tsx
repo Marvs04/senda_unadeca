@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Users, Search, RefreshCw, ChevronUp, ChevronDown, Eye, MoreHorizontal } from 'lucide-react';
+import { Users, Search, RefreshCw, ChevronUp, ChevronDown, Eye, MoreHorizontal, UserCheck, UserX } from 'lucide-react';
 import { User, UserRole, Department } from '../../types';
 import { Badge, Button } from '../../components/ui';
 import type { SortField, SortDir, ActiveFilter } from '../../hooks/useSuperAdminData';
@@ -13,7 +13,7 @@ const ROLE_AVATAR_COLORS: Record<string, string> = {
 };
 
 /* ── Inline dropdown menu ───────────────────────────────────────────────── */
-const ActionsMenu: React.FC<{ user: User; onView: (u: User) => void; onReset: (u: User) => void }> = ({ user, onView, onReset }) => {
+const ActionsMenu: React.FC<{ user: User; onView: (u: User) => void; onReset: (u: User) => void; onToggle: (u: User) => void }> = ({ user, onView, onReset, onToggle }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -46,6 +46,17 @@ const ActionsMenu: React.FC<{ user: User; onView: (u: User) => void; onReset: (u
           >
             <RefreshCw className="w-3 h-3" /> Resetear clave
           </button>
+          <div className="border-t border-border-faint my-1" />
+          <button
+            onClick={() => { onToggle(user); setOpen(false); }}
+            className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-surface transition-colors text-left ${
+              user.isActive !== false ? 'text-rose-600' : 'text-emerald-600'
+            }`}
+          >
+            {user.isActive !== false
+              ? <><UserX className="w-3 h-3" /> Desactivar</>
+              : <><UserCheck className="w-3 h-3" /> Activar</>}
+          </button>
         </div>
       )}
     </div>
@@ -57,6 +68,7 @@ interface SuperAdminAccountListProps {
   adminSearch: string;
   setAdminSearch: (v: string) => void;
   onResetPassword: (user: User) => void;
+  onToggleActive: (user: User) => void;
   sortField: SortField;
   setSortField: (f: SortField) => void;
   sortDir: SortDir;
@@ -72,6 +84,7 @@ const SuperAdminAccountList: React.FC<SuperAdminAccountListProps> = ({
   adminSearch,
   setAdminSearch,
   onResetPassword,
+  onToggleActive,
   sortField,
   setSortField,
   sortDir,
@@ -207,7 +220,7 @@ const SuperAdminAccountList: React.FC<SuperAdminAccountListProps> = ({
                     : '—'}
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <ActionsMenu user={admin} onView={onViewDetail} onReset={onResetPassword} />
+                  <ActionsMenu user={admin} onView={onViewDetail} onReset={onResetPassword} onToggle={onToggleActive} />
                 </td>
               </tr>
             ))}

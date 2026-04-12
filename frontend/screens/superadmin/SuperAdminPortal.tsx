@@ -20,6 +20,7 @@ interface SuperAdminPortalProps {
   addUser: (newUser: Omit<User, 'id'>, password?: string) => Promise<void> | void;
   onActivateKiosk: (identifier: string, password: string, departmentId: string) => Promise<{ ok: boolean; error?: string }>;
   resetUserPassword: (userId: string, newPassword: string) => Promise<void> | void;
+  toggleUserActive: (userId: string, isActive: boolean) => Promise<void> | void;
 }
 
 const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
@@ -30,6 +31,7 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   addUser,
   onActivateKiosk,
   resetUserPassword,
+  toggleUserActive,
 }) => {
   // Kiosk remote-enable state
   const [kioskDeptId, setKioskDeptId]   = useState('');
@@ -71,6 +73,25 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   const [resetTarget, setResetTarget] = useState<User | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [isResetting, setIsResetting] = useState(false);
+
+  // ── Toggle active confirmation ─────────────────────────────────────────
+  const [toggleTarget, setToggleTarget] = useState<User | null>(null);
+  const [isToggling, setIsToggling] = useState(false);
+
+  const handleConfirmToggle = async () => {
+    if (!toggleTarget || isToggling) return;
+    const newActive = toggleTarget.isActive === false;
+    try {
+      setIsToggling(true);
+      await toggleUserActive(toggleTarget.id, newActive);
+      toast.success(`${toggleTarget.name} ${newActive ? 'activado' : 'desactivado'}.`);
+      setToggleTarget(null);
+    } catch {
+      // useUsers already shows the error toast
+    } finally {
+      setIsToggling(false);
+    }
+  };
   const debouncedAdminSearch = useDebounce(adminSearch);
   const debouncedStudentSearch = useDebounce(studentSearch);
 
@@ -189,6 +210,7 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
               adminSearch={adminSearch}
               setAdminSearch={setAdminSearch}
               onResetPassword={handleOpenResetPassword}
+              onToggleActive={setToggleTarget}
               sortField={adminSort}
               setSortField={setAdminSort}
               sortDir={adminSortDir}
@@ -203,6 +225,7 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
               studentSearch={studentSearch}
               setStudentSearch={setStudentSearch}
               onResetPassword={handleOpenResetPassword}
+              onToggleActive={setToggleTarget}
               sortField={studentSort}
               setSortField={setStudentSort}
               sortDir={studentSortDir}
@@ -347,8 +370,50 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
             {detailUser.createdAt && (
               <Row label="Creado" value={new Date(detailUser.createdAt).toLocaleDateString('es-HN', { year: 'numeric', month: 'long', day: 'numeric' })} />
             )}
+            <div className="pt-3">
+              <Button
+                variant={detailUser.isActive !== false ? 'danger' : 'primary'}
+                size="sm"
+                onClick={() => { setDetailUser(null); setToggleTarget(detailUser); }}
+                className="w-full"
+              >
+                {detailUser.isActive !== false ? 'Desactivar usuario' : 'Activar usuario'}
+              </Button>
+            </div>
           </div>
         )}
+      </Modal>
+
+      {/* ── Toggle Active Confirmation Modal ─────────────────────────────── */}
+      <Modal
+        open={!!toggleTarget}
+        onClose={() => { if (!isToggling) setToggleTarget(null); }}
+        title={toggleTarget?.isActive !== false ? 'Desactivar usuario' : 'Activar usuario'}
+        subtitle={toggleTarget?.name ?? ''}
+      >
+        <div className="space-y-5">
+          <p className="text-sm text-muted">
+            {toggleTarget?.isActive !== false
+              ? `¿Estás seguro de desactivar a ${toggleTarget?.name}? No podrá iniciar sesión hasta ser reactivado.`
+              : `¿Reactivar a ${toggleTarget?.name}? Podrá iniciar sesión nuevamente.`}
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="ghost"
+              disabled={isToggling}
+              onClick={() => setToggleTarget(null)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant={toggleTarget?.isActive !== false ? 'danger' : 'primary'}
+              disabled={isToggling}
+              onClick={handleConfirmToggle}
+            >
+              {isToggling ? 'Procesando...' : toggleTarget?.isActive !== false ? 'Desactivar' : 'Activar'}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </PortalLayout>
   );

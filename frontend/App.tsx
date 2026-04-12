@@ -91,6 +91,7 @@ const AuthenticatedArea: React.FC<AuthenticatedAreaProps> = ({ currentUserId, on
                   return kioskActions.activate(identifier, password, departmentId);
                 }}
                 resetUserPassword={resetUserPassword}
+                toggleUserActive={(userId, isActive) => updateUser(userId, { isActive })}
               />
             );
           case UserRole.ADMIN:
