@@ -143,9 +143,9 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
           const deptHead = allUsers.find(u => u.id === dept.headId);
 
           return (
-            <div key={dept.id} className="bg-card p-8 rounded-[2.5rem] border border-border-faint shadow-sm hover:shadow-md transition-all group">
+            <div key={dept.id} className={`bg-card p-8 rounded-[2.5rem] border shadow-sm hover:shadow-md transition-all group ${deptStudents === 0 ? 'border-dashed border-border opacity-70' : 'border-border-faint'}`}>
               <div className="flex items-center justify-between mb-6">
-                <div className="p-3 bg-surface rounded-2xl group-hover:bg-primary group-hover:text-primary-fg transition-all">
+                <div className="p-3 bg-surface rounded-2xl group-hover:bg-[#1d3261] group-hover:text-white transition-all">
                   <Building className="w-5 h-5" />
                 </div>
                 <div className="flex items-center gap-2">
@@ -163,8 +163,8 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
                 </div>
               </div>
               <h4 className="text-lg font-bold mb-1">{dept.name}</h4>
-              <p className="text-xs text-faint mb-6">
-                Jefe: <span className="text-foreground font-medium">{deptHead?.name || 'No asignado'}</span>
+              <p className="text-xs text-faint mb-2">
+                Jefe: <span className="text-foreground font-medium">{deptHead?.name || <span className="text-amber-600">No asignado</span>}</span>
               </p>
               <p className="text-xs text-faint mb-6">
                 Centro de costos: <span className="text-foreground font-semibold font-mono">{dept.costCenter}</span>

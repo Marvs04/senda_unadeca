@@ -197,9 +197,9 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
                   </div>
                 </td>
                 <td className="px-8 py-5 text-sm text-muted font-mono">{head.employeeNumber || '---'}</td>
-                <td className="px-8 py-5 text-sm text-muted">{head.institutionalEmail || '---'}</td>
+                <td className="px-8 py-5 text-sm text-muted">{head.institutionalEmail || <span className="italic text-faint">Sin correo</span>}</td>
                 <td className="px-8 py-5">
-                  <Badge variant="neutral">
+                  <Badge variant={allDepartments.find(d => d.id === head.departmentId) ? 'neutral' : 'warning'}>
                     {allDepartments.find(d => d.id === head.departmentId)?.name || 'Sin Asignar'}
                   </Badge>
                 </td>

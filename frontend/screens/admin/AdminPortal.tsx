@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { LayoutDashboard, GraduationCap, Users, Building, DollarSign, Calendar, ChevronDown } from 'lucide-react';
 import { User, WorkLog, Department } from '../../types';
-import { formatCurrency } from '../../lib/utils';
+import { cn, formatCurrency } from '../../lib/utils';
 import { getBillingCycle } from '../../lib/business';
 import { PortalLayout } from '../../components/layout';
-import { TabBar, Modal, Input, Button } from '../../components/ui';
-import type { Tab } from '../../components/ui';
+import { Modal, Input, Button } from '../../components/ui';
 import { useAdminRateUpdate } from '../../hooks/useAdminRateUpdate';
 import AdminDashboardTab from './AdminDashboardTab';
 import AdminStudentsTab from './AdminStudentsTab';
@@ -31,7 +30,7 @@ interface AdminPortalProps {
 
 type TabId = 'dashboard' | 'students' | 'dept-heads' | 'departments';
 
-const TABS: Tab<TabId>[] = [
+const SIDEBAR_ITEMS: { id: TabId; label: string; icon: React.FC<{ className?: string }> }[] = [
   { id: 'dashboard',    label: 'Dashboard',      icon: LayoutDashboard },
   { id: 'students',     label: 'Estudiantes',    icon: GraduationCap },
   { id: 'dept-heads',   label: 'Jefes Depto.',   icon: Users },
@@ -58,67 +57,115 @@ const AdminPortal: React.FC<AdminPortalProps> = ({
 
   return (
     <PortalLayout user={user} onLogout={onLogout} bg="bg-background selection:bg-surface-hover">
-      {/* Top bar: tabs + controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-        <TabBar tabs={TABS} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as TabId)} />
+      <div className="flex gap-8">
+        {/* ── Sidebar ─────────────────────────────────────────── */}
+        <aside className="hidden md:flex flex-col w-[200px] shrink-0 sticky top-24 self-start">
+          <nav className="space-y-1 mb-6">
+            {SIDEBAR_ITEMS.map(item => {
+              const Icon = item.icon;
+              const active = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all',
+                    active
+                      ? 'bg-[#1d3261] text-white shadow-lg shadow-[#1d3261]/20'
+                      : 'text-muted hover:bg-surface hover:text-foreground',
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
 
-        <div className="flex items-center space-x-3">
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<DollarSign className="w-4 h-4 text-emerald-500" />}
-            onClick={openRateModal}
-          >
-            Tarifa: {formatCurrency(currentRate)}
-          </Button>
-          <div className="relative">
-            <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
-            <select
-              value={selectedCycle}
-              onChange={e => setSelectedCycle(e.target.value)}
-              className="select-custom pl-10 pr-10"
+          <div className="border-t border-border-faint pt-4 space-y-3">
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<DollarSign className="w-4 h-4 text-emerald-500" />}
+              onClick={openRateModal}
+              className="w-full justify-start"
             >
-              {Array.from({ length: 12 }, (_, i) => {
-                const d = new Date();
-                d.setMonth(d.getMonth() - i);
-                const cycle = getBillingCycle(d);
-                return <option key={cycle.value} value={cycle.value}>{cycle.label}</option>;
-              })}
-            </select>
-            <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
+              {formatCurrency(currentRate)}/h
+            </Button>
+            <div className="relative">
+              <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
+              <select
+                value={selectedCycle}
+                onChange={e => setSelectedCycle(e.target.value)}
+                className="select-custom w-full pl-10 pr-8 text-xs"
+              >
+                {Array.from({ length: 12 }, (_, i) => {
+                  const d = new Date();
+                  d.setMonth(d.getMonth() - i);
+                  const cycle = getBillingCycle(d);
+                  return <option key={cycle.value} value={cycle.value}>{cycle.label}</option>;
+                })}
+              </select>
+              <ChevronDown className="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
+            </div>
           </div>
-        </div>
-      </div>
+        </aside>
 
-      {/* Tab content */}
-      <AnimatePresence mode="wait">
-        {activeTab === 'dashboard' && (
-          <AdminDashboardTab
-            user={user}
-            allLogs={allLogs} allUsers={allUsers} allDepartments={allDepartments}
-            selectedCycle={selectedCycle} currentRate={currentRate}
-          />
-        )}
-        {activeTab === 'students' && (
-          <AdminStudentsTab
-            allUsers={allUsers} allDepartments={allDepartments}
-            addUser={addUser} updateUser={updateUser} deleteUser={deleteUser}
-          />
-        )}
-        {activeTab === 'dept-heads' && (
-          <AdminDeptHeadsTab
-            allUsers={allUsers} allDepartments={allDepartments}
-            addUser={addUser} updateUser={updateUser} deleteUser={deleteUser}
-          />
-        )}
-        {activeTab === 'departments' && (
-          <AdminDepartmentsTab
-            allDepartments={allDepartments} allUsers={allUsers} allLogs={allLogs}
-            selectedCycle={selectedCycle}
-            addDepartment={addDepartment} updateDepartment={updateDepartment} deleteDepartment={deleteDepartment}
-          />
-        )}
-      </AnimatePresence>
+        {/* ── Mobile tabs (compact) ───────────────────────────── */}
+        <div className="md:hidden flex gap-2 overflow-x-auto pb-4 mb-2 w-full">
+          {SIDEBAR_ITEMS.map(item => {
+            const Icon = item.icon;
+            const active = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-medium whitespace-nowrap transition-all shrink-0',
+                  active
+                    ? 'bg-[#1d3261] text-white shadow-lg shadow-[#1d3261]/20'
+                    : 'bg-surface text-muted',
+                )}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── Content ─────────────────────────────────────────── */}
+        <main className="flex-1 min-w-0">
+          <AnimatePresence mode="wait">
+            {activeTab === 'dashboard' && (
+              <AdminDashboardTab
+                user={user}
+                allLogs={allLogs} allUsers={allUsers} allDepartments={allDepartments}
+                selectedCycle={selectedCycle} currentRate={currentRate}
+              />
+            )}
+            {activeTab === 'students' && (
+              <AdminStudentsTab
+                allUsers={allUsers} allDepartments={allDepartments}
+                addUser={addUser} updateUser={updateUser} deleteUser={deleteUser}
+              />
+            )}
+            {activeTab === 'dept-heads' && (
+              <AdminDeptHeadsTab
+                allUsers={allUsers} allDepartments={allDepartments}
+                addUser={addUser} updateUser={updateUser} deleteUser={deleteUser}
+              />
+            )}
+            {activeTab === 'departments' && (
+              <AdminDepartmentsTab
+                allDepartments={allDepartments} allUsers={allUsers} allLogs={allLogs}
+                selectedCycle={selectedCycle}
+                addDepartment={addDepartment} updateDepartment={updateDepartment} deleteDepartment={deleteDepartment}
+              />
+            )}
+          </AnimatePresence>
+        </main>
+      </div>
 
       {/* Update Rate Modal */}
       <Modal

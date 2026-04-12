@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 import {
   BarChart3,
   PieChart as PieChartIcon,
@@ -12,6 +12,8 @@ import {
   RotateCcw,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  X,
 } from 'lucide-react';
 import DashboardCard from '../../components/DashboardCard';
 import WorkLogTable from '../../components/WorkLogTable';
@@ -159,6 +161,19 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
   const [hoursRangeFilter, setHoursRangeFilter] = useState<HoursRangeFilter>('ALL');
   const [sortMode, setSortMode] = useState<SortMode>('RECENT');
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
+
+  const hasActiveFilters = searchTerm !== '' || statusFilter !== 'ALL' || departmentFilter !== 'ALL' || sourceFilter !== 'ALL' || decisionFilter !== 'ALL' || hoursRangeFilter !== 'ALL' || sortMode !== 'RECENT';
+
+  const activeFilterChips = useMemo(() => {
+    const chips: { key: string; label: string; clear: () => void }[] = [];
+    if (statusFilter !== 'ALL') chips.push({ key: 'status', label: STATUS_OPTIONS.find(o => o.value === statusFilter)?.label ?? statusFilter, clear: () => setStatusFilter('ALL') });
+    if (departmentFilter !== 'ALL') chips.push({ key: 'dept', label: allDepartments.find(d => d.id === departmentFilter)?.name ?? 'Depto', clear: () => setDepartmentFilter('ALL') });
+    if (sourceFilter !== 'ALL') chips.push({ key: 'source', label: SOURCE_OPTIONS.find(o => o.value === sourceFilter)?.label ?? sourceFilter, clear: () => setSourceFilter('ALL') });
+    if (decisionFilter !== 'ALL') chips.push({ key: 'decision', label: DECISION_OPTIONS.find(o => o.value === decisionFilter)?.label ?? decisionFilter, clear: () => setDecisionFilter('ALL') });
+    if (hoursRangeFilter !== 'ALL') chips.push({ key: 'hours', label: HOURS_RANGE_OPTIONS.find(o => o.value === hoursRangeFilter)?.label ?? hoursRangeFilter, clear: () => setHoursRangeFilter('ALL') });
+    return chips;
+  }, [statusFilter, departmentFilter, sourceFilter, decisionFilter, hoursRangeFilter, allDepartments]);
 
   const cycleLogs = useMemo(
     () => allLogs.filter(log => isDateInCycle(log.date, selectedCycle)),
@@ -380,9 +395,9 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
       className="space-y-10"
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <DashboardCard title="Horas Ciclo" value={stats.totalHours.toLocaleString()} icon={<Clock className="h-5 w-5" />} subtitle={`Ciclo ${selectedCycle}`} />
-        <DashboardCard title="Estudiantes Activos" value={stats.activeStudents} icon={<Users className="h-5 w-5" />} subtitle={`${Math.round((stats.activeStudents / Math.max(allUsers.length, 1)) * 100)}% del total`} />
-        <DashboardCard title="Total Pago Global" value={formatCurrency(stats.totalGlobalPayment)} icon={<DollarSign className="h-5 w-5 text-emerald-500" />} subtitle={`Tarifa: ${formatCurrency(currentRate)}/h`} />
+        <DashboardCard title="Horas Ciclo" value={`${stats.totalHours.toLocaleString()}h`} icon={<Clock className="h-5 w-5" />} subtitle={`Ciclo ${selectedCycle} · ${cycleLogs.length} registros`} />
+        <DashboardCard title="Estudiantes Activos" value={stats.activeStudents} icon={<Users className="h-5 w-5" />} subtitle={`${Math.round((stats.activeStudents / Math.max(allUsers.length, 1)) * 100)}% del total de usuarios`} />
+        <DashboardCard title="Total Pago Global" value={formatCurrency(stats.totalGlobalPayment)} icon={<DollarSign className="h-5 w-5 text-emerald-500" />} subtitle={`Tarifa vigente: ${formatCurrency(currentRate)}/h`} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -398,9 +413,18 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
               <BarChart data={stats.studentChartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: '#7a8aa8' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: '#7a8aa8' }} />
-                <Tooltip cursor={{ fill: '#f4f4f5' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="hours" fill="#1d3261" radius={[6, 6, 0, 0]} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: '#7a8aa8' }} label={{ value: 'Horas', angle: -90, position: 'insideLeft', style: { fontSize: 11, fill: '#7a8aa8', fontWeight: 600 } }} />
+                <Tooltip
+                  cursor={{ fill: '#f4f4f5' }}
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  formatter={(value: number) => [`${value.toFixed(1)}h`, 'Horas']}
+                  labelFormatter={(label: string) => `Estudiante: ${label}`}
+                />
+                <Bar dataKey="hours" radius={[6, 6, 0, 0]}>
+                  {stats.studentChartData.map((_, index) => (
+                    <Cell key={`bar-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -416,12 +440,21 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={stats.deptChartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                <Pie data={stats.deptChartData} cx="50%" cy="45%" innerRadius={55} outerRadius={75} paddingAngle={5} dataKey="value">
                   {stats.deptChartData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                <Tooltip
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  formatter={(value: number) => [`${value.toFixed(1)}h`, 'Horas']}
+                />
+                <Legend
+                  verticalAlign="bottom"
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={{ fontSize: '10px', fontWeight: 600, paddingTop: '12px' }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -450,7 +483,8 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
         </div>
 
         <div className="px-8 py-6 border-b border-border-faint bg-surface/40">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
+          {/* Primary filters (always visible) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
               label="Busqueda rapida"
               value={searchTerm}
@@ -469,57 +503,89 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
               onChange={e => setDepartmentFilter(e.target.value)}
               options={departmentOptions}
             />
-            <Select
-              label="Fuente"
-              value={sourceFilter}
-              onChange={e => setSourceFilter(e.target.value as 'ALL' | 'MANUAL' | 'KIOSK')}
-              options={SOURCE_OPTIONS}
-            />
-            <Select
-              label="Resolucion"
-              value={decisionFilter}
-              onChange={e => setDecisionFilter(e.target.value as DecisionFilter)}
-              options={DECISION_OPTIONS}
-            />
-            <Select
-              label="Orden"
-              value={sortMode}
-              onChange={e => setSortMode(e.target.value as SortMode)}
-              options={SORT_OPTIONS}
-            />
           </div>
 
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-            <Select
-              label="Rango de horas"
-              value={hoursRangeFilter}
-              onChange={e => setHoursRangeFilter(e.target.value as HoursRangeFilter)}
-              options={HOURS_RANGE_OPTIONS}
-            />
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-xs text-faint">
-                Mostrando <span className="font-bold text-foreground">{paginatedLogs.length}</span> de{' '}
-                <span className="font-bold text-foreground">{displayedLogs.length}</span> registros filtrados ({cycleLogs.length} en ciclo).
-              </p>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1">
-                  <Button variant="icon-action" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <span className="text-xs font-medium text-faint min-w-[60px] text-center">{page + 1} / {totalPages}</span>
-                  <Button variant="icon-action" size="sm" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  icon={<RotateCcw className="w-4 h-4" />}
-                  onClick={handleResetFilters}
+          {/* Secondary filters (collapsible) */}
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => setShowMoreFilters(prev => !prev)}
+              className="text-xs font-medium text-[#1d3261] hover:underline flex items-center gap-1"
+            >
+              <ChevronDown className={`w-3 h-3 transition-transform ${showMoreFilters ? 'rotate-180' : ''}`} />
+              {showMoreFilters ? 'Menos filtros' : 'Más filtros'}
+            </button>
+            {showMoreFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-3">
+                <Select
+                  label="Fuente"
+                  value={sourceFilter}
+                  onChange={e => setSourceFilter(e.target.value as 'ALL' | 'MANUAL' | 'KIOSK')}
+                  options={SOURCE_OPTIONS}
+                />
+                <Select
+                  label="Resolucion"
+                  value={decisionFilter}
+                  onChange={e => setDecisionFilter(e.target.value as DecisionFilter)}
+                  options={DECISION_OPTIONS}
+                />
+                <Select
+                  label="Rango de horas"
+                  value={hoursRangeFilter}
+                  onChange={e => setHoursRangeFilter(e.target.value as HoursRangeFilter)}
+                  options={HOURS_RANGE_OPTIONS}
+                />
+                <Select
+                  label="Orden"
+                  value={sortMode}
+                  onChange={e => setSortMode(e.target.value as SortMode)}
+                  options={SORT_OPTIONS}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Active filter chips */}
+          {activeFilterChips.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {activeFilterChips.map(chip => (
+                <span
+                  key={chip.key}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#1d3261]/10 text-[#1d3261] rounded-lg text-[11px] font-medium"
                 >
-                  Limpiar filtros
+                  {chip.label}
+                  <button type="button" onClick={chip.clear} className="hover:text-rose-600 transition-colors">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-4 flex items-center justify-between gap-4">
+            <p className="text-xs text-faint">
+              Mostrando <span className="font-bold text-foreground">{paginatedLogs.length}</span> de{' '}
+              <span className="font-bold text-foreground">{displayedLogs.length}</span> registros filtrados ({cycleLogs.length} en ciclo).
+            </p>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <Button variant="icon-action" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="text-xs font-medium text-faint min-w-[60px] text-center">{page + 1} / {totalPages}</span>
+                <Button variant="icon-action" size="sm" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
+                  <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<RotateCcw className="w-4 h-4" />}
+                onClick={handleResetFilters}
+                disabled={!hasActiveFilters}
+              >
+                Limpiar filtros
+              </Button>
             </div>
           </div>
         </div>
