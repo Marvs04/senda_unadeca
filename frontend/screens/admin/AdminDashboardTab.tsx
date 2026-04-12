@@ -10,6 +10,8 @@ import {
   FileText,
   Download,
   RotateCcw,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import DashboardCard from '../../components/DashboardCard';
 import WorkLogTable from '../../components/WorkLogTable';
@@ -257,6 +259,18 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
 
   const displayedLogs = useMemo(() => filteredLogs.map(item => item.log), [filteredLogs]);
 
+  // ── Pagination ──────────────────────────────────────────────────────────────
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 15;
+  const totalPages = Math.max(1, Math.ceil(displayedLogs.length / PAGE_SIZE));
+  const paginatedLogs = useMemo(
+    () => displayedLogs.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [displayedLogs, page],
+  );
+
+  // Reset page when filters change
+  useEffect(() => { setPage(0); }, [searchTerm, statusFilter, departmentFilter, sourceFilter, decisionFilter, hoursRangeFilter, sortMode]);
+
   const selectedLog = useMemo(
     () => (selectedLogId ? filteredLogs.find(item => item.log.id === selectedLogId) ?? null : null),
     [filteredLogs, selectedLogId],
@@ -484,24 +498,35 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
             />
             <div className="flex items-center justify-between gap-4">
               <p className="text-xs text-faint">
-                Mostrando <span className="font-bold text-foreground">{displayedLogs.length}</span> de{' '}
-                <span className="font-bold text-foreground">{cycleLogs.length}</span> registros del ciclo.
+                Mostrando <span className="font-bold text-foreground">{paginatedLogs.length}</span> de{' '}
+                <span className="font-bold text-foreground">{displayedLogs.length}</span> registros filtrados ({cycleLogs.length} en ciclo).
               </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={<RotateCcw className="w-4 h-4" />}
-                onClick={handleResetFilters}
-              >
-                Limpiar filtros
-              </Button>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <Button variant="icon-action" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <span className="text-xs font-medium text-faint min-w-[60px] text-center">{page + 1} / {totalPages}</span>
+                  <Button variant="icon-action" size="sm" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<RotateCcw className="w-4 h-4" />}
+                  onClick={handleResetFilters}
+                >
+                  Limpiar filtros
+                </Button>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="p-2">
           <WorkLogTable
-            logs={displayedLogs}
+            logs={paginatedLogs}
             users={allUsers}
             departments={allDepartments}
             title=""
