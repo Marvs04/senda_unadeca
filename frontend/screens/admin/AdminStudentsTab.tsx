@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { motion } from 'motion/react';
-import { Plus, Edit2, Power, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Power, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { User, Department, UserRole } from '../../types';
 import { toast } from 'sonner';
 import { useConfirm } from '../../hooks/useConfirm';
@@ -43,6 +43,17 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
   const { confirm, dialogProps } = useConfirm();
 
   const { filteredStudents } = useAdminUsersData({ allUsers, studentSearch: debouncedSearch, deptHeadSearch: '' });
+
+  // ── Pagination ──────────────────────────────────────────────────────────────
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 15;
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / PAGE_SIZE));
+  const paginatedStudents = useMemo(
+    () => filteredStudents.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [filteredStudents, page],
+  );
+  // Reset page on search
+  React.useEffect(() => { setPage(0); }, [debouncedSearch]);
 
   const resetStudentForm = () => {
     setNewStudentName('');
@@ -194,7 +205,7 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-border-faint">
-            {filteredStudents.map(student => (
+            {paginatedStudents.map(student => (
               <tr key={student.id} className="hover:bg-surface transition-colors group">
                 <td className="px-8 py-5 font-medium text-sm">{student.name}</td>
                 <td className="px-8 py-5 text-sm text-muted font-mono">{student.carnet || '---'}</td>
@@ -229,11 +240,29 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
                 </td>
               </tr>
             ))}
-            {filteredStudents.length === 0 && (
+            {paginatedStudents.length === 0 && (
               <EmptyState colSpan={6} message="No se encontraron estudiantes" />
             )}
           </tbody>
         </table>
+        {/* Pagination footer */}
+        {filteredStudents.length > PAGE_SIZE && (
+          <div className="px-8 py-4 border-t border-border-faint flex items-center justify-between">
+            <p className="text-xs text-faint">
+              Mostrando <span className="font-bold text-foreground">{paginatedStudents.length}</span> de{' '}
+              <span className="font-bold text-foreground">{filteredStudents.length}</span> estudiantes
+            </p>
+            <div className="flex items-center gap-1">
+              <Button variant="icon-action" size="sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-xs font-medium text-faint min-w-[60px] text-center">{page + 1} / {totalPages}</span>
+              <Button variant="icon-action" size="sm" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Change Dept Modal */}
