@@ -52,6 +52,8 @@ export interface PDFReportConfig {
   headers: string[];
   /** Data rows (strings or numbers, converted to string automatically) */
   rows: (string | number)[][];
+  /** Force landscape orientation (auto-detected when > 8 columns) */
+  landscape?: boolean;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -167,9 +169,11 @@ function drawMeta(doc: jsPDF, W: number, startY: number, meta: PDFMetaItem[]): n
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 export function renderPDF(config: PDFReportConfig): void {
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const W = doc.internal.pageSize.getWidth();   // 210
-  const H = doc.internal.pageSize.getHeight();  // 297
+  const useLandscape = config.landscape ?? config.headers.length > 8;
+  const orientation = useLandscape ? 'landscape' : 'portrait';
+  const doc = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth();   // 297 (landscape) or 210 (portrait)
+  const H = doc.internal.pageSize.getHeight();  // 210 (landscape) or 297 (portrait)
 
   // ── Letterhead (page 1 only) ───────────────────────────────────────────────
   drawLetterhead(doc, W);
@@ -197,6 +201,20 @@ export function renderPDF(config: PDFReportConfig): void {
   const tableStartY = metaBottom + 6;
 
   // ── Data table ─────────────────────────────────────────────────────────────
+  const isWide = config.headers.length > 8;
+  const headFontSize = isWide ? 6.5 : 8.5;
+  const bodyFontSize = isWide ? 6 : 8;
+  const cellPad = isWide ? 2 : 3;
+
+  // Give more width to text-heavy columns by header name
+  const columnStyles: Record<number, { cellWidth?: number; minCellWidth?: number }> = {};
+  config.headers.forEach((h, i) => {
+    const lower = h.toLowerCase();
+    if (lower.includes('descripcion') || lower.includes('motivo')) {
+      columnStyles[i] = { minCellWidth: isWide ? 35 : 30 };
+    }
+  });
+
   autoTable(doc, {
     startY: tableStartY,
     head: [config.headers.map(h => sanitizeForPdf(h))],
@@ -206,14 +224,15 @@ export function renderPDF(config: PDFReportConfig): void {
       fillColor: C.black,
       textColor: C.white,
       fontStyle: 'bold',
-      fontSize: 8.5,
-      cellPadding: 3.5,
+      fontSize: headFontSize,
+      cellPadding: cellPad + 0.5,
     },
     bodyStyles: {
-      fontSize: 8,
+      fontSize: bodyFontSize,
       textColor: C.darkGray,
-      cellPadding: 3,
+      cellPadding: cellPad,
     },
+    columnStyles,
     alternateRowStyles: {
       fillColor: C.rowAlt,
     },

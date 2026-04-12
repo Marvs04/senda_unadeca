@@ -380,9 +380,9 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
       className="space-y-10"
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <DashboardCard title="Horas Ciclo" value={stats.totalHours.toLocaleString()} icon={<Clock className="h-5 w-5" />} />
-        <DashboardCard title="Estudiantes Activos" value={stats.activeStudents} icon={<Users className="h-5 w-5" />} />
-        <DashboardCard title="Total Pago Global" value={formatCurrency(stats.totalGlobalPayment)} icon={<DollarSign className="h-5 w-5 text-emerald-500" />} />
+        <DashboardCard title="Horas Ciclo" value={stats.totalHours.toLocaleString()} icon={<Clock className="h-5 w-5" />} subtitle={`Ciclo ${selectedCycle}`} />
+        <DashboardCard title="Estudiantes Activos" value={stats.activeStudents} icon={<Users className="h-5 w-5" />} subtitle={`${Math.round((stats.activeStudents / Math.max(allUsers.length, 1)) * 100)}% del total`} />
+        <DashboardCard title="Total Pago Global" value={formatCurrency(stats.totalGlobalPayment)} icon={<DollarSign className="h-5 w-5 text-emerald-500" />} subtitle={`Tarifa: ${formatCurrency(currentRate)}/h`} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
