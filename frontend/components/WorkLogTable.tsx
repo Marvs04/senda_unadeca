@@ -82,7 +82,7 @@ const WorkLogTable: React.FC<WorkLogTableProps> = ({
                 {showStudent && (
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-2">
-                      <div className="w-6 h-6 rounded-full bg-zinc-500/10 flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
                         <UserIcon className="w-3 h-3 opacity-50" />
                       </div>
                       <span className="text-sm font-medium">{getUserName(log.studentId)}</span>

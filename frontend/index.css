@@ -20,23 +20,23 @@
   --color-surface-hover:#e4e4e7;  /* hover on raised surface                */
 
   /* Dark portal surfaces (SuperAdmin header, student portal bg) */
-  --color-dark:         #09090b;  /* deepest dark bg (SuperAdmin header)    */
-  --color-dark-hover:   #18181b;  /* dark surface hover / secondary dark bg */
-  --color-student:      #020617;  /* student portal background              */
+  --color-dark:         #0f1b33;  /* deepest dark bg (SuperAdmin header)    */
+  --color-dark-hover:   #1d3261;  /* dark surface hover / secondary dark bg */
+  --color-student:      #0a1428;  /* student portal background              */
 
   /* ─── Borders ────────────────────────────────────────────────── */
   --color-border:       #e4e4e7;  /* standard border                        */
   --color-border-faint: #f4f4f5;  /* very subtle: card borders, dividers    */
-  --color-border-dark:  #27272a;  /* border on dark surfaces                */
+  --color-border-dark:  #2a4075;  /* border on dark surfaces                */
 
   /* ─── Text ───────────────────────────────────────────────────── */
-  --color-foreground:   #18181b;  /* primary text                           */
+  --color-foreground:   #18181b;  /* primary text — negro legible           */
   --color-muted:        #71717a;  /* secondary text, icons on light bg      */
   --color-faint:        #a1a1aa;  /* labels, placeholders, subdued text     */
 
   /* ─── Primary action  ← THE ONE VALUE TO CHANGE FOR RETHEME ─── */
-  --color-primary:      #18181b;  /* buttons, dark badges, active states    */
-  --color-primary-hover:#27272a;  /* primary hover state                    */
+  --color-primary:      #1d3261;  /* buttons, dark badges, active states    */
+  --color-primary-hover:#263d72;  /* primary hover state                    */
   --color-primary-fg:   #ffffff;  /* text / icons on primary background     */
 
   /* ─── Accent (status highlights, charts) ────────────────────── */
@@ -49,7 +49,7 @@
   --color-danger:       #ef4444;  /* red — rejected, destructive actions    */
 
   /* ─── UNADECA institutional brand ───────────────────────────── */
-  --color-unadeca-blue: #003366;
+  --color-unadeca-blue: #1d3261;
   --color-unadeca-gold: #C9971C;
 }
 

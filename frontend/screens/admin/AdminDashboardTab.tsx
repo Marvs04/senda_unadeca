@@ -14,7 +14,7 @@ import {
 import DashboardCard from '../../components/DashboardCard';
 import WorkLogTable from '../../components/WorkLogTable';
 import { Department, User, WorkLog, WorkLogStatus } from '../../types';
-import { exportToCSV, formatCostaRicaLongDate, formatCostaRicaTime, formatCurrency, formatIsoDate } from '../../lib/utils';
+import { exportToCSV, formatCostaRicaLongDate, formatCostaRicaTime, formatCostaRicaDateTime, formatCurrency, formatIsoDate } from '../../lib/utils';
 import { renderPDF } from '../../lib/pdf';
 import { isDateInCycle } from '../../lib/business';
 import { toast } from 'sonner';
@@ -31,7 +31,7 @@ interface AdminDashboardTabProps {
   currentRate: number;
 }
 
-const PIE_COLORS = ['#18181b', '#6366f1', '#10b981', '#f59e0b', '#ef4444'];
+const PIE_COLORS = ['#1d3261', '#6366f1', '#10b981', '#f59e0b', '#ef4444'];
 
 type SortMode =
   | 'RECENT'
@@ -303,9 +303,9 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
       'Estado',
       'Descripcion',
       'Aprobada por',
-      'Hora aprobacion',
+      'Fecha aprobacion',
       'Denegada por',
-      'Hora denegacion',
+      'Fecha denegacion',
       'Motivo rechazo',
     ];
     const rows = filteredLogs.map(item => {
@@ -325,9 +325,9 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
         statusLabel(log.status),
         log.description,
         approvedBy,
-        log.approvedAt ? formatTimeOnly(log.approvedAt) : '',
+        log.approvedAt ? formatCostaRicaDateTime(log.approvedAt) : '',
         rejectedBy,
-        log.rejectedAt ? formatTimeOnly(log.rejectedAt) : '',
+        log.rejectedAt ? formatCostaRicaDateTime(log.rejectedAt) : '',
         log.rejectionReason ?? '',
       ];
     });
@@ -383,10 +383,10 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats.studentChartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f4f4f5" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: '#a1a1aa' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: '#a1a1aa' }} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: '#7a8aa8' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 600, fill: '#7a8aa8' }} />
                 <Tooltip cursor={{ fill: '#f4f4f5' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="hours" fill="#18181b" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="hours" fill="#1d3261" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

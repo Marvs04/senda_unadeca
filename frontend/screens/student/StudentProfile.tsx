@@ -14,7 +14,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ user, myLogs, currentRa
 
   return (
     <div className="mb-12 relative z-0">
-      <div className="absolute inset-0 bg-gradient-to-r from-zinc-900 to-zinc-800 rounded-[3.5rem] shadow-2xl shadow-zinc-900/20" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#0f1b33] to-[#1d3261] rounded-[3.5rem] shadow-2xl shadow-[#0f1b33]/20" />
       <div className="relative z-10 px-10 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
         <div className="flex items-center space-x-8">
           <div className="relative">

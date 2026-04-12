@@ -19,7 +19,7 @@ import { formatCostaRicaLongDate } from './utils';
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
 const C = {
-  black:     [24,  24,  27 ] as [number, number, number], // zinc-900
+  black:     [29,  50,  97 ] as [number, number, number], // navy #1d3261
   accent:    [99,  102, 241] as [number, number, number], // indigo-500
   white:     [255, 255, 255] as [number, number, number],
   ghostWhite:[200, 200, 212] as [number, number, number], // muted text on dark bg
@@ -70,7 +70,7 @@ function setDrawColor(doc: jsPDF, [r, g, b]: [number, number, number]) {
 function sanitizeForPdf(value: string | number): string {
   return String(value)
     .replace(/\u00a0/g, ' ')
-    .replace(/₡\s?/g, 'C/ ')
+    .replace(/₡/g, 'C')
     .trim();
 }
 

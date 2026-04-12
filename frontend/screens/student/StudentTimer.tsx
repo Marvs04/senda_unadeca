@@ -87,9 +87,9 @@ const StudentTimer: React.FC<StudentTimerProps> = ({
                   onChange={e => setDescription(e.target.value)}
                   placeholder="¿Qué estás trabajando ahora?"
                   maxLength={LIMITS.DESCRIPTION}
-                  className="w-full bg-white/5 border border-white/10 rounded-[2.5rem] py-6 px-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all min-h-[120px] resize-none placeholder:text-zinc-700"
+                  className="w-full bg-white/5 border border-white/10 rounded-[2.5rem] py-6 px-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all min-h-[120px] resize-none placeholder:text-[#2a4075]"
                 />
-                <div className="absolute bottom-6 right-8 text-[10px] font-black text-zinc-700">
+                <div className="absolute bottom-6 right-8 text-[10px] font-black text-[#2a4075]">
                   {description.length} / {LIMITS.DESCRIPTION}
                 </div>
               </motion.div>
