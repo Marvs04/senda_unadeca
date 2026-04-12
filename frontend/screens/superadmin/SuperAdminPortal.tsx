@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { ShieldCheck, Monitor, Users, GraduationCap, Briefcase, Building2, Calculator, UserCheck, UserX } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ShieldCheck, Monitor, Users, GraduationCap, Briefcase, Building2, Calculator, UserCheck, UserX, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { PortalLayout } from '../../components/layout';
 import { User, UserRole, Department } from '../../types';
@@ -36,6 +36,7 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   const [kioskId, setKioskId]           = useState('');
   const [kioskPass, setKioskPass]       = useState('');
   const [kioskError, setKioskError]     = useState<string | null>(null);
+  const [kioskOpen, setKioskOpen]       = useState(false);
 
   const handleRemoteKiosk = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,13 +173,13 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
 
         {/* ── Summary Cards ──────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 mb-10">
-          <DashboardCard title="Total Perfiles" value={counts.total} icon={<Users className="w-4 h-4" />} />
-          <DashboardCard title="Estudiantes" value={counts.students} icon={<GraduationCap className="w-4 h-4" />} />
-          <DashboardCard title="Administradores" value={counts.admins} icon={<Briefcase className="w-4 h-4" />} />
-          <DashboardCard title="Jefes Depto" value={counts.deptHeads} icon={<Building2 className="w-4 h-4" />} />
-          <DashboardCard title="Contabilidad" value={counts.accounting} icon={<Calculator className="w-4 h-4" />} />
-          <DashboardCard title="Activos" value={counts.active} icon={<UserCheck className="w-4 h-4" />} />
-          <DashboardCard title="Inactivos" value={counts.inactive} icon={<UserX className="w-4 h-4" />} />
+          <DashboardCard title="Total Perfiles" value={counts.total} icon={<Users className="w-4 h-4" />} subtitle="Todos los usuarios" />
+          <DashboardCard title="Estudiantes" value={counts.students} icon={<GraduationCap className="w-4 h-4" />} subtitle={counts.total ? `${Math.round((counts.students / counts.total) * 100)}% del total` : undefined} />
+          <DashboardCard title="Administradores" value={counts.admins} icon={<Briefcase className="w-4 h-4" />} subtitle={counts.total ? `${Math.round((counts.admins / counts.total) * 100)}% del total` : undefined} />
+          <DashboardCard title="Jefes Depto" value={counts.deptHeads} icon={<Building2 className="w-4 h-4" />} subtitle={counts.total ? `${Math.round((counts.deptHeads / counts.total) * 100)}% del total` : undefined} />
+          <DashboardCard title="Contabilidad" value={counts.accounting} icon={<Calculator className="w-4 h-4" />} subtitle={counts.total ? `${Math.round((counts.accounting / counts.total) * 100)}% del total` : undefined} />
+          <DashboardCard title="Activos" value={counts.active} icon={<UserCheck className="w-4 h-4" />} subtitle={counts.total ? `${Math.round((counts.active / counts.total) * 100)}% del total` : undefined} />
+          <DashboardCard title="Inactivos" value={counts.inactive} icon={<UserX className="w-4 h-4" />} subtitle={counts.inactive === 0 ? 'Óptimo' : `${counts.inactive} requieren atención`} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -214,40 +215,59 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
           </div>
 
           <div className="lg:col-span-4 space-y-6">
-            {/* Remote Kiosk Activation */}
-            <div className="bg-card rounded-[2rem] border border-border-faint shadow-sm p-6">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="p-2 bg-emerald-50 rounded-xl">
-                  <Monitor className="w-4 h-4 text-emerald-600" />
+            {/* Remote Kiosk Activation – Collapsible */}
+            <div className="bg-card rounded-[2rem] border border-border-faint shadow-sm">
+              <button
+                type="button"
+                onClick={() => setKioskOpen(o => !o)}
+                className="w-full flex items-center justify-between p-6"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-50 rounded-xl">
+                    <Monitor className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-sm font-bold text-foreground">Activar kiosco remoto</h3>
+                    <p className="text-xs text-faint">Activa el kiosco de un departamento a distancia</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-foreground">Activar kiosco remoto</h3>
-                  <p className="text-xs text-faint">Activa el kiosco de un departamento a distancia</p>
-                </div>
-              </div>
-              <form onSubmit={handleRemoteKiosk} className="flex flex-col gap-3">
-                <select
-                  value={kioskDeptId}
-                  onChange={e => { setKioskDeptId(e.target.value); setKioskError(null); }}
-                  className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card"
-                >
-                  <option value="">— Selecciona un departamento —</option>
-                  {allDepartments.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-                <input type="text" placeholder="Número de empleado (Super Admin)"
-                  value={kioskId} onChange={e => { setKioskId(e.target.value); setKioskError(null); }}
-                  className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                <input type="password" placeholder="Contraseña"
-                  value={kioskPass} onChange={e => { setKioskPass(e.target.value); setKioskError(null); }}
-                  className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                {kioskError && <p className="text-xs text-rose-500">{kioskError}</p>}
-                <button type="submit"
-                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors">
-                  Activar kiosco
-                </button>
-              </form>
+                <ChevronDown className={`w-4 h-4 text-muted transition-transform ${kioskOpen ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence initial={false}>
+                {kioskOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <form onSubmit={handleRemoteKiosk} className="flex flex-col gap-3 px-6 pb-6">
+                      <select
+                        value={kioskDeptId}
+                        onChange={e => { setKioskDeptId(e.target.value); setKioskError(null); }}
+                        className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card"
+                      >
+                        <option value="">— Selecciona un departamento —</option>
+                        {allDepartments.map(d => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                      <input type="text" placeholder="Número de empleado (Super Admin)"
+                        value={kioskId} onChange={e => { setKioskId(e.target.value); setKioskError(null); }}
+                        className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                      <input type="password" placeholder="Contraseña"
+                        value={kioskPass} onChange={e => { setKioskPass(e.target.value); setKioskError(null); }}
+                        className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                      {kioskError && <p className="text-xs text-rose-500">{kioskError}</p>}
+                      <button type="submit"
+                        className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors">
+                        Activar kiosco
+                      </button>
+                    </form>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             <SuperAdminCreateForm
               adminName={adminName}
