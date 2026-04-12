@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Plus, Trash2, Edit2, Power, ChevronLeft, ChevronRight } from 'lucide-react';
 import { User, Department, UserRole } from '../../types';
@@ -37,16 +37,44 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
 
   const { filteredHeads } = useAdminUsersData({ allUsers, studentSearch: '', deptHeadSearch: searchTerm });
 
+  // ── Filters & sort ──────────────────────────────────────────────────────────
+  const [departmentFilter, setDepartmentFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
+  const [sortMode, setSortMode] = useState<'NAME_ASC' | 'NAME_DESC' | 'DEPT_ASC' | 'STATUS'>('NAME_ASC');
+
+  const processedHeads = useMemo(() => {
+    let list = filteredHeads.filter(h => {
+      if (departmentFilter === '__none__' && h.departmentId) return false;
+      if (departmentFilter !== 'ALL' && departmentFilter !== '__none__' && h.departmentId !== departmentFilter) return false;
+      if (statusFilter === 'ACTIVE' && h.isActive === false) return false;
+      if (statusFilter === 'INACTIVE' && h.isActive !== false) return false;
+      return true;
+    });
+    list = [...list].sort((a, b) => {
+      switch (sortMode) {
+        case 'NAME_ASC':  return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+        case 'NAME_DESC': return b.name.localeCompare(a.name, 'es', { sensitivity: 'base' });
+        case 'DEPT_ASC': {
+          const da = allDepartments.find(d => d.id === a.departmentId)?.name ?? 'zzz';
+          const db = allDepartments.find(d => d.id === b.departmentId)?.name ?? 'zzz';
+          return da.localeCompare(db, 'es', { sensitivity: 'base' });
+        }
+        case 'STATUS': return (a.isActive === false ? 1 : 0) - (b.isActive === false ? 1 : 0);
+        default: return 0;
+      }
+    });
+    return list;
+  }, [filteredHeads, departmentFilter, statusFilter, sortMode, allDepartments]);
+
   // ── Pagination ──────────────────────────────────────────────────────────────
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 15;
-  const totalPages = Math.max(1, Math.ceil(filteredHeads.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(processedHeads.length / PAGE_SIZE));
   const paginatedHeads = useMemo(
-    () => filteredHeads.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
-    [filteredHeads, page],
+    () => processedHeads.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [processedHeads, page],
   );
-  // Reset page on search
-  React.useEffect(() => { setPage(0); }, [searchTerm]);
+  useEffect(() => { setPage(0); }, [searchTerm, departmentFilter, statusFilter, sortMode]);
 
   const handleAddDeptHead = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -172,6 +200,59 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
         }
       />
 
+      {/* Filters */}
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-faint">Departamento</label>
+          <select
+            value={departmentFilter}
+            onChange={e => setDepartmentFilter(e.target.value)}
+            className="select-custom text-sm"
+          >
+            <option value="ALL">Todos los departamentos</option>
+            {allDepartments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            <option value="__none__">Sin Asignar</option>
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-faint">Estado</label>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value as 'ALL' | 'ACTIVE' | 'INACTIVE')}
+            className="select-custom text-sm"
+          >
+            <option value="ALL">Todos los estados</option>
+            <option value="ACTIVE">Solo activos</option>
+            <option value="INACTIVE">Solo inactivos</option>
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-faint">Ordenar por</label>
+          <select
+            value={sortMode}
+            onChange={e => setSortMode(e.target.value as 'NAME_ASC' | 'NAME_DESC' | 'DEPT_ASC' | 'STATUS')}
+            className="select-custom text-sm"
+          >
+            <option value="NAME_ASC">Nombre A-Z</option>
+            <option value="NAME_DESC">Nombre Z-A</option>
+            <option value="DEPT_ASC">Departamento A-Z</option>
+            <option value="STATUS">Activos primero</option>
+          </select>
+        </div>
+        {(departmentFilter !== 'ALL' || statusFilter !== 'ALL' || sortMode !== 'NAME_ASC') && (
+          <button
+            type="button"
+            onClick={() => { setDepartmentFilter('ALL'); setStatusFilter('ALL'); setSortMode('NAME_ASC'); }}
+            className="text-xs text-[#1d3261] hover:underline font-medium pb-1"
+          >
+            Restablecer
+          </button>
+        )}
+        <p className="text-xs text-faint pb-1 ml-auto">
+          <span className="font-bold text-foreground">{processedHeads.length}</span> jefe{processedHeads.length !== 1 ? 's' : ''}
+        </p>
+      </div>
+
       {/* Table */}
       <div className="bg-card rounded-[2.5rem] border border-border-faint shadow-sm overflow-hidden">
         <table className="w-full text-left border-collapse">
@@ -234,7 +315,7 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
           </tbody>
         </table>
         {/* Pagination footer */}
-        {filteredHeads.length > PAGE_SIZE && (
+        {processedHeads.length > PAGE_SIZE && (
           <div className="px-8 py-4 border-t border-border-faint flex items-center justify-between">
             <p className="text-xs text-faint">
               Mostrando <span className="font-bold text-foreground">{paginatedHeads.length}</span> de{' '}

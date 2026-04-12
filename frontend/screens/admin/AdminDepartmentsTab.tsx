@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { Plus, Edit2, Building, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Building, Trash2, Search } from 'lucide-react';
 import { User, WorkLog, Department, UserRole } from '../../types';
 import { isDateInCycle } from '../../lib/business';
 import { toast } from 'sonner';
@@ -42,7 +42,18 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
   const [newDeptName, setNewDeptName] = useState('');
   const [newDeptHeadId, setNewDeptHeadId] = useState('');
   const [newDeptCostCenter, setNewDeptCostCenter] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const { confirm, dialogProps } = useConfirm();
+
+  const filteredDepartments = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return allDepartments;
+    return allDepartments.filter(
+      d =>
+        d.name.toLowerCase().includes(q) ||
+        (d.costCenter ?? '').toLowerCase().includes(q),
+    );
+  }, [allDepartments, searchTerm]);
 
   const openAdd = () => {
     setEditingDept(null);
@@ -127,15 +138,34 @@ const AdminDepartmentsTab: React.FC<AdminDepartmentsTabProps> = ({
       className="space-y-8"
     >
       {/* Toolbar */}
-      <div className="flex justify-end">
-        <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={openAdd}>
-          Nuevo Departamento
-        </Button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Buscar por nombre o centro de costos..."
+            className="w-full bg-surface border border-border rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/5 transition-all"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          {searchTerm && (
+            <span className="text-xs text-faint">
+              <span className="font-bold text-foreground">{filteredDepartments.length}</span> de {allDepartments.length}
+            </span>
+          )}
+          <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={openAdd}>
+            Nuevo Departamento
+          </Button>
+        </div>
       </div>
 
       {/* Department Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {allDepartments.map(dept => {
+        {filteredDepartments.length === 0 ? (
+          <p className="col-span-3 text-center text-sm text-faint py-12">No hay departamentos que coincidan con la búsqueda.</p>
+        ) : filteredDepartments.map(dept => {
           const deptStudents = allUsers.filter(u => u.departmentId === dept.id && u.role === UserRole.STUDENT).length;
           const deptHours = allLogs
             .filter(l => l.departmentId === dept.id && isDateInCycle(l.date, selectedCycle))
