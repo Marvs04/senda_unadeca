@@ -7,7 +7,7 @@
 import { useMemo } from 'react';
 import { User, UserRole } from '../types';
 
-export type SortField = 'name' | 'role' | 'createdAt';
+export type SortField = 'name' | 'role' | 'createdAt' | 'employeeNumber' | 'isActive';
 export type SortDir = 'asc' | 'desc';
 export type ActiveFilter = 'all' | 'active' | 'inactive';
 
@@ -27,6 +27,12 @@ function sortUsers(users: User[], field: SortField, dir: SortDir): User[] {
   const sorted = [...users].sort((a, b) => {
     if (field === 'name') return (a.name ?? '').localeCompare(b.name ?? '');
     if (field === 'role') return (a.role ?? '').localeCompare(b.role ?? '');
+    if (field === 'employeeNumber') return (a.employeeNumber ?? '').localeCompare(b.employeeNumber ?? '');
+    if (field === 'isActive') {
+      const av = a.isActive !== false ? 1 : 0;
+      const bv = b.isActive !== false ? 1 : 0;
+      return av - bv;
+    }
     if (field === 'createdAt') {
       const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -47,8 +53,8 @@ export function useSuperAdminData({
   allUsers,
   adminSearch,
   studentSearch,
-  adminSort = 'name',
-  adminSortDir = 'asc',
+  adminSort = 'createdAt',
+  adminSortDir = 'desc',
   adminActiveFilter = 'all',
   studentSort = 'name',
   studentSortDir = 'asc',
