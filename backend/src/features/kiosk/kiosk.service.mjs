@@ -201,7 +201,7 @@ export async function activateKiosk(body, adminSupa) {
  * Flushes all open sessions as PENDING work logs, then deletes the kiosk_state.
  */
 export async function deactivateKiosk(body, adminSupa) {
-  const { identifier, password } = body ?? {};
+  const { identifier, password, departmentId: bodyDeptId } = body ?? {};
   if (!identifier || !password) {
     const err = new Error('identifier y password son requeridos.');
     err.statusCode = 400;
@@ -214,9 +214,14 @@ export async function deactivateKiosk(body, adminSupa) {
     throwForbidden('Solo jefes de departamento o super administradores pueden desactivar el kiosco.');
   }
 
-  const departmentId = profile.department_id;
+  // SUPER_ADMIN can deactivate any dept's kiosk by supplying departmentId in the body.
+  // DEPT_HEAD can only deactivate their own dept's kiosk.
+  const departmentId = profile.role === 'SUPER_ADMIN'
+    ? (bodyDeptId?.trim() || profile.department_id)
+    : profile.department_id;
+
   if (!departmentId) {
-    const err = new Error('No tienes un departamento asignado.');
+    const err = new Error('No se pudo determinar el departamento. Proporciona departmentId en el cuerpo de la solicitud.');
     err.statusCode = 400;
     throw err;
   }
@@ -262,6 +267,7 @@ export async function deactivateKiosk(body, adminSupa) {
 
   return { ok: true, flushedSessions: openSessions.length };
 }
+
 
 /**
  * POST /kiosk/clock-in
