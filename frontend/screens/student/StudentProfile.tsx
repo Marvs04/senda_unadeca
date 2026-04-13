@@ -21,7 +21,10 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ user, myLogs, currentRa
             <div className="w-24 h-24 rounded-3xl bg-dark-hover border border-white/10 flex items-center justify-center text-4xl font-black text-white shadow-2xl">
               {user.name?.charAt(0)}
             </div>
-            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-emerald-500 rounded-xl border-4 border-dark flex items-center justify-center">
+            <div
+              title="Kiosco activo — el administrador puede registrar tiempo en tu nombre"
+              className="absolute -bottom-2 -right-2 w-8 h-8 bg-emerald-500 rounded-xl border-4 border-dark flex items-center justify-center cursor-help"
+            >
               <Zap className="w-4 h-4 text-white fill-white" />
             </div>
           </div>
@@ -31,8 +34,8 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ user, myLogs, currentRa
               <span className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-faint">
                 {user.carnet || 'Sin Carnet'}
               </span>
-              <span className="px-4 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-black uppercase tracking-widest text-emerald-400">
-                Estudiante Activo
+              <span className="px-4 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-black tracking-wide text-emerald-400">
+                Estudiante activo
               </span>
             </div>
           </div>
@@ -40,14 +43,14 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ user, myLogs, currentRa
         <div className="flex items-center space-x-12 px-10 py-6 bg-white/5 rounded-[2.5rem] border border-white/10 backdrop-blur-md">
           <div className="text-center">
             <p className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">
-              Horas Totales
+              Horas este ciclo
             </p>
             <p className="text-2xl font-black text-white">{totalHours.toFixed(1)}h</p>
           </div>
           <div className="w-px h-10 bg-white/10" />
           <div className="text-center">
             <p className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">
-              Tarifa Actual
+              Tarifa por Hora
             </p>
             <p className="text-2xl font-black text-white">{formatCurrency(currentRate)}</p>
           </div>
