@@ -64,7 +64,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
                 "text-[10px] uppercase tracking-wider font-bold mt-1 opacity-50",
                 isDark ? "text-white/70" : "text-muted"
               )}>
-                {user.role.replace('_', ' ')}
+                {config.text}
               </p>
             </div>
             

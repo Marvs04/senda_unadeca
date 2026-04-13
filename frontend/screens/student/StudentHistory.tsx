@@ -122,11 +122,20 @@ const StudentHistory: React.FC<StudentHistoryProps> = ({
               </div>
             )}
           </div>
-          <Button variant="icon-action" onClick={() => onExport('pdf')} title="Exportar PDF">
-            <Download className="w-4 h-4" />
-          </Button>
+          {filteredLogs.length > 0 && (
+            <Button variant="icon-action" onClick={() => onExport('pdf')} title="Exportar PDF">
+              <Download className="w-4 h-4" />
+            </Button>
+          )}
         </div>
-        <WorkLogTable logs={filteredLogs} users={[user]} departments={[]} title="" />
+        {filteredLogs.length === 0 ? (
+          <div className="py-16 text-center">
+            <p className="text-sm font-bold text-foreground mb-1">No hay registros disponibles</p>
+            <p className="text-xs text-faint">Inicia el cronómetro para registrar tus primeras horas</p>
+          </div>
+        ) : (
+          <WorkLogTable logs={filteredLogs} users={[user]} departments={[]} title="" />
+        )}
       </div>
     </div>
   );

@@ -96,7 +96,6 @@ const DeptBookCard: React.FC<{
   const [collapsed, setCollapsed] = useState(false);
   const registeredCount = book.students.filter(s => registeredIds.has(s.studentId)).length;
   const allRegistered   = registeredCount === book.students.length && book.students.length > 0;
-  const allZeroReceivable = book.students.every(s => (s.manualReceivable ?? 0) === 0);
 
   const handleSelectAll = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -227,7 +226,7 @@ const DeptBookCard: React.FC<{
                     <th className="px-3 py-3 text-right">Bruto</th>
                     <th className="px-3 py-3 text-right">Diezmo</th>
                     <th className="px-3 py-3 text-right">Neto</th>
-                    {!allZeroReceivable && <th className="px-3 py-3 text-right">Por Cobrar</th>}
+                    <th className="px-3 py-3 text-right">Por Cobrar</th>
                     <th className="px-3 py-3 text-right">Por Pagar</th>
                   </tr>
                 </thead>
@@ -297,15 +296,13 @@ const DeptBookCard: React.FC<{
                             {formatCurrency(student.totalNeto)}
                           </span>
                         </td>
-                        {!allZeroReceivable && (
-                          <td className="px-3 py-3 text-right">
+                        <td className="px-3 py-3 text-right">
                             <ReceivableInput
                               initialValue={student.manualReceivable}
                               disabled={dimmed}
                               onSave={(val) => onUpdateReceivable(student.studentId, val)}
                             />
                           </td>
-                        )}
                         <td className="px-3 py-3 text-right">
                           <span className="text-sm font-black font-mono text-primary">
                             {formatCurrency(student.totalPayable)}
@@ -335,11 +332,9 @@ const DeptBookCard: React.FC<{
                     <td className="px-3 py-3 text-right font-mono">
                       {formatCurrency(book.totalNeto)}
                     </td>
-                    {!allZeroReceivable && (
-                      <td className="px-3 py-3 text-right font-mono text-muted">
-                        {formatCurrency(book.totalReceivable)}
-                      </td>
-                    )}
+                    <td className="px-3 py-3 text-right font-mono text-muted">
+                      {formatCurrency(book.totalReceivable)}
+                    </td>
                     <td className="px-3 py-3 text-right font-mono text-primary">
                       {formatCurrency(book.totalPayable)}
                     </td>

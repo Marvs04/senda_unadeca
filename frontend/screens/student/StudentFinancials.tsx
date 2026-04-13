@@ -16,6 +16,13 @@ interface StudentFinancialsProps {
 }
 
 const StudentFinancials: React.FC<StudentFinancialsProps> = ({ stats }) => {
+  const closingDay = 25;
+  const now = new Date();
+  const todayDate = now.getDate();
+  const daysUntil = todayDate <= closingDay
+    ? closingDay - todayDate
+    : Math.ceil((new Date(now.getFullYear(), now.getMonth() + 1, closingDay).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
   return (
     <>
       <div className="grid grid-cols-2 gap-4">
@@ -53,8 +60,8 @@ const StudentFinancials: React.FC<StudentFinancialsProps> = ({ stats }) => {
           <p className="text-3xl font-black font-display text-amber-600 leading-none">
             {formatCurrency(stats.tithe)}
           </p>
-          <p className="mt-4 text-[10px] font-bold text-faint italic">
-            "Mis manos dan, Dios multiplica"
+          <p className="mt-4 text-[10px] font-bold text-faint">
+            Retención automática del 10% sobre el bruto
           </p>
         </motion.div>
       </div>
@@ -69,11 +76,15 @@ const StudentFinancials: React.FC<StudentFinancialsProps> = ({ stats }) => {
             <div>
               <h4 className="text-sm font-black uppercase tracking-widest mb-2">Próximo Corte</h4>
               <p className="text-sm text-muted leading-relaxed font-medium">
-                Tu próximo pago se procesará el{' '}
+                Tu próximo pago se procesa el{' '}
                 <span className="text-white font-bold">
                   25 de {getBillingCycle().label.split(' ')[0]}
                 </span>
-                .
+                {daysUntil > 0 ? (
+                  <span className="text-amber-300 font-bold"> ({daysUntil} día{daysUntil !== 1 ? 's' : ''})</span>
+                ) : (
+                  <span className="text-emerald-400 font-bold"> (hoy)</span>
+                )}
               </p>
             </div>
           </div>
