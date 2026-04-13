@@ -32,7 +32,11 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
             <div
               className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden"
               aria-label="SENDA"
-              dangerouslySetInnerHTML={{ __html: sendaLogoRaw }}
+              dangerouslySetInnerHTML={{
+                __html: sendaLogoRaw
+                  .replace(/width="220"/, 'width="100%"')
+                  .replace(/height="220"/, 'height="100%"'),
+              }}
             />
             <div className="flex flex-col">
               <h1 className="text-base font-bold tracking-tight font-display">SENDA</h1>
