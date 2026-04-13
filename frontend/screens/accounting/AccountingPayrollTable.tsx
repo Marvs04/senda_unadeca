@@ -375,7 +375,7 @@ const AccountingPayrollTable: React.FC<AccountingPayrollTableProps> = ({
             {showCarnet ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
 
-          {/* Tab toggle */}}
+          {/* Tab toggle */}
           <div className="flex items-center bg-surface p-1 rounded-xl border border-border-faint">
             <button
               onClick={() => setTab('approved')}
