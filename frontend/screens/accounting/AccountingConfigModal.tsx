@@ -3,6 +3,7 @@ import { AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Department } from '../../types';
 import { Button, Input, Modal } from '../../components/ui';
+import { cn } from '../../lib/utils';
 import {
   getAccountingConfig,
   updateAccountingConfig,
