@@ -259,8 +259,31 @@ const AccountingConfigModal: React.FC<AccountingConfigModalProps> = ({
             </button>
           </div>
 
+          <div className="max-h-[52vh] overflow-y-auto pr-1 -mr-1 mb-6">
           {activeTab === 'global' && (
-            <div className="space-y-4 mb-6">
+            <div className="space-y-4">
+              {/* Closing day — prominently at top */}
+              <div className="flex items-center gap-4 p-4 bg-surface rounded-2xl border border-border-faint">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-faint mb-1">
+                    Día de cierre del período
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={28}
+                    value={draft.closingDay}
+                    onChange={e => {
+                      const v = parseInt(e.target.value, 10);
+                      if (v >= 1 && v <= 28) updateDraft('closingDay', v);
+                    }}
+                    className="w-20 px-3 py-2 text-center font-mono text-sm bg-background border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  />
+                </div>
+                <p className="text-xs text-faint leading-relaxed">
+                  Horas registradas después del día <strong className="text-foreground">{draft.closingDay}</strong> de cada mes se contarán en el siguiente ciclo de pago.
+                </p>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Código de becas"
@@ -319,33 +342,11 @@ const AccountingConfigModal: React.FC<AccountingConfigModalProps> = ({
                 />
               </div>
 
-              {/* Closing day */}
-              <div className="pt-2 border-t border-border-faint">
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-faint mb-2">
-                  Día de cierre del período
-                </label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="number"
-                    min={1}
-                    max={28}
-                    value={draft.closingDay}
-                    onChange={e => {
-                      const v = parseInt(e.target.value, 10);
-                      if (v >= 1 && v <= 28) updateDraft('closingDay', v);
-                    }}
-                    className="w-20 px-3 py-2 text-center font-mono text-sm bg-background border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                  />
-                  <p className="text-xs text-faint">
-                    Horas registradas después del día <strong>{draft.closingDay}</strong> de cada mes se contarán en el siguiente ciclo.
-                  </p>
-                </div>
-              </div>
             </div>
           )}
 
           {activeTab === 'costcenters' && (
-            <div className="space-y-4 mb-6">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-xs text-faint">
                   {deptCount} departamento{deptCount !== 1 ? 's' : ''} &mdash; formato requerido: <code className="font-mono">NN-NN-NN</code>
@@ -396,6 +397,7 @@ const AccountingConfigModal: React.FC<AccountingConfigModalProps> = ({
               </div>
             </div>
           )}
+          </div>{/* end scrollable area */}
 
           <div className="flex justify-end gap-3 pt-2 border-t border-border-faint">
             <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>

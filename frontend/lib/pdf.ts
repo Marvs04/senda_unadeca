@@ -293,14 +293,14 @@ export function renderDeptGroupedPDF(config: {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   setTextColor(doc, C.black);
-  doc.text(config.reportTitle, 14, curY);
+  doc.text(sanitizeForPdf(config.reportTitle), 14, curY);
   curY += 7;
 
   if (config.subtitle) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     setTextColor(doc, C.darkGray);
-    doc.text(config.subtitle, 14, curY);
+    doc.text(sanitizeForPdf(config.subtitle), 14, curY);
     curY += 6;
   }
   curY += 3;
@@ -321,15 +321,17 @@ export function renderDeptGroupedPDF(config: {
     setTextColor(doc, C.white);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-    doc.text(dept.deptName.toUpperCase(), 14, curY + 5.5);
+    doc.text(sanitizeForPdf(dept.deptName).toUpperCase(), 14, curY + 5.5);
     curY += headerH;
 
     // Table for this dept
     const rows: string[][] = dept.students.map(s => [
-      s.name, s.carnet, s.hours, s.bruto, s.tithe, s.neto,
+      sanitizeForPdf(s.name), s.carnet, s.hours,
+      sanitizeForPdf(s.bruto), sanitizeForPdf(s.tithe), sanitizeForPdf(s.neto),
     ]);
     // Totals row
-    rows.push(['TOTAL', '', dept.totalHours, dept.totalBruto, dept.totalTithe, dept.totalNeto]);
+    rows.push(['TOTAL', '', dept.totalHours,
+      sanitizeForPdf(dept.totalBruto), sanitizeForPdf(dept.totalTithe), sanitizeForPdf(dept.totalNeto)]);
 
     autoTable(doc, {
       startY: curY,
@@ -379,7 +381,10 @@ export function renderDeptGroupedPDF(config: {
     autoTable(doc, {
       startY: curY,
       head:   [['TOTALES GENERALES', '', 'Horas', 'Bruto', 'Diezmo', 'Neto']],
-      body:   [['', '', config.grandTotals.hours, config.grandTotals.bruto, config.grandTotals.tithe, config.grandTotals.neto]],
+      body:   [['', '', config.grandTotals.hours,
+        sanitizeForPdf(config.grandTotals.bruto),
+        sanitizeForPdf(config.grandTotals.tithe),
+        sanitizeForPdf(config.grandTotals.neto)]],
       theme:  'grid',
       headStyles: { fillColor: C.black, textColor: C.white, fontStyle: 'bold', fontSize: 8, cellPadding: 3 },
       bodyStyles: { fontStyle: 'bold', fontSize: 8, cellPadding: 3, textColor: C.darkGray },
