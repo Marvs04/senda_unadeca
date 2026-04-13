@@ -4,7 +4,7 @@ import { LogOut, Bell } from 'lucide-react';
 import { User } from '../types';
 import { cn } from '../lib/utils';
 import { ROLE_CONFIG } from '../lib/uiConfig';
-import sendaLogo from '../assets/senda-logo.svg';
+import sendaLogoRaw from '../assets/senda-logo.svg?raw';
 
 interface HeaderProps {
   user: User;
@@ -13,7 +13,6 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
   const config = ROLE_CONFIG[user.role];
-  const IconComponent = config.icon;
   const isDark = config.theme === 'dark';
 
   return (
@@ -30,10 +29,10 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
       <div className="max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4">
-            <img
-              src={sendaLogo}
-              alt="SENDA"
-              className="w-10 h-10 rounded-full flex-shrink-0"
+            <div
+              className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden"
+              aria-label="SENDA"
+              dangerouslySetInnerHTML={{ __html: sendaLogoRaw }}
             />
             <div className="flex flex-col">
               <h1 className="text-base font-bold tracking-tight font-display">SENDA</h1>
