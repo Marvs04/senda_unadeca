@@ -71,8 +71,9 @@ function setDrawColor(doc: jsPDF, [r, g, b]: [number, number, number]) {
 
 function sanitizeForPdf(value: string | number): string {
   return String(value)
-    .replace(/\u00a0/g, ' ')
-    .replace(/₡/g, 'C')
+    .replace(/\u00a0/g, ' ')      // non-breaking space → regular space
+    .replace(/\u20A1/g, 'C')     // ₡ colón (U+20A1) — not in Windows-1252/jsPDF Helvetica
+    .replace(/₡/g, 'C')          // literal fallback in case regex flag differs
     .trim();
 }
 

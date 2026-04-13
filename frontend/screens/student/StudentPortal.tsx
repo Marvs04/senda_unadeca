@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { PortalLayout } from '../../components/layout';
 import { User, WorkLog } from '../../types';
-import { exportToCSV, formatCostaRicaLongDate, formatCurrency } from '../../lib/utils';
+import { exportToCSV, formatCostaRicaLongDate, formatCurrency, formatCurrencyPdf } from '../../lib/utils';
 import { renderPDF } from '../../lib/pdf';
 import { getTrimester } from '../../lib/business';
 import { useStudentSession } from '../../hooks/useStudentSession';
@@ -73,7 +73,7 @@ const StudentPortal: React.FC<StudentPortalProps> = ({
           { label: 'Estudiante',      value: user.name },
           { label: 'Fecha de Emisi\u00f3n', value: now },
           { label: 'Carnet',          value: user.carnet || 'N/A' },
-          { label: 'Tasa por Hora',   value: formatCurrency(currentRate) },
+          { label: 'Tasa por Hora',   value: formatCurrencyPdf(currentRate) },
         ],
         headers,
         rows,

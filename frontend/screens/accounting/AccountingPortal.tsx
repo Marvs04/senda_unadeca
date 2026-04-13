@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 import { PortalLayout } from '../../components/layout';
 import DashboardCard from '../../components/DashboardCard';
 import { User, WorkLogStatus, Department } from '../../types';
-import { cn, exportToCSV, formatCostaRicaLongDate, formatCurrency } from '../../lib/utils';
+import { cn, exportToCSV, formatCostaRicaLongDate, formatCurrency, formatCurrencyPdf } from '../../lib/utils';
 import { renderDeptGroupedPDF, renderPDF } from '../../lib/pdf';
 import { getBillingCycle, getTrimester } from '../../lib/business';
 import { useAccountingReport } from '../../hooks/useAccountingReport';
@@ -223,8 +223,8 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
         { label: 'Departamento',      value: book.departmentName },
         { label: 'Fecha de Emisión',  value: now },
         { label: 'Responsable',       value: user.name },
-        { label: 'Total Bruto',       value: formatCurrency(book.totalBruto) },
-        { label: 'Neto a Pagar',      value: formatCurrency(book.totalPayable) },
+        { label: 'Total Bruto',       value: formatCurrencyPdf(book.totalBruto) },
+        { label: 'Neto a Pagar',      value: formatCurrencyPdf(book.totalPayable) },
       ],
       deptGroups: [{
         deptName:   book.departmentName,
@@ -232,20 +232,20 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
           name:  s.studentName,
           carnet: s.carnet ?? '—',
           hours:  s.totalHours.toFixed(2),
-          bruto:  formatCurrency(s.totalBruto),
-          tithe:  formatCurrency(-s.totalTithe),
-          neto:   formatCurrency(s.totalNeto),
+          bruto:  formatCurrencyPdf(s.totalBruto),
+          tithe:  formatCurrencyPdf(-s.totalTithe),
+          neto:   formatCurrencyPdf(s.totalNeto),
         })),
         totalHours: book.totalHours.toFixed(2),
-        totalBruto: formatCurrency(book.totalBruto),
-        totalTithe: formatCurrency(-book.totalTithe),
-        totalNeto:  formatCurrency(book.totalNeto),
+        totalBruto: formatCurrencyPdf(book.totalBruto),
+        totalTithe: formatCurrencyPdf(-book.totalTithe),
+        totalNeto:  formatCurrencyPdf(book.totalNeto),
       }],
       grandTotals: {
         hours: book.totalHours.toFixed(2),
-        bruto: formatCurrency(book.totalBruto),
-        tithe: formatCurrency(-book.totalTithe),
-        neto:  formatCurrency(book.totalNeto),
+        bruto: formatCurrencyPdf(book.totalBruto),
+        tithe: formatCurrencyPdf(-book.totalTithe),
+        neto:  formatCurrencyPdf(book.totalNeto),
       },
     });
     toast.success(`PDF de ${book.departmentName} generado.`, { position: 'top-center' });
@@ -289,9 +289,9 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
         { label: 'Per\u00edodo',          value: period },
         { label: 'Fecha de Emisi\u00f3n', value: now },
         { label: 'Responsable',       value: user.name },
-        { label: 'Total Bruto',       value: formatCurrency(totalApprovedAmount) },
-        { label: 'Diezmo Total',      value: formatCurrency(totalTithe) },
-        { label: 'Total Neto',        value: formatCurrency(totalNeto) },
+        { label: 'Total Bruto',       value: formatCurrencyPdf(totalApprovedAmount) },
+        { label: 'Diezmo Total',      value: formatCurrencyPdf(totalTithe) },
+        { label: 'Total Neto',        value: formatCurrencyPdf(totalNeto) },
       ],
       deptGroups: approvedBooks.map(book => ({
         deptName:   book.departmentName,
@@ -299,20 +299,20 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
           name:  s.studentName,
           carnet: s.carnet ?? '—',
           hours:  s.totalHours.toFixed(2),
-          bruto:  formatCurrency(s.totalBruto),
-          tithe:  formatCurrency(-s.totalTithe),
-          neto:   formatCurrency(s.totalNeto),
+          bruto:  formatCurrencyPdf(s.totalBruto),
+          tithe:  formatCurrencyPdf(-s.totalTithe),
+          neto:   formatCurrencyPdf(s.totalNeto),
         })),
         totalHours: book.totalHours.toFixed(2),
-        totalBruto: formatCurrency(book.totalBruto),
-        totalTithe: formatCurrency(-book.totalTithe),
-        totalNeto:  formatCurrency(book.totalNeto),
+        totalBruto: formatCurrencyPdf(book.totalBruto),
+        totalTithe: formatCurrencyPdf(-book.totalTithe),
+        totalNeto:  formatCurrencyPdf(book.totalNeto),
       })),
       grandTotals: {
         hours: totalHours.toFixed(2),
-        bruto: formatCurrency(totalApprovedAmount),
-        tithe: formatCurrency(-totalTithe),
-        neto:  formatCurrency(totalNeto),
+        bruto: formatCurrencyPdf(totalApprovedAmount),
+        tithe: formatCurrencyPdf(-totalTithe),
+        neto:  formatCurrencyPdf(totalNeto),
       },
     });
     toast.success('PDF generado', { position: 'top-center' });
@@ -389,20 +389,20 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
         ...approvedBooks.map(b => [
           b.departmentName,
           b.totalHours.toFixed(2),
-          formatCurrency(b.totalBruto),
-          formatCurrency(-b.totalTithe),
-          formatCurrency(b.totalNeto),
-          formatCurrency(b.totalReceivable),
-          formatCurrency(b.totalPayable),
+          formatCurrencyPdf(b.totalBruto),
+          formatCurrencyPdf(-b.totalTithe),
+          formatCurrencyPdf(b.totalNeto),
+          formatCurrencyPdf(b.totalReceivable),
+          formatCurrencyPdf(b.totalPayable),
         ]),
         [
           'TOTALES',
           totalHours.toFixed(2),
-          formatCurrency(totalApprovedAmount),
-          formatCurrency(-totalTithe),
-          formatCurrency(totalNeto),
-          formatCurrency(totalReceivable),
-          formatCurrency(totalPayable),
+          formatCurrencyPdf(totalApprovedAmount),
+          formatCurrencyPdf(-totalTithe),
+          formatCurrencyPdf(totalNeto),
+          formatCurrencyPdf(totalReceivable),
+          formatCurrencyPdf(totalPayable),
         ]
       ]
     });
