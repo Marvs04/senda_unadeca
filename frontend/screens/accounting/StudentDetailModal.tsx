@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Loader2, Download, AlertCircle } from 'lucide-react';
 import { apiClient } from '../../api';
-import { formatCurrency, formatIsoDate, formatCostaRicaLongDate } from '../../lib/utils';
+import { formatCurrency, formatCurrencyPdf, formatIsoDate, formatCostaRicaLongDate } from '../../lib/utils';
 import { renderPDF } from '../../lib/pdf';
 import { Button } from '../../components/ui';
 
@@ -113,18 +113,18 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ studentId, peri
           l.departmentName,
           l.description || '-',
           l.hours.toFixed(1),
-          formatCurrency(l.bruto),
-          formatCurrency(-l.tithe),
-          formatCurrency(l.neto)
+          formatCurrencyPdf(l.bruto),
+          formatCurrencyPdf(-l.tithe),
+          formatCurrencyPdf(l.neto)
         ]),
         [
           'TOTALES',
           '-',
           '-',
           data.summary.totalHours.toFixed(1),
-          formatCurrency(data.summary.totalBruto),
-          formatCurrency(-data.summary.totalTithe),
-          formatCurrency(data.summary.totalNeto),
+          formatCurrencyPdf(data.summary.totalBruto),
+          formatCurrencyPdf(-data.summary.totalTithe),
+          formatCurrencyPdf(data.summary.totalNeto),
         ],
         [
           'Cuentas por Cobrar',
@@ -133,7 +133,7 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ studentId, peri
           '-',
           '-',
           '-',
-          formatCurrency(data.summary.manualReceivable),
+          formatCurrencyPdf(data.summary.manualReceivable),
         ],
         [
           'TOTAL A PAGAR',
@@ -142,7 +142,7 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ studentId, peri
           '-',
           '-',
           '-',
-          formatCurrency(data.summary.totalPayable),
+          formatCurrencyPdf(data.summary.totalPayable),
         ]
       ]
     });
