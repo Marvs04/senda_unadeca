@@ -65,6 +65,7 @@ export interface PayrollReportParams {
   searchTerm:       string;
   selectedDeptId:   string;
   currentRate:      number;
+  closingDay:       number;
 }
 
 // ─── API call ─────────────────────────────────────────────────────────────────
@@ -72,7 +73,7 @@ export interface PayrollReportParams {
 export async function getPayrollReport(params: PayrollReportParams): Promise<AccountingReportData> {
   const {
     viewMode, selectedCycle, selectedTrimester,
-    selectedYear, searchTerm, selectedDeptId, currentRate,
+    selectedYear, searchTerm, selectedDeptId, currentRate, closingDay,
   } = params;
 
   const q = new URLSearchParams();
@@ -82,9 +83,10 @@ export async function getPayrollReport(params: PayrollReportParams): Promise<Acc
   } else {
     q.set('trimester', String(selectedTrimester));
   }
-  q.set('year',   String(selectedYear));
-  q.set('deptId', selectedDeptId);
-  q.set('rate',   String(currentRate));
+  q.set('year',       String(selectedYear));
+  q.set('deptId',     selectedDeptId);
+  q.set('rate',       String(currentRate));
+  q.set('closingDay', String(closingDay ?? 25));
   if (searchTerm) q.set('search', searchTerm);
 
   const { data } = await apiClient.get<AccountingReportData>(`/reports/payroll?${q.toString()}`);

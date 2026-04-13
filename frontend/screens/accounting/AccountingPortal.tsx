@@ -32,7 +32,7 @@ import AccountingPayrollTable from './AccountingPayrollTable';
 import AccountingSummaryTable from './AccountingSummaryTable';
 import AccountingConfigModal from './AccountingConfigModal';
 import StudentDetailModal from './StudentDetailModal';
-import { getAccountingConfig, upsertStudentReceivable } from '../../services/accountingService';
+import { getAccountingConfig, upsertStudentReceivable, upsertManyStudentReceivables } from '../../services/accountingService';
 import {
   buildAccountingEntryTxt,
   downloadPlainTextFile,
@@ -54,8 +54,9 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
   updateMultipleWorkLogsStatus,
   currentRate,
 }) => {
+  const [closingDay, setClosingDay]           = useState(25);
   const [viewMode, setViewMode]               = useState<'cycle' | 'trimester'>('cycle');
-  const [selectedCycle, setSelectedCycle]     = useState(getBillingCycle().value);
+  const [selectedCycle, setSelectedCycle]     = useState(() => getBillingCycle(new Date(), 25).value);
   const currentTrimester                      = getTrimester();
   const [selectedTrimester, setSelectedTrimester] = useState(currentTrimester.num);
   const [selectedYear, setSelectedYear]       = useState(new Date().getFullYear());
@@ -72,6 +73,22 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
   const periodKey = viewMode === 'cycle'
     ? `cycle_${selectedCycle}`
     : `q${selectedTrimester}_${selectedYear}`;
+
+  // ── Load closing day from accounting config on mount ──────────────────────
+  React.useEffect(() => {
+    getAccountingConfig()
+      .then(cfg => {
+        const day = cfg.closingDay ?? 25;
+        setClosingDay(day);
+        // Update initial cycle if user hasn't changed it yet
+        setSelectedCycle(prev => {
+          const defaultCycle = getBillingCycle(new Date(), 25).value;
+          const withDay      = getBillingCycle(new Date(), day).value;
+          return prev === defaultCycle ? withDay : prev;
+        });
+      })
+      .catch(() => {/* silent — use default 25 */});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Registered IDs: persisted in localStorage per period ─────────────────
   const [registeredIds, setRegisteredIds] = useState<Set<string>>(() => {
@@ -140,6 +157,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
     searchTerm: debouncedSearch,
     selectedDeptId,
     currentRate,
+    closingDay,
   });
 
   const approvedForPayroll   = reportData?.approvedForPayroll   ?? [];
@@ -186,6 +204,51 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
     } catch {
       toast.error('Error al guardar Cuenta por Cobrar', { position: 'top-center' });
     }
+  };
+
+  const handleBatchImportReceivables = async (rows: { studentId: string; amount: number }[]) => {
+    await upsertManyStudentReceivables(
+      rows.map(r => ({ studentId: r.studentId, periodKey, amount: r.amount }))
+    );
+  };
+
+  const handleDownloadDeptPDF = (book: import('../../services/reportsService').DeptBook) => {
+    const now = formatCostaRicaLongDate();
+    renderDeptGroupedPDF({
+      filename:    `depto_${book.departmentName.toLowerCase().replace(/\s+/g, '_')}_${filenameBase}.pdf`,
+      reportTitle: `NÓMINA — ${book.departmentName.toUpperCase()}`,
+      subtitle:    `${period} · Generado por ${user.name}`,
+      meta: [
+        { label: 'Período',           value: period },
+        { label: 'Departamento',      value: book.departmentName },
+        { label: 'Fecha de Emisión',  value: now },
+        { label: 'Responsable',       value: user.name },
+        { label: 'Total Bruto',       value: formatCurrency(book.totalBruto) },
+        { label: 'Neto a Pagar',      value: formatCurrency(book.totalPayable) },
+      ],
+      deptGroups: [{
+        deptName:   book.departmentName,
+        students:   book.students.map(s => ({
+          name:  s.studentName,
+          carnet: s.carnet ?? '—',
+          hours:  s.totalHours.toFixed(2),
+          bruto:  formatCurrency(s.totalBruto),
+          tithe:  formatCurrency(-s.totalTithe),
+          neto:   formatCurrency(s.totalNeto),
+        })),
+        totalHours: book.totalHours.toFixed(2),
+        totalBruto: formatCurrency(book.totalBruto),
+        totalTithe: formatCurrency(-book.totalTithe),
+        totalNeto:  formatCurrency(book.totalNeto),
+      }],
+      grandTotals: {
+        hours: book.totalHours.toFixed(2),
+        bruto: formatCurrency(book.totalBruto),
+        tithe: formatCurrency(-book.totalTithe),
+        neto:  formatCurrency(book.totalNeto),
+      },
+    });
+    toast.success(`PDF de ${book.departmentName} generado.`, { position: 'top-center' });
   };
 
   // ── Export ────────────────────────────────────────────────────────────────
@@ -630,9 +693,12 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
           approvedBooks={approvedBooks}
           processedBooks={processedBooks}
           registeredIds={registeredIds}
+          periodKey={periodKey}
           onToggleRegistered={toggleRegistered}
           onProcessPayments={handleProcessPayments}
           onUpdateReceivable={handleUpdateReceivable}
+          onBatchImportReceivables={handleBatchImportReceivables}
+          onDownloadDeptPDF={handleDownloadDeptPDF}
           onStudentClick={(id) => setSelectedStudentId(id)}
         />
       ) : (

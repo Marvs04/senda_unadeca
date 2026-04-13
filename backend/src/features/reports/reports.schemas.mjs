@@ -29,11 +29,15 @@ export function isDateInTrimester(dateStr, trimesterNum, year) {
 }
 
 /**
- * Returns true when `dateStr` belongs to the billing cycle `cycleValue`.
- * cycleValue format: 'YYYY-MM'  (cycle closes on the 25th of that month).
+ * Returns true when `dateStr` (YYYY-MM-DD) belongs to the given billing cycle.
+ * cycleValue format: 'YYYY-MM'  (period closes on `closingDay` of that month).
  * Also handles legacy '-Q' format by delegating to isDateInTrimester.
+ *
+ * @param {string} dateStr
+ * @param {string} cycleValue
+ * @param {number} [closingDay=25]  — configurable day-of-month cutoff
  */
-export function isDateInCycle(dateStr, cycleValue) {
+export function isDateInCycle(dateStr, cycleValue, closingDay = 25) {
   const date = new Date(dateStr + 'T00:00:00');
 
   if (cycleValue.includes('-Q')) {
@@ -42,7 +46,7 @@ export function isDateInCycle(dateStr, cycleValue) {
   }
 
   const [targetYear, targetMonth] = cycleValue.split('-').map(Number);
-  const cycleEnd   = new Date(targetYear, targetMonth - 1, 25);      // 25th of cycle month
-  const cycleStart = new Date(targetYear, targetMonth - 2, 26);      // 26th of prev month
+  const cycleEnd   = new Date(targetYear, targetMonth - 1, closingDay);          // closing day of cycle month
+  const cycleStart = new Date(targetYear, targetMonth - 2, closingDay + 1);      // day after closing of previous month
   return date >= cycleStart && date <= cycleEnd;
 }

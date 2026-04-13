@@ -30,3 +30,13 @@ export async function upsertReceivable(req, res, next) {
     next(err);
   }
 }
+
+export async function upsertManyReceivables(req, res, next) {
+  try {
+    const requesterProfile = await getRequesterProfile(req);
+    const result = await service.upsertManyReceivables(requesterProfile, req.body);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}

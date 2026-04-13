@@ -22,6 +22,7 @@ function mapConfig(data) {
     payableName: data.payable_name,
     receivableAccount: data.receivable_account,
     receivableName: data.receivable_name,
+    closingDay: data.closing_day ?? 25,
     updatedAt: data.updated_at,
   };
 }
@@ -53,6 +54,13 @@ export async function updateConfig(requesterProfile, payload) {
   if (payload.payableName !== undefined) updates.payable_name = payload.payableName;
   if (payload.receivableAccount !== undefined) updates.receivable_account = payload.receivableAccount;
   if (payload.receivableName !== undefined) updates.receivable_name = payload.receivableName;
+  if (payload.closingDay !== undefined) {
+    const day = Number(payload.closingDay);
+    if (!Number.isInteger(day) || day < 1 || day > 28) {
+      throw new AppError('El día de cierre debe ser un entero entre 1 y 28.', 400);
+    }
+    updates.closing_day = day;
+  }
 
   if (Object.keys(updates).length === 0) {
     throw new AppError('No hay campos para actualizar.', 400);
@@ -101,4 +109,41 @@ export async function upsertReceivable(requesterProfile, payload) {
     periodKey: data.period_key,
     amount: Number(data.amount),
   };
+}
+
+export async function upsertManyReceivables(requesterProfile, payload) {
+  assertAccountingRole(requesterProfile);
+
+  if (!Array.isArray(payload) || payload.length === 0) {
+    throw new AppError('Se esperaba un arreglo de filas no vacío.', 400);
+  }
+  if (payload.length > 500) {
+    throw new AppError('Límite de 500 filas por importación.', 400);
+  }
+
+  const now = new Date().toISOString();
+  const records = payload.map((row, i) => {
+    const { studentId, periodKey, amount } = row ?? {};
+    if (!studentId || !periodKey || amount === undefined) {
+      throw new AppError(`Fila ${i + 1}: faltan campos requeridos (studentId, periodKey, amount).`, 400);
+    }
+    const num = Number(amount);
+    if (!Number.isFinite(num) || num < 0) {
+      throw new AppError(`Fila ${i + 1}: monto inválido.`, 400);
+    }
+    return {
+      student_id: String(studentId),
+      period_key: String(periodKey),
+      amount: num,
+      created_by: requesterProfile.id,
+      updated_at: now,
+    };
+  });
+
+  const { data, error } = await repo.upsertManyReceivables(records);
+  if (error) {
+    throw new AppError('Error al importar cuentas por cobrar: ' + error.message, 500);
+  }
+
+  return { imported: data?.length ?? 0 };
 }

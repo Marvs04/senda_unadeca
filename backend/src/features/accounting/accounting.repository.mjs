@@ -20,3 +20,10 @@ export async function upsertReceivable(payload) {
     .select('*')
     .single();
 }
+
+export async function upsertManyReceivables(records) {
+  return adminSupabase
+    .from('student_receivables')
+    .upsert(records, { onConflict: 'student_id, period_key' })
+    .select('id, student_id, period_key, amount');
+}
