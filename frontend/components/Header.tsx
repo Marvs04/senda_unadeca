@@ -30,7 +30,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4">
             <img
-              src="/senda-logo.svg"
+              src={`${import.meta.env.BASE_URL}senda-logo.svg`}
               alt="SENDA"
               className="w-10 h-10 rounded-full flex-shrink-0"
             />

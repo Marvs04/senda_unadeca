@@ -1,4 +1,4 @@
-export function getBillingCycle(dateInput: Date | string = new Date()) {
+export function getBillingCycle(dateInput: Date | string = new Date(), closingDay = 25) {
   const date = typeof dateInput === 'string' ? new Date(dateInput + (dateInput.length <= 7 ? '-01' : '') + 'T00:00:00') : dateInput;
   const day = date.getDate();
   const month = date.getMonth();
@@ -7,7 +7,7 @@ export function getBillingCycle(dateInput: Date | string = new Date()) {
   let cycleMonth = month;
   let cycleYear = year;
 
-  if (day >= 26) {
+  if (day > closingDay) {
     cycleMonth = (month + 1) % 12;
     if (cycleMonth === 0) cycleYear++;
   }
@@ -38,7 +38,7 @@ export function getTrimester(dateInput: Date | string = new Date()) {
   };
 }
 
-export function isDateInCycle(dateStr: string, cycleValue: string) {
+export function isDateInCycle(dateStr: string, cycleValue: string, closingDay = 25) {
   const date = new Date(dateStr + 'T00:00:00');
   if (cycleValue.includes('-Q')) {
     const [year, qPart] = cycleValue.split('-Q');
@@ -47,8 +47,8 @@ export function isDateInCycle(dateStr: string, cycleValue: string) {
   }
 
   const [targetYear, targetMonth] = cycleValue.split('-').map(Number);
-  const cycleEnd = new Date(targetYear, targetMonth - 1, 25);
-  const cycleStart = new Date(targetYear, targetMonth - 2, 26);
+  const cycleEnd   = new Date(targetYear, targetMonth - 1, closingDay);
+  const cycleStart = new Date(targetYear, targetMonth - 2, closingDay + 1);
   return date >= cycleStart && date <= cycleEnd;
 }
 

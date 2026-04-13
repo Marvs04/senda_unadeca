@@ -96,6 +96,7 @@ export async function getPayrollReport(requesterProfile, params, adminSupa) {
   const rateNum     = Number(params.rate)      || 0;
   const yearNum     = Number(params.year)      || new Date().getFullYear();
   const trimNum     = Number(params.trimester) || 1;
+  const closingDay  = Number(params.closingDay) || 25;
 
   // ── 1. Fetch raw data (already camelCase via mappers) ─────────────────────
   const { logs, users, departments, receivables } = await repo.fetchAllData(adminSupa);
@@ -107,7 +108,7 @@ export async function getPayrollReport(requesterProfile, params, adminSupa) {
   // ── 2. Filter by period ───────────────────────────────────────────────────
   let periodLogs = logs.filter(log =>
     mode === 'cycle'
-      ? isDateInCycle(log.date, cycle)
+      ? isDateInCycle(log.date, cycle, closingDay)
       : isDateInTrimester(log.date, trimNum, yearNum),
   );
 
@@ -218,6 +219,7 @@ export async function getStudentReportData(requesterProfile, studentId, params, 
   const yearNum     = Number(params.year) || new Date().getFullYear();
   const trimNum     = Number(params.trimester) || 1;
   const rateNum     = Number(params.rate) || 1000;
+  const closingDay  = Number(params.closingDay) || 25;
 
   const { logs, users, departments, receivables } = await repo.fetchAllData(adminSupa);
   const student = users.find(u => u.id === studentId);
@@ -230,7 +232,7 @@ export async function getStudentReportData(requesterProfile, studentId, params, 
   let periodLogs = logs.filter(l => l.studentId === studentId && (l.status === 'APPROVED' || l.status === 'PROCESSED'));
   periodLogs = periodLogs.filter(log =>
     mode === 'cycle'
-      ? isDateInCycle(log.date, cycle)
+      ? isDateInCycle(log.date, cycle, closingDay)
       : isDateInTrimester(log.date, trimNum, yearNum),
   );
   periodLogs.sort((a,b) => new Date(a.date) - new Date(b.date));

@@ -27,7 +27,7 @@ export function useAccountingReport(params: PayrollReportParams) {
 
   const {
     viewMode, selectedCycle, selectedTrimester,
-    selectedYear, searchTerm, selectedDeptId, currentRate,
+    selectedYear, searchTerm, selectedDeptId, currentRate, closingDay,
   } = params;
 
   // ── Fetch on filter change ────────────────────────────────────────────────
@@ -44,7 +44,7 @@ export function useAccountingReport(params: PayrollReportParams) {
     return () => { cancelled = true; };
   }, [
     viewMode, selectedCycle, selectedTrimester,
-    selectedYear, searchTerm, selectedDeptId, currentRate,
+    selectedYear, searchTerm, selectedDeptId, currentRate, closingDay,
   ]);
 
   // ── Real-time: silently refresh when work_logs changes ───────────────────

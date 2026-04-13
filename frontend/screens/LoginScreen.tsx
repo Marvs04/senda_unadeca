@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import {
-    ShieldCheck,
     Lock,
     ArrowRight,
     User as UserIcon,
@@ -48,10 +47,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                     className="hidden lg:block space-y-12"
         >
                     <div className="space-y-6">
-                        <div className="inline-flex items-center space-x-3 px-4 py-2 bg-primary text-primary-fg rounded-2xl shadow-xl shadow-primary/20">
-                            <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                            <span className="text-xs font-black uppercase tracking-widest">Portal Oficial</span>
-            </div>
                         <h1 className="text-8xl font-black tracking-tighter text-foreground font-display leading-[0.9]">
                             SENDA
                         </h1>

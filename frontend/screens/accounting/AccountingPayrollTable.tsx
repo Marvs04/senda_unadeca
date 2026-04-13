@@ -7,7 +7,7 @@
  * students have already been entered into the external payroll software.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   BookOpen,
@@ -18,7 +18,11 @@ import {
   Check,
   Eye,
   EyeOff,
+  Upload,
+  FileDown,
+  Download,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { DeptBook } from '../../services/reportsService';
 import { formatCurrency, cn } from '../../lib/utils';
 
@@ -31,13 +35,16 @@ function formatHours(h: number): string {
 }
 
 interface AccountingPayrollTableProps {
-  approvedBooks:      DeptBook[];
-  processedBooks:     DeptBook[];
-  registeredIds:      Set<string>;
-  onToggleRegistered: (studentId: string) => void;
-  onProcessPayments:  () => void;
-  onUpdateReceivable: (studentId: string, amount: number) => void;
-  onStudentClick?: (studentId: string) => void;
+  approvedBooks:               DeptBook[];
+  processedBooks:              DeptBook[];
+  registeredIds:               Set<string>;
+  periodKey:                   string;
+  onToggleRegistered:          (studentId: string) => void;
+  onProcessPayments:           () => void;
+  onUpdateReceivable:          (studentId: string, amount: number) => void;
+  onBatchImportReceivables:    (rows: { studentId: string; amount: number }[]) => Promise<void>;
+  onDownloadDeptPDF?:          (book: DeptBook) => void;
+  onStudentClick?:             (studentId: string) => void;
 }
 
 // ─── Component: Editable Input ────────────────────────────────────────────────
@@ -82,9 +89,10 @@ const DeptBookCard: React.FC<{
   onToggleRegistered: (id: string) => void;
   onUpdateReceivable: (id: string, val: number) => void;
   onStudentClick?:    (id: string) => void;
+  onDownloadDeptPDF?: (book: DeptBook) => void;
   dimmed?:            boolean; // processed books look dimmer
   showCarnet:         boolean;
-}> = ({ book, registeredIds, onToggleRegistered, onUpdateReceivable, onStudentClick, dimmed, showCarnet }) => {
+}> = ({ book, registeredIds, onToggleRegistered, onUpdateReceivable, onStudentClick, onDownloadDeptPDF, dimmed, showCarnet }) => {
   const [collapsed, setCollapsed] = useState(false);
   const registeredCount = book.students.filter(s => registeredIds.has(s.studentId)).length;
   const allRegistered   = registeredCount === book.students.length && book.students.length > 0;
@@ -156,7 +164,18 @@ const DeptBookCard: React.FC<{
               >
                 Seleccionar todos
               </button>
-            )}          <div className="hidden sm:grid grid-cols-5 gap-x-6 text-right">
+            )}
+            {/* Download dept PDF */}
+            {onDownloadDeptPDF && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onDownloadDeptPDF(book); }}
+                title="Descargar PDF del departamento"
+                className="p-1.5 rounded-lg border border-border-faint hover:bg-surface transition-colors text-muted hover:text-foreground"
+              >
+                <Download className="w-3.5 h-3.5" />
+              </button>
+            )}
+          <div className="hidden sm:grid grid-cols-5 gap-x-6 text-right">
             <div>
               <p className="text-[9px] font-bold uppercase tracking-widest text-faint">Horas</p>
               <p className="text-sm font-black font-mono">{book.totalHours.toFixed(1)} h</p>
@@ -340,15 +359,104 @@ const AccountingPayrollTable: React.FC<AccountingPayrollTableProps> = ({
   approvedBooks,
   processedBooks,
   registeredIds,
+  periodKey,
   onToggleRegistered,
   onProcessPayments,
   onUpdateReceivable,
+  onBatchImportReceivables,
+  onDownloadDeptPDF,
   onStudentClick,
 }) => {
   const [tab, setTab] = useState<'approved' | 'processed'>('approved');
   const [showCarnet, setShowCarnet] = useState(false);
+  const [importing, setImporting]   = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const books    = tab === 'approved' ? approvedBooks : processedBooks;
   const hasBooks = books.length > 0;
+
+  // Build carnet → studentId lookup from all approved books
+  const carnetToStudentId = React.useMemo(() => {
+    const map = new Map<string, string>();
+    approvedBooks.forEach(book =>
+      book.students.forEach(s => { if (s.carnet) map.set(s.carnet.trim(), s.studentId); })
+    );
+    return map;
+  }, [approvedBooks]);
+
+  // Download CSV template pre-filled with current approved students
+  const handleDownloadTemplate = () => {
+    const lines = ['carnet,nombre,departamento,cuenta_por_cobrar'];
+    approvedBooks.forEach(book =>
+      book.students.forEach(s =>
+        lines.push(
+          `"${s.carnet ?? ''}","${s.studentName}","${book.departmentName}",${(s.manualReceivable ?? 0).toFixed(2)}`
+        )
+      )
+    );
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `template_cxc_${periodKey}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Parse uploaded CSV and call the batch handler
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // reset so same file can be re-selected
+    e.target.value = '';
+
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) {
+      toast.error('El archivo no contiene datos.', { position: 'top-center' });
+      return;
+    }
+
+    // Skip header row; expect: carnet, nombre, departamento, cuenta_por_cobrar
+    const rows: { studentId: string; amount: number }[] = [];
+    const errors: string[] = [];
+
+    lines.slice(1).forEach((line, idx) => {
+      // Handle quoted fields
+      const cols = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g)
+        ?.map(c => c.replace(/^"|"$/g, '').trim()) ?? line.split(',').map(c => c.trim());
+
+      const carnet = cols[0];
+      const amountRaw = cols[3];
+      if (!carnet) { errors.push(`Fila ${idx + 2}: carnet vacío.`); return; }
+
+      const studentId = carnetToStudentId.get(carnet);
+      if (!studentId) { errors.push(`Fila ${idx + 2}: carnet "${carnet}" no encontrado en período actual.`); return; }
+
+      const amount = parseFloat(amountRaw ?? '0');
+      if (isNaN(amount) || amount < 0) { errors.push(`Fila ${idx + 2}: monto inválido "${amountRaw}".`); return; }
+
+      rows.push({ studentId, amount });
+    });
+
+    if (errors.length > 0) {
+      toast.error(`Errores en el archivo:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? `\n…y ${errors.length - 5} más.` : ''}`, { position: 'top-center', duration: 6000 });
+      return;
+    }
+    if (rows.length === 0) {
+      toast.error('No se encontraron filas válidas.', { position: 'top-center' });
+      return;
+    }
+
+    setImporting(true);
+    try {
+      await onBatchImportReceivables(rows);
+      toast.success(`${rows.length} cuenta${rows.length !== 1 ? 's' : ''} por cobrar importada${rows.length !== 1 ? 's' : ''}.`, { position: 'top-center' });
+    } catch {
+      toast.error('Error al importar. Intente de nuevo.', { position: 'top-center' });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   return (
     <div>
@@ -366,6 +474,36 @@ const AccountingPayrollTable: React.FC<AccountingPayrollTableProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* CSV import / template buttons */}
+          {tab === 'approved' && approvedBooks.length > 0 && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <button
+                onClick={handleDownloadTemplate}
+                title="Descargar template CSV"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-faint bg-card hover:bg-surface transition-colors text-xs font-bold text-muted"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                Template
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
+                title="Importar desde CSV"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors text-xs font-bold text-primary disabled:opacity-50"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                {importing ? 'Importando…' : 'Importar CxC'}
+              </button>
+            </>
+          )}
+
           {/* Show/hide carnet toggle */}
           <button
             onClick={() => setShowCarnet(p => !p)}
@@ -414,6 +552,7 @@ const AccountingPayrollTable: React.FC<AccountingPayrollTableProps> = ({
               onToggleRegistered={onToggleRegistered}
               onUpdateReceivable={onUpdateReceivable}
               onStudentClick={onStudentClick}
+              onDownloadDeptPDF={onDownloadDeptPDF}
               dimmed={tab === 'processed'}
               showCarnet={showCarnet}
             />

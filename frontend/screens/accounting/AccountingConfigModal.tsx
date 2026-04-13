@@ -24,6 +24,7 @@ type ConfigDraft = Pick<
   | 'payableName'
   | 'receivableAccount'
   | 'receivableName'
+  | 'closingDay'
 >;
 
 const DEFAULT_DRAFT: ConfigDraft = {
@@ -35,6 +36,7 @@ const DEFAULT_DRAFT: ConfigDraft = {
   payableName: 'Cuentas por Pagar',
   receivableAccount: '',
   receivableName: 'Cuentas por Cobrar',
+  closingDay: 25,
 };
 
 function normalizeCostCenterInput(rawValue: string): string {
@@ -82,6 +84,7 @@ const AccountingConfigModal: React.FC<AccountingConfigModalProps> = ({
           payableName: config.payableName ?? 'Cuentas por Pagar',
           receivableAccount: config.receivableAccount ?? '',
           receivableName: config.receivableName ?? 'Cuentas por Cobrar',
+          closingDay: config.closingDay ?? 25,
         });
       })
       .catch(err => {
@@ -129,7 +132,7 @@ const AccountingConfigModal: React.FC<AccountingConfigModalProps> = ({
 
   const canSave = !isAnyAccountMissing && !isAnyCostCenterInvalid;
 
-  const updateDraft = (key: keyof ConfigDraft, value: string) => {
+  const updateDraft = (key: keyof ConfigDraft, value: string | number) => {
     setDraft(prev => ({ ...prev, [key]: value }));
   };
 
@@ -190,6 +193,7 @@ const AccountingConfigModal: React.FC<AccountingConfigModalProps> = ({
         payableName: draft.payableName.trim(),
         receivableAccount: draft.receivableAccount.trim(),
         receivableName: draft.receivableName.trim(),
+        closingDay: draft.closingDay,
       });
 
       if (changedDepartments.length > 0) {
@@ -313,6 +317,29 @@ const AccountingConfigModal: React.FC<AccountingConfigModalProps> = ({
                   onChange={e => updateDraft('receivableName', e.target.value)}
                   required
                 />
+              </div>
+
+              {/* Closing day */}
+              <div className="pt-2 border-t border-border-faint">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-faint mb-2">
+                  Día de cierre del período
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="number"
+                    min={1}
+                    max={28}
+                    value={draft.closingDay}
+                    onChange={e => {
+                      const v = parseInt(e.target.value, 10);
+                      if (v >= 1 && v <= 28) updateDraft('closingDay', v);
+                    }}
+                    className="w-20 px-3 py-2 text-center font-mono text-sm bg-background border border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  />
+                  <p className="text-xs text-faint">
+                    Horas registradas después del día <strong>{draft.closingDay}</strong> de cada mes se contarán en el siguiente ciclo.
+                  </p>
+                </div>
               </div>
             </div>
           )}

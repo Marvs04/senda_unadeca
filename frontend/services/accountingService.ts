@@ -10,6 +10,7 @@ export interface AccountingConfig {
   payableName: string;
   receivableAccount: string;
   receivableName: string;
+  closingDay: number;
   updatedAt: string;
 }
 
@@ -32,5 +33,12 @@ export async function upsertStudentReceivable(
     '/accounting/receivables',
     { studentId, periodKey, amount }
   );
+  return data;
+}
+
+export async function upsertManyStudentReceivables(
+  rows: { studentId: string; periodKey: string; amount: number }[]
+): Promise<{ imported: number }> {
+  const { data } = await apiClient.put<{ imported: number }>('/accounting/receivables/batch', rows);
   return data;
 }
