@@ -8,7 +8,6 @@ import {
   deleteState,
   insertSession,
   deleteSession,
-  deleteAllSessions,
 } from './kiosk.repository.mjs';
 import { insert as insertWorkLog } from '../workLogs/workLogs.repository.mjs';
 import { toWorkLog } from '../../shared/utils/mappers.mjs';
@@ -344,10 +343,7 @@ export async function clockOut(body, adminSupa) {
   const endedAt = new Date().toISOString();
   const hours = Math.max(hoursWorked(session.started_at, endedAt), 0);
 
-  // Delete session
-  await deleteSession(adminSupa, kioskData.id, profile.id);
-
-  // Create work log
+  // Create work log first — if this fails, the session stays and no data is lost
   const { data: logRow, error: logError } = await insertWorkLog(adminSupa, {
     student_id: profile.id,
     department_id: kioskData.department_id,
@@ -364,6 +360,9 @@ export async function clockOut(body, adminSupa) {
     err.statusCode = 400;
     throw err;
   }
+
+  // Delete session only after the work log is safely persisted
+  await deleteSession(adminSupa, kioskData.id, profile.id);
 
   return { ok: true, name: profile.name, workLog: toWorkLog(logRow) };
 }
@@ -426,8 +425,7 @@ export async function cancelSession(body, adminSupa) {
   const rejectedAt = new Date().toISOString();
   const hours = Math.max(hoursWorked(session.started_at, rejectedAt), 0);
 
-  await deleteSession(adminSupa, kioskData.id, studentId);
-
+  // Create work log first — if this fails, the session stays and no data is lost
   const { data: logRow, error: logError } = await insertWorkLog(adminSupa, {
     student_id: studentId,
     department_id: kioskData.department_id,
@@ -447,6 +445,9 @@ export async function cancelSession(body, adminSupa) {
     err.statusCode = 400;
     throw err;
   }
+
+  // Delete session only after the work log is safely persisted
+  await deleteSession(adminSupa, kioskData.id, studentId);
 
   return { ok: true, workLog: toWorkLog(logRow) };
 }

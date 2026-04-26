@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { PortalLayout } from '../../components/layout';
 import { User, WorkLog } from '../../types';
-import { exportToCSV, formatCostaRicaLongDate, formatCurrency, formatCurrencyPdf } from '../../lib/utils';
+import { exportToCSV, formatCostaRicaLongDate, formatCurrencyPdf } from '../../lib/utils';
 import { renderPDF } from '../../lib/pdf';
 import { getTrimester } from '../../lib/business';
 import { useStudentSession } from '../../hooks/useStudentSession';

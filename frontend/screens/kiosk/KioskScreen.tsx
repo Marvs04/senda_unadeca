@@ -364,7 +364,7 @@ const KioskScreen: React.FC<KioskScreenProps> = ({
   }, []);
 
   const handleClockAction = async (identifier: string, password: string) => {
-    const alreadyIn = activeSessions.some(s => s.user.carnet === identifier);
+    const alreadyIn = activeSessions.some(s => s.user.carnet?.toLowerCase() === identifier.toLowerCase());
     if (alreadyIn) {
       const result = await actions.clockOut(identifier, password);
       if (!result.ok) { showKioskError(result.error!, result.code); return; }

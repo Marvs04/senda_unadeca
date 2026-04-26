@@ -1,10 +1,15 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Users, Search, RefreshCw, ChevronUp, ChevronDown, Eye, MoreHorizontal, UserCheck, UserX } from 'lucide-react';
 import { User, UserRole, Department } from '../../types';
-import { Badge, Button } from '../../components/ui';
+import { Badge } from '../../components/ui';
 import type { SortField, SortDir, ActiveFilter } from '../../hooks/useSuperAdminData';
 
 const PAGE_OPTIONS = [10, 25, 50];
+
+const SortIcon: React.FC<{ field: SortField; sortField: SortField; sortDir: SortDir }> = ({ field, sortField, sortDir }) =>
+  sortField === field
+    ? sortDir === 'asc' ? <ChevronUp className="w-3 h-3 inline ml-1" /> : <ChevronDown className="w-3 h-3 inline ml-1" />
+    : null;
 
 const ROLE_AVATAR_COLORS: Record<string, string> = {
   [UserRole.ADMIN]:      'bg-indigo-100 text-indigo-700',
@@ -109,11 +114,6 @@ const SuperAdminAccountList: React.FC<SuperAdminAccountListProps> = ({
     setPage(0);
   };
 
-  const SortIcon = ({ field }: { field: SortField }) =>
-    sortField === field
-      ? sortDir === 'asc' ? <ChevronUp className="w-3 h-3 inline ml-1" /> : <ChevronDown className="w-3 h-3 inline ml-1" />
-      : null;
-
   return (
     <div className="bg-card p-8 rounded-[2.5rem] border border-border-faint shadow-sm">
       <div className="flex items-center justify-between mb-6">
@@ -163,19 +163,19 @@ const SuperAdminAccountList: React.FC<SuperAdminAccountListProps> = ({
           <thead className="bg-surface text-[10px] uppercase tracking-widest font-bold text-faint">
             <tr>
               <th className="px-6 py-4 cursor-pointer select-none" onClick={() => toggleSort('name')}>
-                Nombre <SortIcon field="name" />
+                Nombre <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
               </th>
               <th className="px-6 py-4 cursor-pointer select-none" onClick={() => toggleSort('employeeNumber')}>
-                No. Empleado <SortIcon field="employeeNumber" />
+                No. Empleado <SortIcon field="employeeNumber" sortField={sortField} sortDir={sortDir} />
               </th>
               <th className="px-6 py-4 cursor-pointer select-none" onClick={() => toggleSort('role')}>
-                Rol <SortIcon field="role" />
+                Rol <SortIcon field="role" sortField={sortField} sortDir={sortDir} />
               </th>
               <th className="px-6 py-4 cursor-pointer select-none" onClick={() => toggleSort('isActive')}>
-                Estado <SortIcon field="isActive" />
+                Estado <SortIcon field="isActive" sortField={sortField} sortDir={sortDir} />
               </th>
               <th className="px-6 py-4 cursor-pointer select-none" onClick={() => toggleSort('createdAt')}>
-                Creado <SortIcon field="createdAt" />
+                Creado <SortIcon field="createdAt" sortField={sortField} sortDir={sortDir} />
               </th>
               <th className="px-6 py-4 text-right">Acciones</th>
             </tr>
