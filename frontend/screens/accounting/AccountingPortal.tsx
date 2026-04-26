@@ -88,7 +88,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
         });
       })
       .catch(() => {/* silent — use default 25 */});
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Registered IDs: persisted in localStorage per period ─────────────────
   const [registeredIds, setRegisteredIds] = useState<Set<string>>(() => {
@@ -422,7 +422,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
             Contabilidad
           </h2>
           <p className="text-muted text-sm mt-1">
-            Nómina de becados · cierres el 25 de cada mes
+            Nómina de becados · cierres el día {closingDay} de cada mes
           </p>
         </div>
 

@@ -1,10 +1,15 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Users, Search, HelpCircle, ChevronUp, ChevronDown, Eye, Inbox, MoreHorizontal, RefreshCw, UserCheck, UserX } from 'lucide-react';
+import { Search, HelpCircle, ChevronUp, ChevronDown, Eye, Inbox, MoreHorizontal, RefreshCw, UserCheck, UserX } from 'lucide-react';
 import { User, Department } from '../../types';
 import { Badge } from '../../components/ui';
 import type { SortField, SortDir, ActiveFilter } from '../../hooks/useSuperAdminData';
 
 const PAGE_OPTIONS = [10, 25, 50];
+
+const SortIcon: React.FC<{ field: SortField; sortField: SortField; sortDir: SortDir }> = ({ field, sortField, sortDir }) =>
+  sortField === field
+    ? sortDir === 'asc' ? <ChevronUp className="w-3 h-3 inline ml-1" /> : <ChevronDown className="w-3 h-3 inline ml-1" />
+    : null;
 
 /* ── Inline dropdown menu ───────────────────────────────────────────────── */
 const ActionsMenu: React.FC<{ user: User; onView: (u: User) => void; onReset: (u: User) => void; onToggle: (u: User) => void }> = ({ user, onView, onReset, onToggle }) => {
@@ -104,11 +109,6 @@ const SuperAdminStudentHelp: React.FC<SuperAdminStudentHelpProps> = ({
     setPage(0);
   };
 
-  const SortIcon = ({ field }: { field: SortField }) =>
-    sortField === field
-      ? sortDir === 'asc' ? <ChevronUp className="w-3 h-3 inline ml-1" /> : <ChevronDown className="w-3 h-3 inline ml-1" />
-      : null;
-
   const deptMap = useMemo(() => {
     const map = new Map<string, string>();
     allDepartments.forEach(d => map.set(d.id, d.name));
@@ -161,12 +161,12 @@ const SuperAdminStudentHelp: React.FC<SuperAdminStudentHelpProps> = ({
         <button onClick={() => toggleSort('name')} className={`px-3 py-1 rounded-lg border transition-colors ${
           sortField === 'name' ? 'bg-primary text-primary-fg border-primary' : 'bg-surface text-muted border-border-faint hover:border-border'
         }`}>
-          Nombre <SortIcon field="name" />
+          Nombre <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
         </button>
         <button onClick={() => toggleSort('createdAt')} className={`px-3 py-1 rounded-lg border transition-colors ${
           sortField === 'createdAt' ? 'bg-primary text-primary-fg border-primary' : 'bg-surface text-muted border-border-faint hover:border-border'
         }`}>
-          Creado <SortIcon field="createdAt" />
+          Creado <SortIcon field="createdAt" sortField={sortField} sortDir={sortDir} />
         </button>
       </div>
 
@@ -176,15 +176,15 @@ const SuperAdminStudentHelp: React.FC<SuperAdminStudentHelpProps> = ({
           <thead className="bg-surface text-[10px] uppercase tracking-widest font-bold text-faint">
             <tr>
               <th className="px-6 py-4 cursor-pointer select-none" onClick={() => toggleSort('name')}>
-                Nombre <SortIcon field="name" />
+                Nombre <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
               </th>
               <th className="px-6 py-4">Carnet</th>
               <th className="px-6 py-4">Departamento</th>
               <th className="px-6 py-4 cursor-pointer select-none" onClick={() => toggleSort('isActive')}>
-                Estado <SortIcon field="isActive" />
+                Estado <SortIcon field="isActive" sortField={sortField} sortDir={sortDir} />
               </th>
               <th className="px-6 py-4 cursor-pointer select-none" onClick={() => toggleSort('createdAt')}>
-                Creado <SortIcon field="createdAt" />
+                Creado <SortIcon field="createdAt" sortField={sortField} sortDir={sortDir} />
               </th>
               <th className="px-6 py-4 text-right">Acciones</th>
             </tr>
