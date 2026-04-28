@@ -13,6 +13,12 @@ import { toUser } from '../../shared/utils/mappers.mjs';
 import { normalizeOptionalText } from '../../shared/utils/normalize.mjs';
 import { INSTITUTIONAL_EMAIL_REGEX } from '../../shared/utils/regex.mjs';
 import { buildAuthEmail } from '../../shared/utils/normalize.mjs';
+import {
+  sendWelcome,
+  sendPasswordReset,
+  sendAccountDeactivated,
+  sendAccountActivated,
+} from '../../shared/config/mailer.mjs';
 
 export async function getUsers(supabase) {
   const { data, error } = await findAll(supabase);
@@ -73,8 +79,13 @@ export async function createUser(body, requester) {
     err.statusCode = 400;
     throw err;
   }
-  if (normalizedInstitutionalEmail && !INSTITUTIONAL_EMAIL_REGEX.test(normalizedInstitutionalEmail)) {
-    const err = new Error('Correo institucional invalido.');
+  if (!normalizedInstitutionalEmail) {
+    const err = new Error('El correo institucional es requerido.');
+    err.statusCode = 400;
+    throw err;
+  }
+  if (!INSTITUTIONAL_EMAIL_REGEX.test(normalizedInstitutionalEmail)) {
+    const err = new Error('El correo institucional debe tener el formato usuario@unadeca.net');
     err.statusCode = 400;
     throw err;
   }
@@ -105,6 +116,15 @@ export async function createUser(body, requester) {
     err.statusCode = 400;
     throw err;
   }
+
+  sendWelcome({
+    to: normalizedInstitutionalEmail,
+    name: normalizedName,
+    role: normalizedRole,
+    identifier: normalizedCarnet ?? normalizedEmployeeNumber ?? normalizedName,
+    password,
+  }).catch((e) => console.error('[mailer] sendWelcome error:', e.message));
+
   return toUser(profile);
 }
 
@@ -161,7 +181,7 @@ export async function updateUser(id, body, requester) {
     throw err;
   }
   if (nextInstitutionalEmail && !INSTITUTIONAL_EMAIL_REGEX.test(nextInstitutionalEmail)) {
-    const err = new Error('Correo institucional invalido.');
+    const err = new Error('El correo institucional debe tener el formato usuario@unadeca.net');
     err.statusCode = 400;
     throw err;
   }
@@ -185,6 +205,13 @@ export async function updateUser(id, body, requester) {
     const err = new Error(error.message);
     err.statusCode = 400;
     throw err;
+  }
+
+  const targetEmail = target.institutional_email ?? nextInstitutionalEmail;
+  if (isActive !== undefined && targetEmail) {
+    const fn = Boolean(isActive) ? sendAccountActivated : sendAccountDeactivated;
+    fn({ to: targetEmail, name: target.name })
+      .catch((e) => console.error('[mailer] sendAccount status error:', e.message));
   }
 }
 
@@ -249,6 +276,18 @@ export async function resetPassword(id, newPassword, requester) {
     const err = new Error(error.message);
     err.statusCode = 400;
     throw err;
+  }
+
+  const recipientEmail = target.institutional_email;
+  if (recipientEmail) {
+    const identifier = target.carnet ?? target.employee_number ?? target.name;
+    sendPasswordReset({
+      to: recipientEmail,
+      name: target.name,
+      identifier,
+      newPassword: newPassword.trim(),
+      resetBy: requester.name ?? requester.role,
+    }).catch((e) => console.error('[mailer] sendPasswordReset error:', e.message));
   }
 }
 // Exports:

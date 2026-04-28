@@ -16,6 +16,12 @@ services:
       SUPABASE_ANON_KEY: REDACTED_ANON_KEY
       SUPABASE_SERVICE_ROLE_KEY: REDACTED_SERVICE_ROLE_KEY
       CORS_ORIGIN: https://senda.rlp.lat
+      SITE_URL: https://senda.rlp.lat
+      SMTP_HOST: smtp.office365.com
+      SMTP_PORT: 587
+      SMTP_USER: controlestudiantil@unadeca.net
+      SMTP_PASS: Q$569209196926uj
+      SMTP_SENDER_NAME: SENDA-Lab
     expose:
       - "4000"
     healthcheck:
