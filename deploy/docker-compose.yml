@@ -1,0 +1,47 @@
+services:
+
+  # ── Backend API (Express + Supabase) ──────────────────────────────────────
+  senda-backend:
+    build:
+      context: ../senda/backend
+      dockerfile: Dockerfile
+    image: senda-backend:latest
+    container_name: senda-backend
+    restart: unless-stopped
+    networks:
+      - stamp-net
+    environment:
+      PORT: 4000
+      SUPABASE_URL: http://senda-kong:8000
+      SUPABASE_ANON_KEY: REDACTED_ANON_KEY
+      SUPABASE_SERVICE_ROLE_KEY: REDACTED_SERVICE_ROLE_KEY
+      CORS_ORIGIN: https://senda.rlp.lat
+    expose:
+      - "4000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── Frontend (React/Vite built → nginx) ────────────────────────────────────
+  senda-frontend:
+    build:
+      context: ../senda/frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_VERSION: v1
+    image: senda-frontend:latest
+    container_name: senda-frontend
+    restart: unless-stopped
+    networks:
+      - stamp-net
+    expose:
+      - "80"
+    depends_on:
+      senda-backend:
+        condition: service_healthy
+
+networks:
+  stamp-net:
+    external: true

@@ -49,3 +49,7 @@ Thumbs.db
 
 # Misc
 *.local
+
+#supabase
+supabase/
+
