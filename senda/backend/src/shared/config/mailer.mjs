@@ -6,7 +6,10 @@ const {
   SMTP_USER,
   SMTP_PASS,
   SMTP_SENDER_NAME = 'SENDA-Lab',
+  SMTP_FROM,
 } = process.env;
+
+const FROM_ADDRESS = SMTP_FROM ?? SMTP_USER;
 
 let _transporter = null;
 
@@ -16,6 +19,7 @@ function getTransporter() {
       host: SMTP_HOST,
       port: Number(SMTP_PORT ?? 587),
       secure: Number(SMTP_PORT) === 465,
+      requireTLS: Number(SMTP_PORT) !== 465,
       auth: { user: SMTP_USER, pass: SMTP_PASS },
       tls: { rejectUnauthorized: false },
     });
@@ -30,7 +34,7 @@ async function send({ to, subject, html }) {
   }
   const transporter = getTransporter();
   await transporter.sendMail({
-    from: `"${SMTP_SENDER_NAME}" <${SMTP_USER}>`,
+    from: `"${SMTP_SENDER_NAME}" <${FROM_ADDRESS}>`,
     to,
     subject,
     html,
