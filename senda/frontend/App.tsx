@@ -18,6 +18,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import AppLoader from './components/AppLoader';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import { getSessionProfile, login, logout } from './services';
+import { Toaster } from 'sonner';
 
 interface AuthenticatedAreaProps {
   currentUserId: string;
@@ -224,6 +225,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Toaster richColors position="top-right" />
       <Suspense fallback={<AppLoader state="loading" />}>
         <AnimatePresence mode="wait">
           {currentUserId ? (

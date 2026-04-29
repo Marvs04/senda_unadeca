@@ -28,8 +28,8 @@ export async function changePassword(req, res) {
     if (!newPassword) {
       return res.status(400).json({ message: 'newPassword es requerido.' });
     }
-    await authService.changePassword(req.authUser.id, newPassword);
-    return res.status(204).send();
+    const session = await authService.changePassword(req.authUser.id, newPassword);
+    return session ? res.json(session) : res.status(204).send();
   } catch (error) {
     return res.status(error.statusCode ?? 500).json({ message: error instanceof Error ? error.message : 'Error interno.' });
   }

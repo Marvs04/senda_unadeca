@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { buildAuthEmail } from './auth.schemas.mjs';
 import { signInWithPassword, findProfileById } from './auth.repository.mjs';
-import { updateProfileField } from '../users/users.repository.mjs';
-import { updateAuthPassword } from '../users/users.repository.mjs';
+import { updateProfileField, updateAuthPassword } from '../users/users.repository.mjs';
 import { toUser } from '../../shared/utils/mappers.mjs';
+import { adminSupabase } from '../../shared/config/supabaseClient.mjs';
 
 const { SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
 
@@ -77,6 +77,25 @@ export async function changePassword(userId, newPassword) {
 
   await updateProfileField(userId, { must_change_password: false })
     .catch((e) => console.error('[auth] changePassword flag error:', e.message));
+
+  // Supabase invalidates all existing sessions when the password changes via
+  // admin API, so the current token is dead. Re-authenticate immediately with
+  // the new password and return a fresh session so the frontend can keep going
+  // without forcing the user to log in again.
+  const { data: adminUser } = await adminSupabase.auth.admin.getUserById(userId);
+  const email = adminUser?.user?.email;
+  if (email) {
+    const { data: session, error: signInErr } = await signInWithPassword(email, newPassword.trim());
+    if (!signInErr && session?.session) {
+      return {
+        accessToken: session.session.access_token,
+        refreshToken: session.session.refresh_token,
+        expiresAt: session.session.expires_at,
+      };
+    }
+  }
+
+  return null;
 }
 // Exports:
 //   login(identifier, password)    — builds synthetic email, authenticates, returns { accessToken, user }
