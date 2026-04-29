@@ -45,7 +45,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         className="lg:hidden mt-4 mb-6"
       >
         <img 
-          src="/send_logo_login.png" 
+          src={`${import.meta.env.BASE_URL}send_logo_login.png`}
           alt="SENDA Logo"
           className="w-16 h-16 object-contain"
         />
@@ -62,7 +62,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                     <div className="space-y-6">
                         <div className="flex flex-col items-center gap-6">
                             <img 
-                                src="/send_logo_login.png" 
+                                src={`${import.meta.env.BASE_URL}send_logo_login.png`}
                                 alt="SENDA Logo"
                                 className="w-48 h-48 object-contain"
                             />

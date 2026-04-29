@@ -8,6 +8,7 @@ import { renderPDF } from '../../lib/pdf';
 import { getTrimester } from '../../lib/business';
 import { useStudentSession } from '../../hooks/useStudentSession';
 import { useStudentFilter } from '../../hooks/useStudentFilter';
+import { useSessionLocks } from '../../hooks/useSessionLocks';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import StudentProfile from './StudentProfile';
 import StudentTimer from './StudentTimer';
@@ -36,6 +37,9 @@ const StudentPortal: React.FC<StudentPortalProps> = ({
   const [selectedCycle, setSelectedCycle] = useState(billingCycle);
   const [selectedTrimester, setSelectedTrimester] = useState(getTrimester().num);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  // Check if session is locked
+  const { isSessionLocked, lockReason } = useSessionLocks(user.departmentId);
 
   const {
     isTracking,
@@ -122,6 +126,8 @@ const StudentPortal: React.FC<StudentPortalProps> = ({
               onStart={handleStart}
               onFinish={handleFinish}
               onCancel={handleCancel}
+              isSessionLocked={isSessionLocked}
+              lockReason={lockReason}
             />
             <StudentFinancials stats={stats} />
           </div>

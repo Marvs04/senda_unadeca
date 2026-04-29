@@ -8,7 +8,7 @@ const router = Router();
 router.get('/:departmentId', requireAuth, controller.getLocks);
 
 // GET /api/v1/session-locks/:departmentId/check — check if there's an active lock
-router.get('/:departmentId/check', controller.checkIsLocked);
+router.get('/:departmentId/check', requireAuth, controller.checkIsLocked);
 
 // POST /api/v1/session-locks/:departmentId — create a lock
 router.post('/:departmentId', requireAuth, controller.createLock);

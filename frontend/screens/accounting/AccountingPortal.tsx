@@ -211,15 +211,15 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
     );
     if (!ok) return;
 
-    const updates = Array.from(selectedPaymentIds).map(logId => ({ 
-      logId, 
-      status: WorkLogStatus.PROCESSED 
-    }));
+    const updates = approvedBooks
+      .flatMap(b => b.students)
+      .filter(s => selectedPaymentIds.has(s.studentId))
+      .flatMap(s => s.logIds.map(logId => ({ logId, status: WorkLogStatus.PROCESSED })));
 
     if (updates.length > 0) {
       updateMultipleWorkLogsStatus(updates);
-      setSelectedPaymentIds(new Set()); // Clear selection after processing
-      toast.success(`${count} pago(s) procesado(s) exitosamente`, { position: 'top-center' });
+      setSelectedPaymentIds(new Set());
+      toast.success(`${count} estudiante(s) procesado(s) (${updates.length} registros)`, { position: 'top-center' });
     }
   };
 

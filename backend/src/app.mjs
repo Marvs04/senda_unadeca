@@ -11,6 +11,7 @@ import reportsRouter from './features/reports/reports.routes.mjs';
 import kioskRouter from './features/kiosk/kiosk.routes.mjs';
 import accountingRouter from './features/accounting/accounting.routes.mjs';
 import sessionLocksRouter from './features/sessionLocks/sessionLocks.routes.mjs';
+import activeTimerSessionsRouter from './features/activeTimerSessions/activeTimerSessions.routes.mjs';
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ app.use('/api/v1/reports', reportsRouter);
 app.use('/api/v1/kiosk', kioskRouter);
 app.use('/api/v1/accounting', accountingRouter);
 app.use('/api/v1/session-locks', sessionLocksRouter);
+app.use('/api/v1/active-sessions', activeTimerSessionsRouter);
 
 app.use(errorHandler);
 

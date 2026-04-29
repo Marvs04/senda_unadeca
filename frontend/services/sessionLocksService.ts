@@ -1,4 +1,4 @@
-import { apiClient } from './index';
+import { apiClient } from '../api';
 
 export interface SessionLock {
   id: string;
@@ -16,12 +16,12 @@ export interface LockCheckResponse {
 }
 
 export async function getLocks(departmentId: string): Promise<SessionLock[]> {
-  const { data } = await apiClient.get(`/session-locks/${departmentId}`);
+  const { data } = await apiClient.get<SessionLock[]>(`/session-locks/${departmentId}`);
   return data;
 }
 
 export async function checkIsLocked(departmentId: string): Promise<LockCheckResponse> {
-  const { data } = await apiClient.get(`/session-locks/${departmentId}/check`);
+  const { data } = await apiClient.get<LockCheckResponse>(`/session-locks/${departmentId}/check`);
   return data;
 }
 
@@ -31,7 +31,7 @@ export async function createLock(
   endDateTime: string,
   reason?: string,
 ): Promise<SessionLock> {
-  const { data } = await apiClient.post(`/session-locks/${departmentId}`, {
+  const { data } = await apiClient.post<SessionLock>(`/session-locks/${departmentId}`, {
     startDateTime,
     endDateTime,
     reason,
@@ -40,6 +40,6 @@ export async function createLock(
 }
 
 export async function deleteLock(lockId: string): Promise<{ success: boolean }> {
-  const { data } = await apiClient.delete(`/session-locks/${lockId}`);
+  const { data } = await apiClient.del<{ success: boolean }>(`/session-locks/${lockId}`);
   return data;
 }

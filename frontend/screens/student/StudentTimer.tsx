@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Play, Square } from 'lucide-react';
+import { Play, Square, Lock } from 'lucide-react';
 import { LIMITS } from '../../types';
 import { cn } from '../../lib/utils';
 
@@ -12,6 +12,8 @@ interface StudentTimerProps {
   onStart: () => void;
   onFinish: () => void;
   onCancel: () => void;
+  isSessionLocked?: boolean;
+  lockReason?: string | null;
 }
 
 const formatTime = (ms: number) => {
@@ -29,6 +31,8 @@ const StudentTimer: React.FC<StudentTimerProps> = ({
   onStart,
   onFinish,
   onCancel,
+  isSessionLocked = false,
+  lockReason,
 }) => {
   const [showShortWarning, setShowShortWarning] = useState(false);
 
@@ -123,13 +127,33 @@ const StudentTimer: React.FC<StudentTimerProps> = ({
             </div>
           )}
 
-          {!isTracking ? (
+          {isSessionLocked && !isTracking && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl sm:rounded-2xl p-4 sm:p-5 space-y-1">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+                <p className="text-xs sm:text-sm font-bold text-amber-300">Registro de horas bloqueado</p>
+              </div>
+              {lockReason && (
+                <p className="text-[10px] sm:text-xs text-amber-200/60 pl-6">{lockReason}</p>
+              )}
+            </div>
+          )}
+
+          {!isTracking && !isSessionLocked ? (
             <button
               onClick={onStart}
               className="w-full bg-card text-foreground font-black py-4 sm:py-5 md:py-8 rounded-xl sm:rounded-2xl md:rounded-[2.5rem] flex items-center justify-center space-x-2 sm:space-x-3 md:space-x-4 hover:bg-surface transition-all shadow-xl active:scale-[0.97]"
             >
               <Play className="w-4 sm:w-4 md:w-5 h-4 sm:h-4 md:h-5 fill-foreground" />
               <span className="text-sm sm:text-base md:text-xl tracking-tight">Iniciar Sesión</span>
+            </button>
+          ) : !isTracking && isSessionLocked ? (
+            <button
+              disabled
+              className="w-full bg-white/5 text-white/30 font-black py-4 sm:py-5 md:py-8 rounded-xl sm:rounded-2xl md:rounded-[2.5rem] flex items-center justify-center space-x-2 sm:space-x-3 md:space-x-4 cursor-not-allowed"
+            >
+              <Lock className="w-4 sm:w-4 md:w-5 h-4 sm:h-4 md:h-5" />
+              <span className="text-sm sm:text-base md:text-xl tracking-tight">Bloqueado</span>
             </button>
           ) : (
             <button

@@ -28,6 +28,8 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import DeptHeadPendingSection from './DeptHeadPendingSection';
 import DeptHeadLogForm from './DeptHeadLogForm';
 import DeptHeadRejectionModal from './DeptHeadRejectionModal';
+import DeptHeadSessionLocksSection from './DeptHeadSessionLocksSection';
+import DeptHeadLiveSessionsSection from './DeptHeadLiveSessionsSection';
 
 interface DeptHeadPortalProps {
   user: User;
@@ -348,6 +350,9 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           <div className="lg:col-span-8 space-y-8">
+            {/* Live sessions */}
+            <DeptHeadLiveSessionsSection departmentId={user.departmentId} />
+
             <AnimatePresence>
               <DeptHeadPendingSection
                 pendingLogs={pendingLogs}
@@ -357,6 +362,9 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
                 allDepartments={allDepartments}
               />
             </AnimatePresence>
+
+            {/* Lock Sessions */}
+            <DeptHeadSessionLocksSection departmentId={user.departmentId ?? ''} />
 
             {/* History */}
             <div className="bg-card p-8 rounded-[2rem] border border-border-faint shadow-sm">
