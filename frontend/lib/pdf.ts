@@ -56,13 +56,18 @@ async function _buf2b64(buf: ArrayBuffer): Promise<string> {
     const base = (import.meta.env.BASE_URL as string) ?? '/';
     const get = (name: string) =>
       fetch(`${base}fonts/${name}`).then(r => {
-        if (!r.ok) throw new Error(`Font not found: ${name}`);
+        if (!r.ok) throw new Error(`${name}: HTTP ${r.status}`);
+        // Reject HTML fallback pages served by SPA catch-all nginx rules
+        const ct = r.headers.get('content-type') ?? '';
+        if (ct.startsWith('text/') || ct.includes('html')) {
+          throw new Error(`${name}: unexpected content-type ${ct}`);
+        }
         return r.arrayBuffer();
       });
     const [regBuf, boldBuf] = await Promise.all([get('NotoSans-Regular.ttf'), get('NotoSans-Bold.ttf')]);
     _fonts = { regular: await _buf2b64(regBuf), bold: await _buf2b64(boldBuf) };
   } catch {
-    // Font files absent — accented chars work in Helvetica; ₡ may not render
+    // Font files absent or blocked — falls back to Helvetica silently
   }
 })();
 
@@ -71,11 +76,16 @@ type FontFamily = 'NotoSans' | 'helvetica';
 /** Register Noto Sans with this doc instance and return the family name to use. */
 function setupFont(doc: jsPDF): FontFamily {
   if (!_fonts) return 'helvetica';
-  doc.addFileToVFS('NotoSans-Regular.ttf', _fonts.regular);
-  doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
-  doc.addFileToVFS('NotoSans-Bold.ttf', _fonts.bold);
-  doc.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold');
-  return 'NotoSans';
+  try {
+    doc.addFileToVFS('NotoSans-Regular.ttf', _fonts.regular);
+    doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
+    doc.addFileToVFS('NotoSans-Bold.ttf', _fonts.bold);
+    doc.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold');
+    return 'NotoSans';
+  } catch {
+    _fonts = null; // bad data — clear so future calls skip straight to helvetica
+    return 'helvetica';
+  }
 }
 
 // ─── Sanitize ────────────────────────────────────────────────────────────────
