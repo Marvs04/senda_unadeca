@@ -7,7 +7,7 @@ import {
     Key,
     Eye,
     EyeOff,
-    TrendingUp,
+    Clock,
 } from 'lucide-react';
 
 interface LoginScreenProps {
@@ -37,39 +37,63 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 selection:bg-primary selection:text-primary-fg">
-      <div className="w-full max-w-[1200px] grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-start lg:justify-center p-4 sm:p-6 selection:bg-primary selection:text-primary-fg">
+      {/* Mobile Logo - Only on mobile */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="lg:hidden mt-4 mb-6"
+      >
+        <img 
+          src="/send_logo_login.png" 
+          alt="SENDA Logo"
+          className="w-16 h-16 object-contain"
+        />
+      </motion.div>
 
-        {/* Left Side: Branding & Info */}
+      <div className="w-full max-w-[1200px] grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-20 items-end lg:items-end">
+
+        {/* Left Side: Branding & Info - Desktop only */}
                 <motion.div
                     initial={{ opacity: 0, x: -40 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="hidden lg:block space-y-12"
+                    className="hidden lg:flex lg:flex-col lg:justify-between space-y-12"
         >
                     <div className="space-y-6">
-                        <h1 className="text-8xl font-black tracking-tighter text-foreground font-display leading-[0.9]">
-                            SENDA
-                        </h1>
-                        <p className="text-muted text-xl font-medium max-w-md leading-relaxed">
+                        <div className="flex flex-col items-center gap-6">
+                            <img 
+                                src="/send_logo_login.png" 
+                                alt="SENDA Logo"
+                                className="w-48 h-48 object-contain"
+                            />
+                            <h1 className="text-8xl font-black tracking-tighter text-foreground font-display leading-[0.9] text-center">
+                                SENDA
+                            </h1>
+                        </div>
+                        <p className="text-muted text-xl font-medium max-w-md leading-relaxed text-center">
                             Sistema Estratégico de Normalización y Desarrollo Académico.
                         </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-6">
-                        <div className="p-8 bg-card rounded-[2.5rem] border border-border-faint shadow-sm">
-                            <div className="w-10 h-10 bg-surface rounded-xl flex items-center justify-center mb-6">
-                                <Lock className="w-5 h-5 text-faint" />
+                        <div className="relative p-8 bg-card rounded-[2.5rem] border border-border-faint shadow-sm overflow-hidden">
+                            <div className="absolute -right-8 -top-8 opacity-10">
+                                <Lock className="w-40 h-40 text-foreground" />
                             </div>
-                            <h4 className="font-bold mb-2">Seguridad</h4>
-                            <p className="text-xs text-faint leading-relaxed">Acceso encriptado y validación institucional de credenciales.</p>
+                            <div className="relative z-10">
+                                <h4 className="font-bold mb-2">Seguridad</h4>
+                                <p className="text-xs text-faint leading-relaxed">Acceso encriptado y validación institucional de credenciales.</p>
+                            </div>
                         </div>
-                        <div className="p-8 bg-card rounded-[2.5rem] border border-border-faint shadow-sm">
-                            <div className="w-10 h-10 bg-surface rounded-xl flex items-center justify-center mb-6">
-                                <TrendingUp className="w-5 h-5 text-faint" />
+                        <div className="relative p-8 bg-card rounded-[2.5rem] border border-border-faint shadow-sm overflow-hidden">
+                            <div className="absolute -right-8 -top-8 opacity-10">
+                                <Clock className="w-40 h-40 text-foreground" />
                             </div>
-                            <h4 className="font-bold mb-2">Eficiencia</h4>
-                            <p className="text-xs text-faint leading-relaxed">Automatización de procesos administrativos y financieros.</p>
-            </div>
+                            <div className="relative z-10">
+                                <h4 className="font-bold mb-2">Eficiencia</h4>
+                                <p className="text-xs text-faint leading-relaxed">Automatización de procesos administrativos y financieros.</p>
+                            </div>
+                        </div>
                     </div>
         </motion.div>
 
@@ -143,7 +167,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1 }}
-        className="mt-24 flex flex-col items-center space-y-4"
+        className="mt-8 lg:mt-24 flex flex-col items-center space-y-4"
       >
         <div className="h-px w-12 bg-border" />
         <p className="text-faint text-[10px] font-bold uppercase tracking-[0.3em]">

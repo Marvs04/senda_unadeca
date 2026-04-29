@@ -195,6 +195,82 @@ export async function activateKiosk(body, adminSupa) {
 }
 
 /**
+ * POST /kiosk/continue
+ * Body: { identifier, password, departmentId? }
+ * If a kiosk is already active for the department, return its state.
+ * Validates the requester's credentials first.
+ * If no kiosk exists, throw NOT_FOUND (404).
+ */
+export async function continueKiosk(body, adminSupa) {
+  const { identifier, password, departmentId: targetDeptId } = body ?? {};
+  if (!identifier || !password) {
+    const err = new Error('identifier y password son requeridos.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const profile = await verifyCredentials(identifier, password, adminSupa);
+
+  if (!KIOSK_MANAGER_ROLES.has(profile.role)) {
+    const err = new Error('Solo jefes de departamento o super administradores pueden continuar el kiosco.');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const departmentId =
+    profile.role === 'SUPER_ADMIN'
+      ? (targetDeptId?.trim() || null)
+      : profile.department_id;
+
+  if (!departmentId) {
+    const err = new Error('No se pudo determinar el departamento.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (profile.role === 'DEPT_HEAD' && profile.department_id !== departmentId) {
+    const err = new Error('No tienes permisos para acceder al kiosco de este departamento.');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  // Fetch the existing kiosk state
+  const { data: existing, error: checkError } = await findStateByDept(adminSupa, departmentId);
+  if (checkError) {
+    const err = new Error(checkError.message);
+    err.statusCode = 400;
+    throw err;
+  }
+  if (!existing) {
+    const err = new Error('No hay un kiosco activo para este departamento.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  return {
+    id: existing.id,
+    departmentId: existing.department_id,
+    activatedBy: existing.activated_by,
+    activatedAt: existing.activated_at,
+    shifts: existing.shifts ?? [],
+    sessions: (existing.kiosk_sessions ?? []).map(s => ({
+      studentId: s.student_id,
+      startedAt: s.started_at,
+      sessionId: s.id,
+      user: s.profiles
+        ? {
+            id: s.profiles.id,
+            name: s.profiles.name,
+            role: s.profiles.role,
+            carnet: s.profiles.carnet ?? undefined,
+            departmentId: s.profiles.department_id ?? undefined,
+          }
+        : null,
+    })),
+  };
+}
+
+/**
  * POST /kiosk/deactivate
  * Body: { identifier, password }
  * Flushes all open sessions as PENDING work logs, then deletes the kiosk_state.

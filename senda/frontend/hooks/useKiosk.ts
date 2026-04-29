@@ -70,6 +70,7 @@ export interface KioskActionResult {
 
 export interface KioskActions {
   activate(identifier: string, password: string, targetDepartmentId?: string): Promise<KioskActionResult>;
+  continueExisting(identifier: string, password: string, targetDepartmentId?: string): Promise<KioskActionResult>;
   deactivate(identifier: string, password: string): Promise<KioskActionResult>;
   clockIn(identifier: string, password: string): Promise<KioskActionResult>;
   clockOut(identifier: string, password: string): Promise<KioskActionResult>;
@@ -209,6 +210,20 @@ export function useKiosk({ initialDepartmentId }: UseKioskOptions = {}): UseKios
     }
   }, [apiState]);
 
+  const continueExisting = useCallback(async (
+    identifier: string,
+    password: string,
+    targetDepartmentId?: string,
+  ): Promise<KioskActionResult> => {
+    try {
+      const state = await kioskApi.continueKiosk(identifier, password, targetDepartmentId);
+      setApiState(state);
+      return { ok: true };
+    } catch (err) {
+      return toKioskResult(err);
+    }
+  }, []);
+
   const deactivate = useCallback(async (
     identifier: string,
     password: string,
@@ -298,7 +313,7 @@ export function useKiosk({ initialDepartmentId }: UseKioskOptions = {}): UseKios
     kiosk,
     activeSessions,
     isWithinScheduledShift,
-    actions: { activate, deactivate, clockIn, clockOut, cancelSession, updateShifts },
+    actions: { activate, continueExisting, deactivate, clockIn, clockOut, cancelSession, updateShifts },
   };
 }
 

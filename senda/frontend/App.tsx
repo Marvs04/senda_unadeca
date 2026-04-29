@@ -88,9 +88,7 @@ const AuthenticatedArea: React.FC<AuthenticatedAreaProps> = ({ currentUserId, on
                 allUsers={users}
                 allDepartments={departments}
                 addUser={addUser}
-                onActivateKiosk={(identifier, password, departmentId) => {
-                  return kioskActions.activate(identifier, password, departmentId);
-                }}
+                kioskActions={kioskActions}
                 resetUserPassword={resetUserPassword}
                 toggleUserActive={(userId, isActive) => updateUser(userId, { isActive })}
                 addDepartment={addDepartment}
@@ -129,7 +127,7 @@ const AuthenticatedArea: React.FC<AuthenticatedAreaProps> = ({ currentUserId, on
                 addWorkLog={addWorkLog}
                 billingCycle={billingCycle}
                 currentRate={currentRate}
-                onActivateKiosk={kioskActions.activate}
+                kioskActions={kioskActions}
               />
             );
           case UserRole.STUDENT: {

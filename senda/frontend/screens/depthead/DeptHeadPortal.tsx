@@ -23,6 +23,7 @@ import { renderPDF } from '../../lib/pdf';
 import { getBillingCycle, isDateInCycle } from '../../lib/business';
 import { useConfirm } from '../../hooks/useConfirm';
 import { useDeptHeadData } from '../../hooks/useDeptHeadData';
+import { KioskActions } from '../../hooks/useKiosk';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import DeptHeadPendingSection from './DeptHeadPendingSection';
 import DeptHeadLogForm from './DeptHeadLogForm';
@@ -39,7 +40,7 @@ interface DeptHeadPortalProps {
   addWorkLog: (newLogData: Omit<WorkLog, 'id' | 'status'>, status?: WorkLogStatus) => void;
   billingCycle: string;
   currentRate: number;
-  onActivateKiosk: (identifier: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  kioskActions: KioskActions;
 }
 
 const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
@@ -50,7 +51,7 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
   allDepartments,
   updateWorkLogStatus,
   updateMultipleWorkLogsStatus,
-  onActivateKiosk,
+  kioskActions,
   addWorkLog,
   billingCycle: initialBillingCycle,
   currentRate,
@@ -59,13 +60,51 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
   const [kioskId, setKioskId]     = useState('');
   const [kioskPass, setKioskPass] = useState('');
   const [showKioskModal, setShowKioskModal] = useState(false);
+  const [kioskRecoveryMode, setKioskRecoveryMode] = useState(false);
+  const [kioskShowDeactivateForm, setKioskShowDeactivateForm] = useState(false);
 
   const handleActivateKiosk = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = await onActivateKiosk(kioskId.trim(), kioskPass.trim());
-    if (!result.ok) { toast.error(result.error ?? 'Error al activar kiosco.', { position: 'top-center' }); return; }
+    const result = await kioskActions.activate(kioskId.trim(), kioskPass.trim());
+    if (!result.ok) {
+      if (result.code === 'ALREADY_ACTIVE') {
+        setKioskRecoveryMode(true);
+        return;
+      }
+      toast.error(result.error ?? 'Error al activar kiosco.', { position: 'top-center' });
+      return;
+    }
     toast.success('Kiosco activado correctamente.', { position: 'top-center' });
     setShowKioskModal(false);
+    setKioskRecoveryMode(false);
+    setKioskId('');
+    setKioskPass('');
+  };
+
+  const handleContinueKiosk = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const result = await kioskActions.continueExisting(kioskId.trim(), kioskPass.trim());
+    if (!result.ok) {
+      toast.error(result.error ?? 'Error al continuar kiosco.', { position: 'top-center' });
+      return;
+    }
+    toast.success('Kiosco recuperado correctamente.', { position: 'top-center' });
+    setShowKioskModal(false);
+    setKioskRecoveryMode(false);
+    setKioskId('');
+    setKioskPass('');
+  };
+
+  const handleDeactivateFromRecovery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const result = await kioskActions.deactivate(kioskId.trim(), kioskPass.trim());
+    if (!result.ok) {
+      toast.error(result.error ?? 'Error al desactivar kiosco.', { position: 'top-center' });
+      return;
+    }
+    toast.success('Kiosco desactivado correctamente.', { position: 'top-center' });
+    setShowKioskModal(false);
+    setKioskRecoveryMode(false);
     setKioskId('');
     setKioskPass('');
   };
@@ -382,35 +421,92 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
       />
       <ConfirmDialog {...dialogProps} />
 
-      {/* Kiosk activate modal */}
+      {/* Kiosk activate/recovery modal */}
       {showKioskModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setShowKioskModal(false)}>
+          onClick={() => { setShowKioskModal(false); setKioskRecoveryMode(false); setKioskId(''); setKioskPass(''); }}>
           <div className="bg-card rounded-3xl shadow-2xl p-8 w-full max-w-sm"
             onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-emerald-100 rounded-xl">
-                <Clock className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-foreground">Activar kiosco</h3>
-                <p className="text-xs text-muted">{departmentName}</p>
-              </div>
-            </div>
-            <form onSubmit={handleActivateKiosk} className="flex flex-col gap-3">
-              <input type="text" placeholder="Número de empleado"
-                value={kioskId} onChange={e => setKioskId(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-              <input type="password" placeholder="Contraseña"
-                value={kioskPass} onChange={e => setKioskPass(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-              <div className="flex gap-3 mt-2">
-                <button type="button" onClick={() => setShowKioskModal(false)}
-                  className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted hover:bg-surface transition-colors">Cancelar</button>
-                <button type="submit"
-                  className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors">Activar</button>
-              </div>
-            </form>
+            {!kioskRecoveryMode ? (
+              <>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-emerald-100 rounded-xl">
+                    <Clock className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-foreground">Activar kiosco</h3>
+                    <p className="text-xs text-muted">{departmentName}</p>
+                  </div>
+                </div>
+                <form onSubmit={handleActivateKiosk} className="flex flex-col gap-3">
+                  <input type="text" placeholder="Número de empleado"
+                    value={kioskId} onChange={e => setKioskId(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  <input type="password" placeholder="Contraseña"
+                    value={kioskPass} onChange={e => setKioskPass(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  <div className="flex gap-3 mt-2">
+                    <button type="button" onClick={() => { setShowKioskModal(false); setKioskId(''); setKioskPass(''); }}
+                      className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted hover:bg-surface transition-colors">Cancelar</button>
+                    <button type="submit"
+                      className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors">Activar</button>
+                  </div>
+                </form>
+              </>
+            ) : !kioskShowDeactivateForm ? (
+              <>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-amber-100 rounded-xl">
+                    <Clock className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-foreground">Kiosco ya activo</h3>
+                    <p className="text-xs text-muted">{departmentName}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-muted mb-5">Ya hay un kiosco activado para este departamento. ¿Qué deseas hacer?</p>
+                <div className="flex flex-col gap-3">
+                  <button type="button"
+                    onClick={handleContinueKiosk}
+                    className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">
+                    Continuar Kiosco
+                  </button>
+                  <button type="button"
+                    onClick={() => setKioskShowDeactivateForm(true)}
+                    className="w-full py-3 rounded-xl bg-red-100 hover:bg-red-50 text-red-600 text-sm font-semibold transition-colors">
+                    Desactivar Kiosco
+                  </button>
+                  <button type="button" onClick={() => { setShowKioskModal(false); setKioskRecoveryMode(false); setKioskId(''); setKioskPass(''); }}
+                    className="w-full py-3 rounded-xl border border-border text-sm font-medium text-muted hover:bg-surface transition-colors">Cancelar</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-red-100 rounded-xl">
+                    <Clock className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-foreground">Desactivar kiosco</h3>
+                    <p className="text-xs text-muted">Confirma tu identidad</p>
+                  </div>
+                </div>
+                <form onSubmit={handleDeactivateFromRecovery} className="flex flex-col gap-3">
+                  <input type="text" placeholder="Número de empleado"
+                    value={kioskId} onChange={e => setKioskId(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+                  <input type="password" placeholder="Contraseña"
+                    value={kioskPass} onChange={e => setKioskPass(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+                  <div className="flex gap-3 mt-2">
+                    <button type="button" onClick={() => { setKioskShowDeactivateForm(false); setKioskId(''); setKioskPass(''); }}
+                      className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted hover:bg-surface transition-colors">Atrás</button>
+                    <button type="submit"
+                      className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors">Desactivar</button>
+                  </div>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}

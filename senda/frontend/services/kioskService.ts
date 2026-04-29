@@ -73,6 +73,19 @@ export async function activateKiosk(
   return data;
 }
 
+export async function continueKiosk(
+  identifier: string,
+  password: string,
+  departmentId?: string,
+): Promise<KioskStateApi> {
+  const { data } = await apiClient.post<KioskStateApi>('/kiosk/continue', {
+    identifier,
+    password,
+    ...(departmentId ? { departmentId } : {}),
+  });
+  return data;
+}
+
 export async function deactivateKiosk(
   identifier: string,
   password: string,
