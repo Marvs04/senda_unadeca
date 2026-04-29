@@ -1,8 +1,11 @@
 /**
  * lib/pdf.ts — Professional letterhead PDF engine for SENDA.
  *
- * Exports one public function: `renderPDF(config)`.
- * Each portal composes its own PDFReportConfig and calls renderPDF.
+ * Font strategy:
+ *   Loads NotoSans-Regular.ttf + NotoSans-Bold.ttf from /public/fonts/ at
+ *   module init. Noto Sans covers all Spanish accented characters AND the
+ *   ₡ colón symbol (U+20A1). Falls back to Helvetica if the font files are
+ *   absent (accented chars still work via WinAnsiEncoding; ₡ renders blank).
  *
  * Layout (A4 portrait, units: mm):
  *   [0–40]   Black header bar  — institution identity (UNADECA / SENDA)
@@ -19,140 +22,144 @@ import { formatCostaRicaLongDate } from './utils';
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
 const C = {
-  black:     [29,  50,  97 ] as [number, number, number], // navy #1d3261
-  accent:    [99,  102, 241] as [number, number, number], // indigo-500
+  black:     [29,  50,  97 ] as [number, number, number],
+  accent:    [99,  102, 241] as [number, number, number],
   white:     [255, 255, 255] as [number, number, number],
-  ghostWhite:[200, 200, 212] as [number, number, number], // muted text on dark bg
-  lightGray: [245, 245, 247] as [number, number, number], // meta block bg
-  midGray:   [156, 163, 175] as [number, number, number], // label color
-  darkGray:  [55,  65,  81 ] as [number, number, number], // value color
-  rowAlt:    [249, 250, 251] as [number, number, number], // alternate row
+  ghostWhite:[200, 200, 212] as [number, number, number],
+  lightGray: [245, 245, 247] as [number, number, number],
+  midGray:   [156, 163, 175] as [number, number, number],
+  darkGray:  [55,  65,  81 ] as [number, number, number],
+  rowAlt:    [249, 250, 251] as [number, number, number],
 };
 
-// ─── Public types ─────────────────────────────────────────────────────────────
-export interface PDFMetaItem {
-  label: string;
-  value: string;
+// ─── Font loading ─────────────────────────────────────────────────────────────
+// Noto Sans covers U+20A1 (₡) and the full Latin Extended block (á é ó ú ñ…).
+// Place NotoSans-Regular.ttf and NotoSans-Bold.ttf in frontend/public/fonts/.
+// Download from: https://fonts.google.com/noto/specimen/Noto+Sans
+//   → Download family → unzip → static/TTF → copy the two Regular/Bold files.
+
+interface FontCache { regular: string; bold: string }
+let _fonts: FontCache | null = null;
+
+async function _buf2b64(buf: ArrayBuffer): Promise<string> {
+  const bytes = new Uint8Array(buf);
+  const chunks: string[] = [];
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    chunks.push(String.fromCharCode(...(bytes.subarray(i, i + CHUNK) as unknown as number[])));
+  }
+  return btoa(chunks.join(''));
 }
 
-export interface PDFReportConfig {
-  /** Output filename, e.g. "nomina_ciclo.pdf" */
-  filename: string;
-  /** Main heading: "REPORTE DE HORAS — JUAN PÉREZ" */
-  reportTitle: string;
-  /** Optional one-liner below the title */
-  subtitle?: string;
-  /**
-   * Key-value metadata rendered in the gray block.
-   * Items alternate left/right column (first=left, second=right, etc.).
-   * Recommended: 4–6 items.
-   */
-  meta: PDFMetaItem[];
-  /** Column headers for the data table */
-  headers: string[];
-  /** Data rows (strings or numbers, converted to string automatically) */
-  rows: (string | number)[][];
-  /** Force landscape orientation (auto-detected when > 8 columns) */
-  landscape?: boolean;
+(async () => {
+  try {
+    const base = (import.meta.env.BASE_URL as string) ?? '/';
+    const get = (name: string) =>
+      fetch(`${base}fonts/${name}`).then(r => {
+        if (!r.ok) throw new Error(`${name}: HTTP ${r.status}`);
+        // Reject HTML fallback pages served by SPA catch-all nginx rules
+        const ct = r.headers.get('content-type') ?? '';
+        if (ct.startsWith('text/') || ct.includes('html')) {
+          throw new Error(`${name}: unexpected content-type ${ct}`);
+        }
+        return r.arrayBuffer();
+      });
+    const [regBuf, boldBuf] = await Promise.all([get('NotoSans-Regular.ttf'), get('NotoSans-Bold.ttf')]);
+    _fonts = { regular: await _buf2b64(regBuf), bold: await _buf2b64(boldBuf) };
+  } catch {
+    // Font files absent or blocked — falls back to Helvetica silently
+  }
+})();
+
+type FontFamily = 'NotoSans' | 'helvetica';
+
+/** Register Noto Sans with this doc instance and return the family name to use. */
+function setupFont(doc: jsPDF): FontFamily {
+  if (!_fonts) return 'helvetica';
+  try {
+    doc.addFileToVFS('NotoSans-Regular.ttf', _fonts.regular);
+    doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
+    doc.addFileToVFS('NotoSans-Bold.ttf', _fonts.bold);
+    doc.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold');
+    return 'NotoSans';
+  } catch {
+    _fonts = null; // bad data — clear so future calls skip straight to helvetica
+    return 'helvetica';
+  }
+}
+
+// ─── Sanitize ────────────────────────────────────────────────────────────────
+// Only strips control characters that would corrupt the PDF stream.
+// All printable characters — including ₡, á, é, ó, ú, ñ, ü — are left intact
+// so the unicode font can render them correctly.
+function sanitize(value: string | number): string {
+  return String(value)
+    .replace(/ /g, ' ')                 // non-breaking space → regular space
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '') // control chars (keep \t \n \r)
+    .trim();
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function setFill(doc: jsPDF, [r, g, b]: [number, number, number]) {
-  doc.setFillColor(r, g, b);
-}
+function setFill(doc: jsPDF, [r, g, b]: [number, number, number]) { doc.setFillColor(r, g, b); }
+function setTextColor(doc: jsPDF, [r, g, b]: [number, number, number]) { doc.setTextColor(r, g, b); }
+function setDrawColor(doc: jsPDF, [r, g, b]: [number, number, number]) { doc.setDrawColor(r, g, b); }
 
-function setTextColor(doc: jsPDF, [r, g, b]: [number, number, number]) {
-  doc.setTextColor(r, g, b);
-}
-
-function setDrawColor(doc: jsPDF, [r, g, b]: [number, number, number]) {
-  doc.setDrawColor(r, g, b);
-}
-
-function sanitizeForPdf(value: string | number): string {
-  let str = String(value);
-  
-  // Replace problematic Unicode characters
-  str = str.replace(/\u00a0/g, ' ');      // non-breaking space → regular space
-  str = str.replace(/\u20A1/g, 'C');      // ₡ colón (U+20A1)
-  str = str.replace(/₡/g, 'C');           // literal fallback
-  
-  // Normalize currency format if 'C' appears with number
-  // E.g., "C1,000" → "C1,000" (ensure no extra spaces inside number)
-  str = str.replace(/C\s+([0-9,.])/g, 'C$1');  // Remove space after C if before digit
-  
-  // Safety: replace any remaining non-ASCII that jsPDF Helvetica can't handle
-  // This is a fallback for any unexpected Unicode that slipped through
-  str = str.replace(/[^\x00-\x7F]/g, '?');     // Replace non-ASCII with '?'
-  
-  return str.trim();
-}
-
-function drawLetterhead(doc: jsPDF, W: number) {
-  // ── Black header bar ────────────────────────────────────────────────────────
+function drawLetterhead(doc: jsPDF, W: number, F: FontFamily) {
   setFill(doc, C.black);
   doc.rect(0, 0, W, 40, 'F');
 
-  // ── Left side: institution ──────────────────────────────────────────────────
   setTextColor(doc, C.white);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(F, 'bold');
   doc.setFontSize(22);
   doc.text('UNADECA', 14, 17);
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(F, 'normal');
   doc.setFontSize(8.5);
   setTextColor(doc, C.ghostWhite);
   doc.text('Universidad Adventista de Centroamérica', 14, 24.5);
   doc.setFontSize(7.5);
   doc.text('Alajuela, Costa Rica', 14, 30);
 
-  // ── Vertical separator ──────────────────────────────────────────────────────
   setDrawColor(doc, [70, 70, 80]);
   doc.setLineWidth(0.3);
   doc.line(W - 78, 8, W - 78, 34);
 
-  // ── Right side: SENDA ───────────────────────────────────────────────────────
   setTextColor(doc, C.white);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(F, 'bold');
   doc.setFontSize(16);
   doc.text('SENDA', W - 14, 17, { align: 'right' });
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(F, 'normal');
   doc.setFontSize(7.5);
   setTextColor(doc, C.ghostWhite);
   doc.text('Sis. Estratégico de Normalización', W - 14, 24.5, { align: 'right' });
   doc.text('y Desarrollo Académico', W - 14, 30, { align: 'right' });
 
-  // ── Indigo accent stripe ─────────────────────────────────────────────────────
   setFill(doc, C.accent);
   doc.rect(0, 40, W, 2.5, 'F');
 }
 
-function drawFooter(doc: jsPDF, W: number, H: number, pageNum: number, totalPages: number) {
+function drawFooter(doc: jsPDF, W: number, H: number, pageNum: number, totalPages: number, F: FontFamily) {
   setFill(doc, C.black);
   doc.rect(0, H - 12, W, 12, 'F');
-
   setTextColor(doc, C.ghostWhite);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(F, 'normal');
   doc.setFontSize(6.5);
   doc.text('UNADECA | SENDA — Documento Oficial', 14, H - 4.5);
   doc.text(
     `Generado el ${formatCostaRicaLongDate()} — Página ${pageNum} de ${totalPages}`,
-    W - 14,
-    H - 4.5,
-    { align: 'right' },
+    W - 14, H - 4.5, { align: 'right' },
   );
 }
 
-function drawMeta(doc: jsPDF, W: number, startY: number, meta: PDFMetaItem[]): number {
+function drawMeta(doc: jsPDF, W: number, startY: number, meta: PDFMetaItem[], F: FontFamily): number {
   const colL = 18;
   const colR = W / 2 + 8;
-  const pairH = 10;   // mm per meta-item row
-  const padV = 5;     // top/bottom padding inside block
+  const pairH = 10;
+  const padV = 5;
   const rows = Math.ceil(meta.length / 2);
   const blockH = rows * pairH + padV * 2;
 
-  // Background
   setFill(doc, C.lightGray);
   setDrawColor(doc, [229, 231, 235]);
   doc.setLineWidth(0.2);
@@ -163,129 +170,108 @@ function drawMeta(doc: jsPDF, W: number, startY: number, meta: PDFMetaItem[]): n
     const row = Math.floor(idx / 2);
     const y = startY + padV + row * pairH;
 
-    // Label (tiny caps)
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(F, 'bold');
     doc.setFontSize(6.5);
     setTextColor(doc, C.midGray);
-    doc.text(sanitizeForPdf(item.label).toUpperCase(), col, y + 1.5);
+    doc.text(sanitize(item.label).toUpperCase(), col, y + 1.5);
 
-    // Value
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(F, 'normal');
     doc.setFontSize(9);
     setTextColor(doc, C.darkGray);
-    doc.text(sanitizeForPdf(item.value), col, y + 6.5);
+    doc.text(sanitize(item.value), col, y + 6.5);
   });
 
-  return startY + blockH; // returns bottom Y of the block
+  return startY + blockH;
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+// ─── Public types ─────────────────────────────────────────────────────────────
+export interface PDFMetaItem { label: string; value: string }
+
+export interface PDFReportConfig {
+  filename: string;
+  reportTitle: string;
+  subtitle?: string;
+  meta: PDFMetaItem[];
+  headers: string[];
+  rows: (string | number)[][];
+  landscape?: boolean;
+}
+
+// ─── renderPDF ────────────────────────────────────────────────────────────────
 export function renderPDF(config: PDFReportConfig): void {
   const useLandscape = config.landscape ?? config.headers.length > 8;
-  const orientation = useLandscape ? 'landscape' : 'portrait';
-  const doc = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
-  const W = doc.internal.pageSize.getWidth();   // 297 (landscape) or 210 (portrait)
-  const H = doc.internal.pageSize.getHeight();  // 210 (landscape) or 297 (portrait)
+  const doc = new jsPDF({ orientation: useLandscape ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const F = setupFont(doc);
 
-  // ── Letterhead (page 1 only) ───────────────────────────────────────────────
-  drawLetterhead(doc, W);
+  drawLetterhead(doc, W, F);
 
-  // ── Report title ───────────────────────────────────────────────────────────
   let curY = 50;
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(F, 'bold');
   doc.setFontSize(13);
   setTextColor(doc, C.black);
-  doc.text(sanitizeForPdf(config.reportTitle), 14, curY);
+  doc.text(sanitize(config.reportTitle), 14, curY);
   curY += 7;
 
   if (config.subtitle) {
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(F, 'normal');
     doc.setFontSize(9);
     setTextColor(doc, C.darkGray);
-    doc.text(sanitizeForPdf(config.subtitle), 14, curY);
+    doc.text(sanitize(config.subtitle), 14, curY);
     curY += 6;
   }
+  curY += 3;
 
-  curY += 3; // gap before meta block
-
-  // ── Metadata block ─────────────────────────────────────────────────────────
-  const metaBottom = drawMeta(doc, W, curY, config.meta);
+  const metaBottom = drawMeta(doc, W, curY, config.meta, F);
   const tableStartY = metaBottom + 6;
 
-  // ── Data table ─────────────────────────────────────────────────────────────
   const isWide = config.headers.length > 8;
   const headFontSize = isWide ? 6.5 : 8.5;
   const bodyFontSize = isWide ? 6 : 8;
   const cellPad = isWide ? 2 : 3;
 
-  // Give more width to text-heavy columns by header name
   const columnStyles: Record<number, { cellWidth?: number; minCellWidth?: number }> = {};
   config.headers.forEach((h, i) => {
-    const lower = h.toLowerCase();
-    if (lower.includes('descripcion') || lower.includes('motivo')) {
+    if (h.toLowerCase().includes('descripcion') || h.toLowerCase().includes('motivo')) {
       columnStyles[i] = { minCellWidth: isWide ? 35 : 30 };
     }
   });
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [config.headers.map(h => sanitizeForPdf(h))],
-    body: config.rows.map(row => row.map(cell => sanitizeForPdf(cell))),
+    head: [config.headers.map(h => sanitize(h))],
+    body: config.rows.map(row => row.map(cell => sanitize(cell))),
     theme: 'grid',
-    headStyles: {
-      fillColor: C.black,
-      textColor: C.white,
-      fontStyle: 'bold',
-      fontSize: headFontSize,
-      cellPadding: cellPad + 0.5,
-    },
-    bodyStyles: {
-      fontSize: bodyFontSize,
-      textColor: C.darkGray,
-      cellPadding: cellPad,
-    },
+    styles: { font: F, overflow: 'linebreak' },
+    headStyles: { fillColor: C.black, textColor: C.white, fontStyle: 'bold', fontSize: headFontSize, cellPadding: cellPad + 0.5 },
+    bodyStyles: { fontSize: bodyFontSize, textColor: C.darkGray, cellPadding: cellPad },
     columnStyles,
-    alternateRowStyles: {
-      fillColor: C.rowAlt,
-    },
+    alternateRowStyles: { fillColor: C.rowAlt },
     tableLineColor: [229, 231, 235],
     tableLineWidth: 0.15,
     margin: { left: 10, right: 10, bottom: 20 },
-    styles: { overflow: 'linebreak' },
   });
 
-  // ── Footers on every page ──────────────────────────────────────────────────
   const totalPages = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    drawFooter(doc, W, H, i, totalPages);
+    drawFooter(doc, W, H, i, totalPages, F);
   }
 
   doc.save(config.filename);
 }
 
 // ─── Dept-grouped payroll PDF ─────────────────────────────────────────────────
-
 export interface DeptGroupRow {
   deptName:   string;
-  students:   {
-    name:   string;
-    carnet: string;
-    hours:  string;
-    bruto:  string;
-    tithe:  string;
-    neto:   string;
-  }[];
+  students: { name: string; carnet: string; hours: string; bruto: string; tithe: string; neto: string }[];
   totalHours: string;
   totalBruto: string;
   totalTithe: string;
   totalNeto:  string;
 }
 
-/**
- * Generates a PDF with one section per department.
- * Each section has a dark header row, then student rows, then a totals footer.
- */
 export function renderDeptGroupedPDF(config: {
   filename:    string;
   reportTitle: string;
@@ -295,75 +281,58 @@ export function renderDeptGroupedPDF(config: {
   grandTotals: { hours: string; bruto: string; tithe: string; neto: string };
 }): void {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const W   = doc.internal.pageSize.getWidth();
-  const H   = doc.internal.pageSize.getHeight();
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const F = setupFont(doc);
 
-  drawLetterhead(doc, W);
+  drawLetterhead(doc, W, F);
 
-  // Title
   let curY = 50;
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(F, 'bold');
   doc.setFontSize(13);
   setTextColor(doc, C.black);
-  doc.text(sanitizeForPdf(config.reportTitle), 14, curY);
+  doc.text(sanitize(config.reportTitle), 14, curY);
   curY += 7;
 
   if (config.subtitle) {
-    doc.setFont('helvetica', 'normal');
+    doc.setFont(F, 'normal');
     doc.setFontSize(9);
     setTextColor(doc, C.darkGray);
-    doc.text(sanitizeForPdf(config.subtitle), 14, curY);
+    doc.text(sanitize(config.subtitle), 14, curY);
     curY += 6;
   }
   curY += 3;
 
-  // Meta block
-  curY = drawMeta(doc, W, curY, config.meta) + 6;
+  curY = drawMeta(doc, W, curY, config.meta, F) + 6;
 
-  // Column headers used in every dept section
   const headers = ['Estudiante', 'Carnet', 'Horas', 'Bruto', 'Diezmo', 'Neto'];
-  const colWidths = [55, 25, 16, 28, 28, 28]; // mm, sums ~ 180
+  const colWidths = [55, 25, 16, 28, 28, 28];
 
-  // Draw each dept section
   for (const dept of config.deptGroups) {
-    // Section header bar
-    const headerH = 8;
     setFill(doc, [40, 40, 45]);
-    doc.rect(10, curY, W - 20, headerH, 'F');
+    doc.rect(10, curY, W - 20, 8, 'F');
     setTextColor(doc, C.white);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(F, 'bold');
     doc.setFontSize(8);
-    doc.text(sanitizeForPdf(dept.deptName).toUpperCase(), 14, curY + 5.5);
-    curY += headerH;
+    doc.text(sanitize(dept.deptName).toUpperCase(), 14, curY + 5.5);
+    curY += 8;
 
-    // Table for this dept
     const rows: string[][] = dept.students.map(s => [
-      sanitizeForPdf(s.name), s.carnet, s.hours,
-      sanitizeForPdf(s.bruto), sanitizeForPdf(s.tithe), sanitizeForPdf(s.neto),
+      sanitize(s.name), s.carnet, s.hours,
+      sanitize(s.bruto), sanitize(s.tithe), sanitize(s.neto),
     ]);
-    // Totals row
     rows.push(['TOTAL', '', dept.totalHours,
-      sanitizeForPdf(dept.totalBruto), sanitizeForPdf(dept.totalTithe), sanitizeForPdf(dept.totalNeto)]);
+      sanitize(dept.totalBruto), sanitize(dept.totalTithe), sanitize(dept.totalNeto)]);
 
     autoTable(doc, {
       startY: curY,
-      head:   [headers],
-      body:   rows,
-      theme:  'grid',
-      headStyles: {
-        fillColor:  C.black,
-        textColor:  C.white,
-        fontStyle:  'bold',
-        fontSize:   7.5,
-        cellPadding: 2.5,
-      },
-      bodyStyles: {
-        fontSize:    7.5,
-        textColor:   C.darkGray,
-        cellPadding: 2.5,
-      },
+      head: [headers],
+      body: rows,
+      theme: 'grid',
+      styles: { font: F },
+      headStyles: { fillColor: C.black, textColor: C.white, fontStyle: 'bold', fontSize: 7.5, cellPadding: 2.5 },
+      bodyStyles: { fontSize: 7.5, textColor: C.darkGray, cellPadding: 2.5 },
       alternateRowStyles: { fillColor: C.rowAlt },
-      // Bold the last row (totals)
       didParseCell: data => {
         if (data.row.index === rows.length - 1) {
           data.cell.styles.fontStyle = 'bold';
@@ -380,24 +349,23 @@ export function renderDeptGroupedPDF(config: {
 
     curY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
 
-    // Page break safety margin
     if (curY > H - 40 && dept !== config.deptGroups[config.deptGroups.length - 1]) {
       doc.addPage();
       curY = 20;
     }
   }
 
-  // Grand totals
   if (config.deptGroups.length > 0) {
     curY += 2;
     autoTable(doc, {
       startY: curY,
-      head:   [['TOTALES GENERALES', '', 'Horas', 'Bruto', 'Diezmo', 'Neto']],
-      body:   [['', '', config.grandTotals.hours,
-        sanitizeForPdf(config.grandTotals.bruto),
-        sanitizeForPdf(config.grandTotals.tithe),
-        sanitizeForPdf(config.grandTotals.neto)]],
-      theme:  'grid',
+      head: [['TOTALES GENERALES', '', 'Horas', 'Bruto', 'Diezmo', 'Neto']],
+      body: [['', '', config.grandTotals.hours,
+        sanitize(config.grandTotals.bruto),
+        sanitize(config.grandTotals.tithe),
+        sanitize(config.grandTotals.neto)]],
+      theme: 'grid',
+      styles: { font: F },
       headStyles: { fillColor: C.black, textColor: C.white, fontStyle: 'bold', fontSize: 8, cellPadding: 3 },
       bodyStyles: { fontStyle: 'bold', fontSize: 8, cellPadding: 3, textColor: C.darkGray },
       columnStyles: colWidths.reduce<Record<number, { cellWidth: number }>>(
@@ -407,11 +375,10 @@ export function renderDeptGroupedPDF(config: {
     });
   }
 
-  // Footers
   const totalPages = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    drawFooter(doc, W, H, i, totalPages);
+    drawFooter(doc, W, H, i, totalPages, F);
   }
 
   doc.save(config.filename);
