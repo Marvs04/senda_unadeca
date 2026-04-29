@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { subscribeToTableChanges } from '../../lib/realtime';
 import { useDebounce } from '../../hooks/useDebounce';
 import { motion } from 'motion/react';
 import {
@@ -75,13 +76,12 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
     ? `cycle_${selectedCycle}`
     : `q${selectedTrimester}_${selectedYear}`;
 
-  // ── Load closing day from accounting config on mount ──────────────────────
-  React.useEffect(() => {
+  // ── Load + sync closing day from accounting_config ───────────────────────
+  const applyConfig = useCallback(() => {
     getAccountingConfig()
       .then(cfg => {
         const day = cfg.closingDay ?? 25;
         setClosingDay(day);
-        // Update initial cycle if user hasn't changed it yet
         setSelectedCycle(prev => {
           const defaultCycle = getBillingCycle(new Date(), 25).value;
           const withDay      = getBillingCycle(new Date(), day).value;
@@ -90,6 +90,11 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
       })
       .catch(() => {/* silent — use default 25 */});
   }, []);
+
+  useEffect(() => {
+    applyConfig();
+    return subscribeToTableChanges({ table: 'accounting_config', onChange: applyConfig });
+  }, [applyConfig]);
 
   // ── Registered IDs: persisted in localStorage per period ─────────────────
   const [registeredIds, setRegisteredIds] = useState<Set<string>>(() => {
@@ -175,7 +180,6 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
     closingDay,
   });
 
-  const approvedForPayroll   = reportData?.approvedForPayroll   ?? [];
   const approvedBooks        = reportData?.approvedBooks        ?? [];
   const processedBooks       = reportData?.processedBooks       ?? [];
   const totalApprovedAmount  = reportData?.totalApprovedAmount  ?? 0;
@@ -211,15 +215,15 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
     );
     if (!ok) return;
 
-    const updates = Array.from(selectedPaymentIds).map(logId => ({ 
-      logId, 
-      status: WorkLogStatus.PROCESSED 
-    }));
+    const updates = approvedBooks
+      .flatMap(b => b.students)
+      .filter(s => selectedPaymentIds.has(s.studentId))
+      .flatMap(s => s.logIds.map(logId => ({ logId, status: WorkLogStatus.PROCESSED })));
 
     if (updates.length > 0) {
       updateMultipleWorkLogsStatus(updates);
-      setSelectedPaymentIds(new Set()); // Clear selection after processing
-      toast.success(`${count} pago(s) procesado(s) exitosamente`, { position: 'top-center' });
+      setSelectedPaymentIds(new Set());
+      toast.success(`${count} estudiante(s) procesado(s) (${updates.length} registros)`, { position: 'top-center' });
     }
   };
 
