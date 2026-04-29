@@ -1,81 +1,79 @@
 import * as repository from './sessionLocks.repository.mjs';
-import { createAppError } from '../../shared/errors/AppError.mjs';
+import { AppError } from '../../shared/errors/AppError.mjs';
+
+function mapLock(row) {
+  return {
+    id: row.id,
+    departmentId: row.department_id,
+    startDatetime: row.start_datetime,
+    endDatetime: row.end_datetime,
+    reason: row.reason ?? null,
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+  };
+}
 
 export async function getLocks(departmentId, requesterProfile, supabase) {
-  // DEPT_HEAD can only see locks for their department
-  // SUPER_ADMIN can see locks for any department
-  if (requesterProfile.role === 'DEPT_HEAD' && requesterProfile.departmentId !== departmentId) {
-    throw createAppError('FORBIDDEN', 'No tienes permiso para ver los bloqueos de este departamento');
+  if (requesterProfile.role === 'DEPT_HEAD' && requesterProfile.department_id !== departmentId) {
+    throw new AppError('No tienes permiso para ver los bloqueos de este departamento', 403);
   }
-
-  return repository.findByDepartment(supabase, departmentId);
+  const rows = await repository.findByDepartment(supabase, departmentId);
+  return rows.map(mapLock);
 }
 
 export async function checkIsSessionLocked(departmentId, supabase) {
-  // Check if there's an active lock for the department right now
   const activeLock = await repository.findAllActive(supabase, departmentId);
   return !!activeLock;
 }
 
 export async function getActiveLockReason(departmentId, supabase) {
-  // Get the reason if there's an active lock
   const activeLock = await repository.findAllActive(supabase, departmentId);
-  return activeLock?.reason || null;
+  return activeLock?.reason ?? null;
 }
 
 export async function createLock(departmentId, startDateTime, endDateTime, reason, requesterProfile, supabase) {
-  // Only DEPT_HEAD (for their dept) and SUPER_ADMIN can create locks
   if (requesterProfile.role === 'DEPT_HEAD') {
-    if (requesterProfile.departmentId !== departmentId) {
-      throw createAppError('FORBIDDEN', 'No tienes permiso para crear bloqueos en este departamento');
+    if (requesterProfile.department_id !== departmentId) {
+      throw new AppError('No tienes permiso para crear bloqueos en este departamento', 403);
     }
   } else if (requesterProfile.role !== 'SUPER_ADMIN') {
-    throw createAppError('FORBIDDEN', 'No tienes permiso para crear bloqueos');
+    throw new AppError('No tienes permiso para crear bloqueos', 403);
   }
 
-  // Validate dates
   const start = new Date(startDateTime);
-  const end = new Date(endDateTime);
+  const end   = new Date(endDateTime);
   if (start >= end) {
-    throw createAppError('BAD_REQUEST', 'La fecha de inicio debe ser anterior a la fecha de fin');
+    throw new AppError('La fecha de inicio debe ser anterior a la fecha de fin', 400);
   }
 
-  return repository.insert(supabase, {
+  const row = await repository.insert(supabase, {
     department_id: departmentId,
     start_datetime: startDateTime,
     end_datetime: endDateTime,
     reason: reason || null,
     created_by: requesterProfile.id,
   });
+  return mapLock(row);
 }
 
 export async function deleteLock(lockId, requesterProfile, supabase) {
-  // Get the lock to check permissions
-  const locks = await supabase
+  const { data: lock, error } = await supabase
     .from('session_locks')
     .select('id, department_id, created_by')
     .eq('id', lockId)
     .maybeSingle();
 
-  if (!locks || locks.error) {
-    throw createAppError('NOT_FOUND', 'El bloqueo no existe');
+  if (error || !lock) {
+    throw new AppError('El bloqueo no existe', 404);
   }
 
-  // Check permissions
   if (requesterProfile.role === 'DEPT_HEAD') {
-    if (locks.data.created_by !== requesterProfile.id) {
-      throw createAppError('FORBIDDEN', 'No tienes permiso para eliminar este bloqueo');
+    if (lock.created_by !== requesterProfile.id) {
+      throw new AppError('No tienes permiso para eliminar este bloqueo', 403);
     }
   } else if (requesterProfile.role !== 'SUPER_ADMIN') {
-    throw createAppError('FORBIDDEN', 'No tienes permiso para eliminar bloqueos');
+    throw new AppError('No tienes permiso para eliminar bloqueos', 403);
   }
 
   return repository.remove(supabase, lockId);
 }
-
-// Exports:
-//   getLocks(departmentId, requesterProfile, supabase)
-//   checkIsSessionLocked(departmentId, supabase)
-//   getActiveLockReason(departmentId, supabase)
-//   createLock(departmentId, startDateTime, endDateTime, reason, requesterProfile, supabase)
-//   deleteLock(lockId, requesterProfile, supabase)
