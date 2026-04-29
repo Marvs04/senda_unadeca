@@ -1,17 +1,22 @@
 import { Router } from 'express';
 import { requireAuth } from '../../shared/middleware/requireAuth.mjs';
-import { getState, activate, deactivate, clockIn, clockOut, cancelSession, updateShifts } from './kiosk.controller.mjs';
+import { getState, activate, continueKiosk, deactivate, clockIn, clockOut, cancelSession, updateShifts } from './kiosk.controller.mjs';
 
 const router = Router();
 
-// All kiosk endpoints require a valid JWT
+// Kiosk endpoints with their respective auth strategies:
+// - activate, continue, deactivate, clock-in, clock-out, cancel-session: validate credentials in body (NO JWT required)
+// - getState: requires JWT (dept head viewing kiosk state)
+// - updateShifts: requires JWT (dept head managing shifts)
+
 router.get('/:departmentId', requireAuth, getState);
-router.post('/activate', requireAuth, activate);
-router.post('/deactivate', requireAuth, deactivate);
-router.post('/clock-in', requireAuth, clockIn);
-router.post('/clock-out', requireAuth, clockOut);
-router.post('/cancel-session', requireAuth, cancelSession);
-router.patch('/shifts', requireAuth, updateShifts);
+router.post('/activate', activate);          // validates identifier + password in body — fails with 409 if kiosk exists
+router.post('/continue', continueKiosk);     // validates identifier + password in body — fails with 404 if no kiosk exists
+router.post('/deactivate', deactivate);      // validates identifier + password in body
+router.post('/clock-in', clockIn);           // validates carnet + password in body
+router.post('/clock-out', clockOut);         // validates carnet + password in body
+router.post('/cancel-session', cancelSession); // validates identifier + password in body
+router.patch('/shifts', requireAuth, updateShifts); // requires JWT
 
 export default router;
 // Registers (mounted at /api/v1/kiosk):

@@ -6,6 +6,7 @@ import { PortalLayout } from '../../components/layout';
 import { User, UserRole, Department } from '../../types';
 import { useSuperAdminData, type SortField, type SortDir, type ActiveFilter } from '../../hooks/useSuperAdminData';
 import { useDebounce } from '../../hooks/useDebounce';
+import { KioskActions } from '../../hooks/useKiosk';
 import { Modal, Input, Button } from '../../components/ui';
 import DashboardCard from '../../components/DashboardCard';
 import SuperAdminAccountList from './SuperAdminAccountList';
@@ -19,7 +20,7 @@ interface SuperAdminPortalProps {
   allUsers: User[];
   allDepartments: Department[];
   addUser: (newUser: Omit<User, 'id'>, password?: string) => Promise<void> | void;
-  onActivateKiosk: (identifier: string, password: string, departmentId: string) => Promise<{ ok: boolean; error?: string }>;
+  kioskActions: KioskActions;
   resetUserPassword: (userId: string, newPassword: string) => Promise<void> | void;
   toggleUserActive: (userId: string, isActive: boolean) => Promise<void> | void;
   addDepartment: (newDepartment: Omit<Department, 'id'>) => Promise<void> | void;
@@ -33,7 +34,7 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   allUsers,
   allDepartments,
   addUser,
-  onActivateKiosk,
+  kioskActions,
   resetUserPassword,
   toggleUserActive,
   addDepartment,
@@ -46,15 +47,56 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   const [kioskPass, setKioskPass]       = useState('');
   const [kioskError, setKioskError]     = useState<string | null>(null);
   const [kioskOpen, setKioskOpen]       = useState(false);
+  const [kioskRecoveryMode, setKioskRecoveryMode] = useState(false);
+  const [kioskShowDeactivateForm, setKioskShowDeactivateForm] = useState(false);
 
   const handleRemoteKiosk = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = await onActivateKiosk(kioskId.trim(), kioskPass.trim(), kioskDeptId.trim());
-    if (!result.ok) { setKioskError(result.error ?? 'Error.'); return; }
+    const result = await kioskActions.activate(kioskId.trim(), kioskPass.trim(), kioskDeptId.trim());
+    if (!result.ok) {
+      if (result.code === 'ALREADY_ACTIVE') {
+        setKioskRecoveryMode(true);
+        return;
+      }
+      setKioskError(result.error ?? 'Error.');
+      return;
+    }
     setKioskError(null);
     setKioskId('');
     setKioskPass('');
+    setKioskRecoveryMode(false);
+    setKioskShowDeactivateForm(false);
     toast.success('Kiosco activado remotamente.');
+  };
+
+  const handleRemoteContinueKiosk = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const result = await kioskActions.continueExisting(kioskId.trim(), kioskPass.trim(), kioskDeptId.trim());
+    if (!result.ok) {
+      setKioskError(result.error ?? 'Error.');
+      return;
+    }
+    setKioskError(null);
+    setKioskId('');
+    setKioskPass('');
+    setKioskRecoveryMode(false);
+    setKioskShowDeactivateForm(false);
+    toast.success('Kiosco recuperado remotamente.');
+  };
+
+  const handleRemoteDeactivateKiosk = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const result = await kioskActions.deactivate(kioskId.trim(), kioskPass.trim());
+    if (!result.ok) {
+      setKioskError(result.error ?? 'Error.');
+      return;
+    }
+    setKioskError(null);
+    setKioskId('');
+    setKioskPass('');
+    setKioskRecoveryMode(false);
+    setKioskShowDeactivateForm(false);
+    toast.success('Kiosco desactivado remotamente.');
   };
 
   const [adminName, setAdminName] = useState('');
@@ -280,29 +322,72 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden"
                   >
-                    <form onSubmit={handleRemoteKiosk} className="flex flex-col gap-3 px-6 pb-6">
-                      <select
-                        value={kioskDeptId}
-                        onChange={e => { setKioskDeptId(e.target.value); setKioskError(null); }}
-                        className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card"
-                      >
-                        <option value="">— Selecciona un departamento —</option>
-                        {allDepartments.map(d => (
-                          <option key={d.id} value={d.id}>{d.name}</option>
-                        ))}
-                      </select>
-                      <input type="text" placeholder="Número de empleado (Super Admin)"
-                        value={kioskId} onChange={e => { setKioskId(e.target.value); setKioskError(null); }}
-                        className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                      <input type="password" placeholder="Contraseña"
-                        value={kioskPass} onChange={e => { setKioskPass(e.target.value); setKioskError(null); }}
-                        className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                      {kioskError && <p className="text-xs text-rose-500">{kioskError}</p>}
-                      <button type="submit"
-                        className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors">
-                        Activar kiosco
-                      </button>
-                    </form>
+                    {!kioskRecoveryMode ? !kioskShowDeactivateForm ? (
+                      <form onSubmit={handleRemoteKiosk} className="flex flex-col gap-3 px-6 pb-6">
+                        <select
+                          value={kioskDeptId}
+                          onChange={e => { setKioskDeptId(e.target.value); setKioskError(null); }}
+                          className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-card"
+                        >
+                          <option value="">— Selecciona un departamento —</option>
+                          {allDepartments.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                        <input type="text" placeholder="Número de empleado (Super Admin)"
+                          value={kioskId} onChange={e => { setKioskId(e.target.value); setKioskError(null); }}
+                          className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                        <input type="password" placeholder="Contraseña"
+                          value={kioskPass} onChange={e => { setKioskPass(e.target.value); setKioskError(null); }}
+                          className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                        {kioskError && <p className="text-xs text-rose-500">{kioskError}</p>}
+                        <button type="submit"
+                          className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors">
+                          Activar kiosco
+                        </button>
+                      </form>
+                    ) : (
+                      <form onSubmit={handleRemoteDeactivateKiosk} className="flex flex-col gap-3 px-6 pb-6">
+                        <p className="text-xs text-muted">Confirma tu identidad para desactivar</p>
+                        <input type="text" placeholder="Número de empleado (Super Admin)"
+                          value={kioskId} onChange={e => { setKioskId(e.target.value); setKioskError(null); }}
+                          className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+                        <input type="password" placeholder="Contraseña"
+                          value={kioskPass} onChange={e => { setKioskPass(e.target.value); setKioskError(null); }}
+                          className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+                        {kioskError && <p className="text-xs text-rose-500">{kioskError}</p>}
+                        <div className="flex gap-2">
+                          <button type="button"
+                            onClick={() => { setKioskShowDeactivateForm(false); setKioskError(null); }}
+                            className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted hover:bg-surface transition-colors">
+                            Atrás
+                          </button>
+                          <button type="submit"
+                            className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors">
+                            Desactivar
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="flex flex-col gap-3 px-6 pb-6">
+                        <p className="text-xs text-amber-600 font-semibold">Hay un kiosco activo para este departamento</p>
+                        <button type="button"
+                          onClick={handleRemoteContinueKiosk}
+                          className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors">
+                          Continuar Kiosco
+                        </button>
+                        <button type="button"
+                          onClick={() => setKioskShowDeactivateForm(true)}
+                          className="w-full py-3 rounded-xl bg-red-100 hover:bg-red-50 text-red-600 text-sm font-semibold transition-colors">
+                          Desactivar Kiosco
+                        </button>
+                        <button type="button"
+                          onClick={() => { setKioskRecoveryMode(false); setKioskError(null); }}
+                          className="w-full py-3 rounded-xl border border-border text-sm font-medium text-muted hover:bg-surface transition-colors">
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>

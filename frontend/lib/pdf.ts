@@ -70,11 +70,22 @@ function setDrawColor(doc: jsPDF, [r, g, b]: [number, number, number]) {
 }
 
 function sanitizeForPdf(value: string | number): string {
-  return String(value)
-    .replace(/\u00a0/g, ' ')      // non-breaking space → regular space
-    .replace(/\u20A1/g, 'C')     // ₡ colón (U+20A1) — not in Windows-1252/jsPDF Helvetica
-    .replace(/₡/g, 'C')          // literal fallback in case regex flag differs
-    .trim();
+  let str = String(value);
+  
+  // Replace problematic Unicode characters
+  str = str.replace(/\u00a0/g, ' ');      // non-breaking space → regular space
+  str = str.replace(/\u20A1/g, 'C');      // ₡ colón (U+20A1)
+  str = str.replace(/₡/g, 'C');           // literal fallback
+  
+  // Normalize currency format if 'C' appears with number
+  // E.g., "C1,000" → "C1,000" (ensure no extra spaces inside number)
+  str = str.replace(/C\s+([0-9,.])/g, 'C$1');  // Remove space after C if before digit
+  
+  // Safety: replace any remaining non-ASCII that jsPDF Helvetica can't handle
+  // This is a fallback for any unexpected Unicode that slipped through
+  str = str.replace(/[^\x00-\x7F]/g, '?');     // Replace non-ASCII with '?'
+  
+  return str.trim();
 }
 
 function drawLetterhead(doc: jsPDF, W: number) {

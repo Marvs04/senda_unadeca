@@ -67,6 +67,7 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen]   = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [selectedPaymentIds, setSelectedPaymentIds] = useState<Set<string>>(new Set());
   const { confirm, dialogProps }              = useConfirm();
 
   // ── Period key for localStorage registered state ──────────────────────────
@@ -116,21 +117,25 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
       ? `cycle_${selectedCycle}`
       : `q${selectedTrimester}_${selectedYear}`;
     setRegisteredIds(loadRegistered(nextKey));
+    setSelectedPaymentIds(new Set()); // Reset selection when changing view mode
   };
 
   const handleCycleChange = (cycle: string) => {
     setSelectedCycle(cycle);
     setRegisteredIds(loadRegistered(`cycle_${cycle}`));
+    setSelectedPaymentIds(new Set()); // Reset selection when changing period
   };
 
   const handleTrimesterChange = (t: number) => {
     setSelectedTrimester(t);
     setRegisteredIds(loadRegistered(`q${t}_${selectedYear}`));
+    setSelectedPaymentIds(new Set()); // Reset selection when changing period
   };
 
   const handleYearChange = (y: number) => {
     setSelectedYear(y);
     setRegisteredIds(loadRegistered(`q${selectedTrimester}_${y}`));
+    setSelectedPaymentIds(new Set()); // Reset selection when changing period
   };
 
   const toggleRegistered = useCallback((studentId: string) => {
@@ -147,6 +152,16 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
       return next;
     });
   }, [periodKey]);
+
+  // ── Payment Selection: for processing only selected items ──────────────────
+  const togglePaymentSelection = useCallback((workLogId: string) => {
+    setSelectedPaymentIds(prev => {
+      const next = new Set(prev);
+      if (next.has(workLogId)) next.delete(workLogId);
+      else next.add(workLogId);
+      return next;
+    });
+  }, []);
 
   // ── Data (computed on the backend) ──────────────────────────────────────
   const { data: reportData, isLoading: reportLoading, error: reportError } = useAccountingReport({
@@ -183,18 +198,28 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
 
   // ── Process payments ──────────────────────────────────────────────────────
   const handleProcessPayments = async () => {
+    if (selectedPaymentIds.size === 0) {
+      toast.error('Selecciona al menos un pago para procesar', { position: 'top-center' });
+      return;
+    }
+
     const label = viewMode === 'cycle' ? 'ciclo' : 'cuatrimestre';
+    const count = selectedPaymentIds.size;
     const ok = await confirm(
-      `¿Procesar todos los pagos aprobados para el ${label} seleccionado? Esto marcará las horas como procesadas.`,
+      `¿Procesar ${count} pago(s) seleccionado(s) para el ${label} seleccionado? Esto marcará las horas como procesadas.`,
       { title: 'Procesar pagos', confirmLabel: 'Procesar' },
     );
     if (!ok) return;
-    const updates = approvedForPayroll.flatMap(item =>
-      item.logIds.map(logId => ({ logId, status: WorkLogStatus.PROCESSED })),
-    );
+
+    const updates = Array.from(selectedPaymentIds).map(logId => ({ 
+      logId, 
+      status: WorkLogStatus.PROCESSED 
+    }));
+
     if (updates.length > 0) {
       updateMultipleWorkLogsStatus(updates);
-      toast.success('Pagos procesados exitosamente', { position: 'top-center' });
+      setSelectedPaymentIds(new Set()); // Clear selection after processing
+      toast.success(`${count} pago(s) procesado(s) exitosamente`, { position: 'top-center' });
     }
   };
 
@@ -665,7 +690,10 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
       {/* ── Main Tab Toggle ────────────────────────────────────────────────── */}
       <div className="flex space-x-4 mb-6 pt-4 border-b border-border-faint">
         <button
-          onClick={() => setMainTab('payroll')}
+          onClick={() => {
+            setMainTab('payroll');
+            setSelectedPaymentIds(new Set()); // Reset selection when changing tab
+          }}
           className={cn(
             'pb-3 text-sm font-bold uppercase tracking-widest transition-all border-b-2',
             mainTab === 'payroll'
@@ -676,7 +704,10 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
           Nómina por Departamento
         </button>
         <button
-          onClick={() => setMainTab('summary')}
+          onClick={() => {
+            setMainTab('summary');
+            setSelectedPaymentIds(new Set()); // Reset selection when changing tab
+          }}
           className={cn(
             'pb-3 text-sm font-bold uppercase tracking-widest transition-all border-b-2',
             mainTab === 'summary'
@@ -700,6 +731,8 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
           onBatchImportReceivables={handleBatchImportReceivables}
           onDownloadDeptPDF={handleDownloadDeptPDF}
           onStudentClick={(id) => setSelectedStudentId(id)}
+          selectedPaymentIds={selectedPaymentIds}
+          onTogglePaymentSelection={togglePaymentSelection}
         />
       ) : (
         <AccountingSummaryTable

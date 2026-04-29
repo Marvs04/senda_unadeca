@@ -10,6 +10,7 @@ import ratesRouter from './features/rates/rates.routes.mjs';
 import reportsRouter from './features/reports/reports.routes.mjs';
 import kioskRouter from './features/kiosk/kiosk.routes.mjs';
 import accountingRouter from './features/accounting/accounting.routes.mjs';
+import sessionLocksRouter from './features/sessionLocks/sessionLocks.routes.mjs';
 
 dotenv.config();
 
@@ -29,6 +30,7 @@ app.use('/api/v1/rate', ratesRouter);
 app.use('/api/v1/reports', reportsRouter);
 app.use('/api/v1/kiosk', kioskRouter);
 app.use('/api/v1/accounting', accountingRouter);
+app.use('/api/v1/session-locks', sessionLocksRouter);
 
 app.use(errorHandler);
 
