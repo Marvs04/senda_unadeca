@@ -134,7 +134,7 @@ const StudentHistory: React.FC<StudentHistoryProps> = ({
             <p className="text-xs text-faint">Inicia el cronómetro para registrar tus primeras horas</p>
           </div>
         ) : (
-          <WorkLogTable logs={filteredLogs} users={[user]} departments={[]} title="" />
+          <WorkLogTable logs={filteredLogs} users={[user]} departments={[]} title="" enableFilters />
         )}
       </div>
     </div>

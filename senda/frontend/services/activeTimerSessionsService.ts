@@ -10,6 +10,11 @@ export interface ActiveTimerSession {
   student?: { id: string; name: string; carnet?: string | null } | null;
 }
 
+export async function getMySession(): Promise<ActiveTimerSession | null> {
+  const { data } = await apiClient.get<ActiveTimerSession | null>('/active-sessions/me');
+  return data;
+}
+
 export async function startSession(departmentId: string, description: string): Promise<ActiveTimerSession> {
   const { data } = await apiClient.post<ActiveTimerSession>('/active-sessions', { departmentId, description });
   return data;

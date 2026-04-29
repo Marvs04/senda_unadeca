@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar, X, Plus, Trash2, Clock } from 'lucide-react';
 import { useSessionLocks } from '../../hooks/useSessionLocks';
+import { useConfirm } from '../../hooks/useConfirm';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import { cn, formatCostaRicaLongDate } from '../../lib/utils';
 import { toast } from 'sonner';
 
@@ -11,6 +13,7 @@ interface DeptHeadSessionLocksSectionProps {
 
 const DeptHeadSessionLocksSection: React.FC<DeptHeadSessionLocksSectionProps> = ({ departmentId }) => {
   const { locks, actions } = useSessionLocks(departmentId);
+  const { confirm, dialogProps: confirmDialog } = useConfirm();
   const [showForm, setShowForm] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -61,7 +64,10 @@ const DeptHeadSessionLocksSection: React.FC<DeptHeadSessionLocksSectionProps> = 
   };
 
   const handleDeleteLock = async (lockId: string) => {
-    const ok = window.confirm('¿Estás seguro de que deseas eliminar este bloqueo?');
+    const ok = await confirm(
+      '¿Estás seguro de que deseas eliminar este bloqueo? Los estudiantes podrán volver a registrar horas en ese período.',
+      { variant: 'danger', title: 'Eliminar bloqueo', confirmLabel: 'Eliminar' },
+    );
     if (!ok) return;
 
     try {
@@ -72,6 +78,7 @@ const DeptHeadSessionLocksSection: React.FC<DeptHeadSessionLocksSectionProps> = 
   };
 
   return (
+    <>
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -247,6 +254,9 @@ const DeptHeadSessionLocksSection: React.FC<DeptHeadSessionLocksSectionProps> = 
         )
       )}
     </motion.div>
+
+    <ConfirmDialog {...confirmDialog} />
+    </>
   );
 };
 

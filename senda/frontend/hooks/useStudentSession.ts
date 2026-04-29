@@ -12,6 +12,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import { WorkLog, LIMITS } from '../types';
+// toast is still used for start/finish/cancel feedback
 import { getCostaRicaISODate } from '../lib/utils';
 import { useConfirm } from './useConfirm';
 import { subscribeToTableChanges } from '../lib/realtime';
@@ -34,6 +35,7 @@ export function useStudentSession({
   const [startTime,  setStartTime]    = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [description, setDescription] = useState('');
+  const [stoppedByHeadReason, setStoppedByHeadReason] = useState<string | null>(null);
 
   const { confirm, dialogProps: sessionConfirmProps } = useConfirm();
 
@@ -47,42 +49,62 @@ export function useStudentSession({
     setElapsedTime(0);
     setDescription('');
     localStorage.removeItem(SESSION_KEY(userId));
-
-    if (reason) {
-      toast.error(`Tu sesión fue detenida por el jefe de departamento. Razón: ${reason}`, {
-        position: 'top-center',
-        duration: 8000,
-      });
-    } else {
-      toast.info('Tu sesión fue detenida por el jefe de departamento.', {
-        position: 'top-center',
-        duration: 6000,
-      });
-    }
+    setStoppedByHeadReason(reason ?? '');
   }, [userId]);
 
   // ── Restore persisted session on mount ──────────────────────────────────────
+  // Always query the DB first — the server's startedAt is the authoritative
+  // reference so the elapsed counter is consistent across devices and after
+  // re-login. localStorage is only used as a fallback when the network is down.
   useEffect(() => {
-    const saved = localStorage.getItem(SESSION_KEY(userId));
-    if (!saved) return;
-    const { start, desc } = JSON.parse(saved) as { start: number; desc: string };
+    let cancelled = false;
 
-    const elapsedHours = (Date.now() - start) / (1000 * 60 * 60);
-    if (elapsedHours > LIMITS.MAX_HOURS) {
-      localStorage.removeItem(SESSION_KEY(userId));
-      activeSessionService.endSession().catch(() => {});
-      return;
-    }
+    activeSessionService.getMySession().then(dbSession => {
+      if (cancelled) return;
 
-    setStartTime(start);
-    setDescription(desc);
-    setIsTracking(true);
+      if (!dbSession) {
+        // No active DB session — clear any stale localStorage entry
+        localStorage.removeItem(SESSION_KEY(userId));
+        return;
+      }
 
-    // Re-upsert into DB in case the record was cleaned up
-    const dept = departmentIdRef.current;
-    if (dept) {
-      activeSessionService.startSession(dept, desc).catch(() => {});
-    }
+      // Use the server's startedAt as the single source of truth for elapsed time
+      const serverStart = new Date(dbSession.startedAt).getTime();
+      const elapsedHours = (Date.now() - serverStart) / (1000 * 60 * 60);
+
+      if (elapsedHours > LIMITS.MAX_HOURS) {
+        localStorage.removeItem(SESSION_KEY(userId));
+        activeSessionService.endSession().catch(() => {});
+        return;
+      }
+
+      // Prefer description from localStorage (user may have typed more), fall back to DB
+      const savedStr = localStorage.getItem(SESSION_KEY(userId));
+      const desc = savedStr ? (JSON.parse(savedStr) as { desc: string }).desc : (dbSession.description ?? '');
+
+      // Sync localStorage with the authoritative server timestamp
+      localStorage.setItem(SESSION_KEY(userId), JSON.stringify({ start: serverStart, desc }));
+
+      setStartTime(serverStart);
+      setDescription(desc);
+      setIsTracking(true);
+    }).catch(() => {
+      // Network error — fall back to localStorage so a refresh doesn't lose the session
+      const saved = localStorage.getItem(SESSION_KEY(userId));
+      if (!saved || cancelled) return;
+      const { start, desc } = JSON.parse(saved) as { start: number; desc: string };
+      const elapsedHours = (Date.now() - start) / (1000 * 60 * 60);
+      if (elapsedHours > LIMITS.MAX_HOURS) {
+        localStorage.removeItem(SESSION_KEY(userId));
+        activeSessionService.endSession().catch(() => {});
+        return;
+      }
+      setStartTime(start);
+      setDescription(desc);
+      setIsTracking(true);
+    });
+
+    return () => { cancelled = true; };
   }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Tick every second while tracking ────────────────────────────────────────
@@ -95,7 +117,7 @@ export function useStudentSession({
     return () => clearInterval(interval);
   }, [isTracking, startTime]);
 
-  // ── Realtime: detect force-stop by dept head ─────────────────────────────────
+  // ── Realtime: detect force-stop by dept head ────────────────────────────────
   useEffect(() => {
     const unsubscribe = subscribeToTableChanges({
       table: 'active_timer_sessions',
@@ -105,7 +127,6 @@ export function useStudentSession({
         const record = payload.new as { status?: string; stop_reason?: string };
         if (record.status === 'STOPPED_BY_HEAD') {
           forceStop(record.stop_reason ?? undefined);
-          // Clean up the DB record so the dept head sees the session disappear
           activeSessionService.endSession().catch(() => {});
         }
       },
@@ -113,20 +134,57 @@ export function useStudentSession({
     return unsubscribe;
   }, [userId, forceStop]);
 
+  // ── Realtime: sync timer when a session starts (this device or another) ─────
+  // INSERT fires both when THIS device creates a session (→ updates startTime to
+  // server-authoritative value) and when ANOTHER device starts a session (→ auto-
+  // starts the counter here without needing a page reload).
+  // The old DELETE subscription has been removed because it caused a race condition:
+  // the backend deletes the previous session before inserting the new one, so the
+  // DELETE event was resetting the timer mid-start.
+  useEffect(() => {
+    const unsubscribe = subscribeToTableChanges({
+      table: 'active_timer_sessions',
+      filter: `student_id=eq.${userId}`,
+      event: 'INSERT',
+      onChange: (payload) => {
+        const record = payload.new as { started_at: string; description?: string };
+        const serverStart = new Date(record.started_at).getTime();
+        const elapsedHours = (Date.now() - serverStart) / (1000 * 60 * 60);
+        if (elapsedHours > LIMITS.MAX_HOURS) return;
+
+        const desc = record.description ?? '';
+        setStartTime(serverStart);
+        setIsTracking(true);
+        // Only overwrite description if the user hasn't typed anything locally
+        setDescription(prev => prev || desc);
+        localStorage.setItem(SESSION_KEY(userId), JSON.stringify({ start: serverStart, desc }));
+      },
+    });
+    return unsubscribe;
+  }, [userId]);
+
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
-  const handleStart = () => {
-    const now = Date.now();
-    setStartTime(now);
+  const handleStart = async () => {
+    // Optimistic start with local time so the UI reacts instantly
+    const localStart = Date.now();
+    setStartTime(localStart);
     setIsTracking(true);
-    localStorage.setItem(SESSION_KEY(userId), JSON.stringify({ start: now, desc: description }));
+    localStorage.setItem(SESSION_KEY(userId), JSON.stringify({ start: localStart, desc: description }));
 
-    // Fire-and-forget: persist to DB so dept head can see this session
+    // Persist to DB so dept head can see this session, and get the authoritative startedAt
     const dept = departmentIdRef.current;
     if (dept) {
-      activeSessionService.startSession(dept, description).catch(err =>
-        console.warn('[StudentSession] DB persist failed:', err),
-      );
+      try {
+        const session = await activeSessionService.startSession(dept, description);
+        // Replace local time with server time so all devices stay in sync
+        const serverStart = new Date(session.startedAt).getTime();
+        setStartTime(serverStart);
+        localStorage.setItem(SESSION_KEY(userId), JSON.stringify({ start: serverStart, desc: description }));
+      } catch (err) {
+        console.warn('[StudentSession] DB persist failed:', err);
+        // Keep local time as fallback — session still works offline
+      }
     }
 
     toast.success('Sesión iniciada correctamente', { position: 'top-center' });
@@ -209,5 +267,7 @@ export function useStudentSession({
     handleFinish,
     handleCancel,
     sessionConfirmProps,
+    stoppedByHeadReason,
+    dismissStoppedByHead: () => setStoppedByHeadReason(null),
   };
 }

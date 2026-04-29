@@ -17,12 +17,12 @@ services:
       SUPABASE_SERVICE_ROLE_KEY: REDACTED_SERVICE_ROLE_KEY
       CORS_ORIGIN: https://senda.rlp.lat
       SITE_URL: https://senda.rlp.lat
-      SMTP_HOST: smtp.resend.com
-      SMTP_PORT: 465
-      SMTP_USER: resend
-      SMTP_PASS: re_RgdinULq_Q6HXnH7VnRFc5KiVVXf9dsRL
+      SMTP_HOST: smtp.office365.com
+      SMTP_PORT: 587
+      SMTP_USER: virtual.machine@unadeca.net
+      SMTP_PASS: REDACTED_SMTP_PASS
       SMTP_SENDER_NAME: SENDA-Lab
-      SMTP_FROM: noreply@updates.rlp.lat
+      SMTP_FROM: virtual.machine@unadeca.net
     expose:
       - "4000"
     healthcheck:
@@ -38,6 +38,8 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_VERSION: v1
+        VITE_SUPABASE_URL: https://sendasupabaseapi.rlp.lat
+        VITE_SUPABASE_ANON_KEY: REDACTED_ANON_KEY
     image: senda-frontend:latest
     container_name: senda-frontend
     restart: unless-stopped

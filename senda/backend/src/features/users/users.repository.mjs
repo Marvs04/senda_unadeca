@@ -36,6 +36,16 @@ export async function remove(id) {
 export async function updateAuthPassword(id, password) {
   return adminSupabase.auth.admin.updateUserById(id, { password });
 }
+
+/** Devuelve el perfil del DEPT_HEAD actualmente asignado a un departamento, si existe. */
+export async function findHeadOfDept(deptId) {
+  return adminSupabase
+    .from('profiles')
+    .select('id, department_id')
+    .eq('department_id', deptId)
+    .eq('role', 'DEPT_HEAD')
+    .maybeSingle();
+}
 // Exports:
 //   findAll(supabase)
 //   findById(id)

@@ -111,20 +111,12 @@ export function formatCurrency(amount: number) {
   return `\u20A1${formatted}`;
 }
 
-/**
- * PDF-safe currency formatter.
- * jsPDF uses Helvetica (Windows-1252 / Latin-1) which does NOT include the
- * colón symbol U+20A1 (₡). Passing it causes the UTF-8 bytes (E2 82 A1) to
- * be misinterpreted, corrupting the symbol AND adjacent digits.
- * This function uses the plain ASCII letter 'C' instead.
- * Use ONLY for values that go into jsPDF text or autoTable cells.
- */
 export function formatCurrencyPdf(amount: number): string {
   const formatted = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(Math.round(amount));
-  return `C${formatted}`;
+  return `₡${formatted}`;
 }
 
 export function exportToCSV(filename: string, headers: string[], rows: (string | number)[][]) {

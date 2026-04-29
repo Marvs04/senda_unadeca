@@ -142,6 +142,8 @@ function toKioskResult(error: unknown): KioskActionResult {
   return { ok: false, error: msg };
 }
 
+const KIOSK_DEPT_KEY = 'senda_kiosk_dept';
+
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 export function useKiosk({ initialDepartmentId }: UseKioskOptions = {}): UseKioskReturn {
   const [apiState, setApiState] = useState<kioskApi.KioskStateApi | null>(null);
@@ -153,12 +155,13 @@ export function useKiosk({ initialDepartmentId }: UseKioskOptions = {}): UseKios
     return () => clearInterval(id);
   }, []);
 
-  // If a departmentId is supplied at mount (remote activation by SUPER_ADMIN), load initial state
+  // Restore kiosk from localStorage on page refresh
   useEffect(() => {
-    if (!initialDepartmentId || apiState) return;
-    kioskApi.getKioskState(initialDepartmentId)
+    const savedDeptId = initialDepartmentId || localStorage.getItem(KIOSK_DEPT_KEY);
+    if (!savedDeptId || apiState) return;
+    kioskApi.getKioskState(savedDeptId)
       .then(state => { if (state) setApiState(state); })
-      .catch(() => { /* ignore — kiosk might not exist yet */ });
+      .catch(() => { /* kiosk not active or network error — silently ignore */ });
   }, [initialDepartmentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep a ref to the active department for the realtime callback
@@ -204,6 +207,7 @@ export function useKiosk({ initialDepartmentId }: UseKioskOptions = {}): UseKios
     try {
       const state = await kioskApi.activateKiosk(identifier, password, targetDepartmentId);
       setApiState(state);
+      localStorage.setItem(KIOSK_DEPT_KEY, state.departmentId);
       return { ok: true };
     } catch (err) {
       return toKioskResult(err);
@@ -218,6 +222,7 @@ export function useKiosk({ initialDepartmentId }: UseKioskOptions = {}): UseKios
     try {
       const state = await kioskApi.continueKiosk(identifier, password, targetDepartmentId);
       setApiState(state);
+      localStorage.setItem(KIOSK_DEPT_KEY, state.departmentId);
       return { ok: true };
     } catch (err) {
       return toKioskResult(err);
@@ -232,6 +237,7 @@ export function useKiosk({ initialDepartmentId }: UseKioskOptions = {}): UseKios
     try {
       await kioskApi.deactivateKiosk(identifier, password, apiState.departmentId);
       setApiState(null);
+      localStorage.removeItem(KIOSK_DEPT_KEY);
       return { ok: true };
     } catch (err) {
       return toKioskResult(err);

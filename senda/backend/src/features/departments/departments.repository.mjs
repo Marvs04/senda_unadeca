@@ -26,6 +26,23 @@ export async function countWorkLogsByDepartment(id) {
     .select('id', { count: 'exact', head: true })
     .eq('department_id', id);
 }
+
+/** Devuelve el departamento donde head_id = userId (o null si no existe). */
+export async function findDeptByHead(userId) {
+  return adminSupabase
+    .from('departments')
+    .select('id, head_id')
+    .eq('head_id', userId)
+    .maybeSingle();
+}
+
+/** Actualiza head_id en un departamento. Pasa null para desasignar. */
+export async function setDeptHead(deptId, headId) {
+  return adminSupabase
+    .from('departments')
+    .update({ head_id: headId ?? null })
+    .eq('id', deptId);
+}
 // Exports:
 //   findAll(supabase)
 //   insert(payload)

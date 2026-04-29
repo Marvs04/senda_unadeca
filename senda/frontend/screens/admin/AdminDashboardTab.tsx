@@ -319,7 +319,7 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
     setSortMode('RECENT');
   };
 
-  const handleExport = (type: 'csv' | 'pdf') => {
+  const handleExport = async (type: 'csv' | 'pdf') => {
     const headers = [
       'Estudiante',
       'Carnet',
@@ -369,7 +369,7 @@ const AdminDashboardTab: React.FC<AdminDashboardTabProps> = ({
       exportToCSV('reporte_general_filtrado.csv', headers, rows);
     } else {
       const now = formatCostaRicaLongDate();
-      renderPDF({
+      await renderPDF({
         filename: 'reporte_general_filtrado.pdf',
         reportTitle: 'REPORTE GENERAL DE HORAS BECA',
         subtitle: `Ciclo ${selectedCycle} — vista filtrada de registros globales`,

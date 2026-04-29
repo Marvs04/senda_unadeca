@@ -6,5 +6,6 @@ export function errorHandler(err, _req, res, _next) {
   }
   const status = err.status ?? err.statusCode ?? 500;
   const message = err instanceof Error ? err.message : 'Error interno del servidor.';
+  if (status >= 500) console.error('[ERROR]', err);
   return res.status(status).json({ message });
 }

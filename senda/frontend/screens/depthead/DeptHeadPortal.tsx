@@ -5,10 +5,7 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Download,
-  History,
   Calendar,
-  FileText,
   DollarSign,
   ChevronDown,
 } from 'lucide-react';
@@ -16,11 +13,9 @@ import { toast } from 'sonner';
 import { PortalLayout } from '../../components/layout';
 import { Button } from '../../components/ui';
 import DashboardCard from '../../components/DashboardCard';
-import WorkLogTable from '../../components/WorkLogTable';
 import { User, WorkLog, WorkLogStatus, Department, LIMITS } from '../../types';
-import { exportToCSV, formatCostaRicaLongDate, formatCurrency, getCostaRicaISODate } from '../../lib/utils';
-import { renderPDF } from '../../lib/pdf';
-import { getBillingCycle, isDateInCycle } from '../../lib/business';
+import { formatCurrency, getCostaRicaISODate } from '../../lib/utils';
+import { getBillingCycle } from '../../lib/business';
 import { useConfirm } from '../../hooks/useConfirm';
 import { useDeptHeadData } from '../../hooks/useDeptHeadData';
 import { KioskActions } from '../../hooks/useKiosk';
@@ -29,6 +24,7 @@ import DeptHeadPendingSection from './DeptHeadPendingSection';
 import DeptHeadLogForm from './DeptHeadLogForm';
 import DeptHeadRejectionModal from './DeptHeadRejectionModal';
 import DeptHeadSessionLocksSection from './DeptHeadSessionLocksSection';
+import DeptHeadHistorySection from './DeptHeadHistorySection';
 import DeptHeadLiveSessionsSection from './DeptHeadLiveSessionsSection';
 
 interface DeptHeadPortalProps {
@@ -211,43 +207,6 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
     }
   };
 
-  const handleExport = (type: 'csv' | 'pdf') => {
-    const cycleLogs = (myLogs || []).filter(log => isDateInCycle(log.date, selectedCycle));
-    const headers = ['Estudiante', 'Fecha', 'Horas', 'Descripción', 'Estado', 'Razón Rechazo'];
-    const rows = cycleLogs.map(log => [
-      (allUsers || []).find(u => u.id === log.studentId)?.name || 'N/A',
-      log.date,
-      log.hours,
-      log.description,
-      log.status,
-      log.rejectionReason || '',
-    ]);
-    if (rows.length === 0) {
-      toast.info('No hay registros en el ciclo seleccionado para exportar.', { position: 'top-center' });
-      return;
-    }
-    const safeDept = departmentName.replace(/\s+/g, '_');
-    if (type === 'csv') {
-      exportToCSV(`reporte_${safeDept}.csv`, headers, rows);
-    } else {
-      const now = formatCostaRicaLongDate();
-      renderPDF({
-        filename: `reporte_${safeDept}.pdf`,
-        reportTitle: `REPORTE DE HORAS — ${departmentName.toUpperCase()}`,
-        subtitle: 'Registro de horas trabajadas por estudiantes del departamento',
-        meta: [
-          { label: 'Departamento',       value: departmentName },
-          { label: 'Fecha de Emisi\u00f3n',   value: now },
-          { label: 'Jefe de Departamento', value: user.name },
-          { label: 'Ciclo',               value: selectedCycle },
-        ],
-        headers,
-        rows,
-      });
-    }
-    toast.success(`Reporte ${type.toUpperCase()} generado`, { position: 'top-center' });
-  };
-
   const renderActions = (log: WorkLog) => {
     if (log.status === WorkLogStatus.PENDING) {
       return (
@@ -367,37 +326,14 @@ const DeptHeadPortal: React.FC<DeptHeadPortalProps> = ({
             <DeptHeadSessionLocksSection departmentId={user.departmentId ?? ''} />
 
             {/* History */}
-            <div className="bg-card p-8 rounded-[2rem] border border-border-faint shadow-sm">
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-6">
-                <div className="flex items-center space-x-4">
-                  <div className="icon-box-lg">
-                    <History className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold tracking-tight">Historial del Departamento</h3>
-                    <p className="text-xs text-muted">Registros aprobados y procesados</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button variant="icon-action" onClick={() => handleExport('csv')} title="Exportar CSV">
-                    <Download className="h-4 w-4" />
-                  </Button>
-                  <Button variant="primary" size="sm" icon={<FileText className="h-4 w-4" />} onClick={() => handleExport('pdf')}>
-                    Exportar PDF
-                  </Button>
-                </div>
-              </div>
-              <WorkLogTable
-                logs={myLogs.filter(
-                  l =>
-                    l.status !== WorkLogStatus.PENDING && isDateInCycle(l.date, selectedCycle),
-                )}
-                users={allUsers}
-                departments={allDepartments}
-                title=""
-                showStudent
-              />
-            </div>
+            <DeptHeadHistorySection
+              myLogs={myLogs}
+              allUsers={allUsers}
+              allDepartments={allDepartments}
+              selectedCycle={selectedCycle}
+              departmentName={departmentName}
+              deptHeadName={user.name}
+            />
           </div>
 
           {/* Log Form — sticky */}

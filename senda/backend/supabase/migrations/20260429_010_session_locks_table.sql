@@ -5,15 +5,10 @@ CREATE TABLE session_locks (
   start_datetime TIMESTAMP WITH TIME ZONE NOT NULL,
   end_datetime TIMESTAMP WITH TIME ZONE NOT NULL,
   reason TEXT,
-  created_by UUID NOT NULL REFERENCES profiles(id) ON DELETE SET NULL,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   
-  CONSTRAINT valid_datetime_range CHECK (start_datetime < end_datetime),
-  CONSTRAINT valid_created_by_role AS (
-    -- Only DEPT_HEAD and SUPER_ADMIN can create locks
-    SELECT COUNT(*) > 0 FROM profiles p 
-    WHERE p.id = created_by AND p.role IN ('DEPT_HEAD', 'SUPER_ADMIN')
-  )
+  CONSTRAINT valid_datetime_range CHECK (start_datetime < end_datetime)
 );
 
 -- Enable RLS

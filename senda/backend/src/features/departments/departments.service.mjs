@@ -5,10 +5,38 @@ import {
   update,
   remove,
   countWorkLogsByDepartment,
+  findDeptByHead,
+  setDeptHead,
 } from './departments.repository.mjs';
+import { findHeadOfDept, updateProfileField } from '../users/users.repository.mjs';
 import { COST_CENTER_REGEX } from './departments.schemas.mjs';
 import { toDepartment } from '../../shared/utils/mappers.mjs';
 import { normalizeOptionalText } from '../../shared/utils/normalize.mjs';
+
+/**
+ * Mantiene sincronizados departments.head_id ↔ profiles.department_id.
+ * Llama cuando el headId de un departamento va a cambiar.
+ *
+ * @param {string} deptId  - ID del departamento que cambia
+ * @param {string|null} oldHeadId - head_id actual (antes del cambio)
+ * @param {string|null} newHeadId - nuevo head_id (puede ser null)
+ */
+async function syncHeadChange(deptId, oldHeadId, newHeadId) {
+  // 1. Desasignar jefe anterior si cambia
+  if (oldHeadId && oldHeadId !== newHeadId) {
+    await updateProfileField(oldHeadId, { department_id: null }).catch(() => null);
+  }
+
+  if (newHeadId) {
+    // 2. Si el nuevo jefe ya estaba asignado a OTRO departamento, limpiar ese dept
+    const { data: prevDept } = await findDeptByHead(newHeadId);
+    if (prevDept && prevDept.id !== deptId) {
+      await setDeptHead(prevDept.id, null).catch(() => null);
+    }
+    // 3. Asignar department_id al nuevo jefe
+    await updateProfileField(newHeadId, { department_id: deptId }).catch(() => null);
+  }
+}
 
 export async function getDepartments(supabase) {
   const { data, error } = await findAll(supabase);
@@ -52,6 +80,12 @@ export async function createDepartment(body, requester) {
     err.statusCode = 400;
     throw err;
   }
+
+  // Sincronizar profiles.department_id con el jefe asignado al crear
+  if (normalizedHeadId) {
+    await syncHeadChange(data.id, null, normalizedHeadId);
+  }
+
   return toDepartment(data);
 }
 
@@ -99,11 +133,24 @@ export async function updateDepartment(id, body, requester) {
     throw err;
   }
 
+  // Leer el headId actual antes de modificar para poder sincronizar
+  let currentHeadId = null;
+  if (headId !== undefined) {
+    const { data: currentDept } = await findById(id);
+    currentHeadId = currentDept?.head_id ?? null;
+  }
+
   const { error } = await update(id, updates);
   if (error) {
     const err = new Error(error.message);
     err.statusCode = 400;
     throw err;
+  }
+
+  // Sincronizar profiles ↔ departments si cambió el jefe
+  if (headId !== undefined) {
+    const newHeadId = updates.head_id ?? null;
+    await syncHeadChange(id, currentHeadId, newHeadId);
   }
 }
 

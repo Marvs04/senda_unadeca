@@ -1,5 +1,7 @@
+import { adminSupabase } from '../../shared/config/supabaseClient.mjs';
+
 export async function findByDepartment(supabase, departmentId) {
-  const { data, error } = await supabase
+  const { data, error } = await adminSupabase
     .from('session_locks')
     .select('id, department_id, start_datetime, end_datetime, reason, created_by, created_at')
     .eq('department_id', departmentId)
@@ -11,7 +13,7 @@ export async function findByDepartment(supabase, departmentId) {
 
 export async function findAllActive(supabase, departmentId) {
   const now = new Date().toISOString();
-  const { data, error } = await supabase
+  const { data, error } = await adminSupabase
     .from('session_locks')
     .select('id, department_id, start_datetime, end_datetime, reason')
     .eq('department_id', departmentId)
@@ -24,7 +26,7 @@ export async function findAllActive(supabase, departmentId) {
 }
 
 export async function insert(supabase, payload) {
-  const { data, error } = await supabase
+  const { data, error } = await adminSupabase
     .from('session_locks')
     .insert(payload)
     .select('id, department_id, start_datetime, end_datetime, reason, created_by, created_at')
@@ -35,7 +37,7 @@ export async function insert(supabase, payload) {
 }
 
 export async function remove(supabase, lockId) {
-  const { error } = await supabase
+  const { error } = await adminSupabase
     .from('session_locks')
     .delete()
     .eq('id', lockId);

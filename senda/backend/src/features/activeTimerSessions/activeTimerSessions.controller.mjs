@@ -2,6 +2,16 @@ import { adminSupabase } from '../../shared/config/supabaseClient.mjs';
 import { getRequesterProfile } from '../../shared/middleware/requireAuth.mjs';
 import * as service from './activeTimerSessions.service.mjs';
 
+export async function getMySession(req, res, next) {
+  try {
+    const profile = await getRequesterProfile(req);
+    const session = await service.getMySession(profile.id, adminSupabase);
+    res.json(session); // null if no active session
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getActiveSessions(req, res, next) {
   try {
     const { departmentId } = req.params;

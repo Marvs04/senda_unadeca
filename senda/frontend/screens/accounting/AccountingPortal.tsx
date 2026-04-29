@@ -241,9 +241,9 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
     );
   };
 
-  const handleDownloadDeptPDF = (book: import('../../services/reportsService').DeptBook) => {
+  const handleDownloadDeptPDF = async (book: import('../../services/reportsService').DeptBook) => {
     const now = formatCostaRicaLongDate();
-    renderDeptGroupedPDF({
+    await renderDeptGroupedPDF({
       filename:    `depto_${book.departmentName.toLowerCase().replace(/\s+/g, '_')}_${filenameBase}.pdf`,
       reportTitle: `NÓMINA — ${book.departmentName.toUpperCase()}`,
       subtitle:    `${period} · Generado por ${user.name}`,
@@ -308,9 +308,9 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
     toast.success('CSV generado', { position: 'top-center' });
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     const now = formatCostaRicaLongDate();
-    renderDeptGroupedPDF({
+    await renderDeptGroupedPDF({
       filename:    `${filenameBase}.pdf`,
       reportTitle: `N\u00d3MINA DE PAGOS \u2014 ${period.toUpperCase()}`,
       subtitle:    'Desglose por departamento: bruto facturado, diezmo y pago neto',
@@ -403,9 +403,9 @@ const AccountingPortal: React.FC<AccountingPortalProps> = ({
     }
   };
 
-  const handleExportSummaryPDF = () => {
+  const handleExportSummaryPDF = async () => {
     const now = formatCostaRicaLongDate();
-    renderPDF({
+    await renderPDF({
       filename: `resumen_general_${filenameBase}.pdf`,
       reportTitle: `RESUMEN GENERAL POR DEPARTAMENTO \u2014 ${period.toUpperCase()}`,
       meta: [

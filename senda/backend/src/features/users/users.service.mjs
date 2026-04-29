@@ -7,7 +7,9 @@ import {
   update,
   remove,
   updateAuthPassword,
+  findHeadOfDept,
 } from './users.repository.mjs';
+import { findDeptByHead, setDeptHead } from '../departments/departments.repository.mjs';
 import { VALID_ROLES, ADMIN_CREATABLE_ROLES } from './users.schemas.mjs';
 import { toUser } from '../../shared/utils/mappers.mjs';
 import { normalizeOptionalText } from '../../shared/utils/normalize.mjs';
@@ -19,6 +21,40 @@ import {
   sendAccountDeactivated,
   sendAccountActivated,
 } from '../../shared/config/mailer.mjs';
+
+/**
+ * Sincroniza departments.head_id ↔ profiles.department_id cuando un DEPT_HEAD
+ * cambia de departamento.
+ *
+ * @param {string}      userId    - ID del DEPT_HEAD que se está moviendo
+ * @param {string|null} oldDeptId - departamento anterior del usuario (puede ser null)
+ * @param {string|null} newDeptId - nuevo departamento (puede ser null = desasignar)
+ */
+async function syncDeptHeadChange(userId, oldDeptId, newDeptId) {
+  // 1. Si el usuario estaba como head_id en su departamento anterior, limpiarlo
+  if (oldDeptId && oldDeptId !== newDeptId) {
+    const { data: prevDept } = await findDeptByHead(userId);
+    if (prevDept && prevDept.id === oldDeptId) {
+      await setDeptHead(oldDeptId, null).catch(() => null);
+    }
+  }
+
+  if (newDeptId) {
+    // 2. Desasignar al jefe actual del nuevo departamento (si existe y es distinto)
+    const { data: currentHead } = await findHeadOfDept(newDeptId);
+    if (currentHead && currentHead.id !== userId) {
+      await updateProfileField(currentHead.id, { department_id: null }).catch(() => null);
+    }
+    // 3. Poner al usuario como head_id en el nuevo departamento
+    await setDeptHead(newDeptId, userId).catch(() => null);
+  } else if (oldDeptId) {
+    // Desasignando completamente: solo limpiar head_id del depto anterior si era este usuario
+    const { data: prevDept } = await findDeptByHead(userId);
+    if (prevDept) {
+      await setDeptHead(prevDept.id, null).catch(() => null);
+    }
+  }
+}
 
 export async function getUsers(supabase) {
   const { data, error } = await findAll(supabase);
@@ -125,6 +161,11 @@ export async function createUser(body, requester) {
     password,
   }).catch((e) => console.error('[mailer] sendWelcome error:', e.message));
 
+  // Sincronizar jefe de departamento si se creó un DEPT_HEAD con departamento asignado
+  if (normalizedRole === 'DEPT_HEAD' && normalizedDepartmentId) {
+    await syncDeptHeadChange(createdAuth.user.id, null, normalizedDepartmentId);
+  }
+
   return toUser(profile);
 }
 
@@ -205,6 +246,15 @@ export async function updateUser(id, body, requester) {
     const err = new Error(error.message);
     err.statusCode = 400;
     throw err;
+  }
+
+  // Sincronizar jefe de departamento si cambió el departmentId de un DEPT_HEAD
+  if (departmentId !== undefined && target.role === 'DEPT_HEAD') {
+    const oldDeptId = target.department_id ?? null;
+    const newDeptId = normalizeOptionalText(departmentId);
+    if (oldDeptId !== newDeptId) {
+      await syncDeptHeadChange(id, oldDeptId, newDeptId);
+    }
   }
 
   const targetEmail = target.institutional_email ?? nextInstitutionalEmail;

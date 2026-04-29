@@ -10,6 +10,7 @@ import {
   deleteSession,
 } from './kiosk.repository.mjs';
 import { insert as insertWorkLog } from '../workLogs/workLogs.repository.mjs';
+import { removeByStudent as removeActiveTimerSession } from '../activeTimerSessions/activeTimerSessions.repository.mjs';
 import { toWorkLog } from '../../shared/utils/mappers.mjs';
 
 const { SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
@@ -375,6 +376,9 @@ export async function clockIn(body, adminSupa) {
   if (alreadyIn) {
     throwConflict('Ya tienes una sesión activa. Registra tu salida primero.');
   }
+
+  // Clear any open timer session so the student doesn't appear twice in the dept-head live panel
+  await removeActiveTimerSession(adminSupa, profile.id).catch(() => {});
 
   const { data, error } = await insertSession(adminSupa, {
     kiosk_id: kioskData.id,

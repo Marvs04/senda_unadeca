@@ -4,6 +4,9 @@ import * as controller from './activeTimerSessions.controller.mjs';
 
 const router = Router();
 
+// GET  /api/v1/active-sessions/me — student checks their own active session (mount verification)
+router.get('/me', requireAuth, controller.getMySession);
+
 // GET  /api/v1/active-sessions/dept/:departmentId — dept head fetches live sessions
 router.get('/dept/:departmentId', requireAuth, controller.getActiveSessions);
 
