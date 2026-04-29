@@ -27,8 +27,17 @@ const DeptHeadSessionLocksSection: React.FC<DeptHeadSessionLocksSectionProps> = 
       return;
     }
 
-    const startDateTime = `${startDate}T${startTime}`;
-    const endDateTime = `${endDate}T${endTime}`;
+    // Include local timezone offset so the backend stores the intended local time.
+    // Without it, the string is treated as UTC and displayed 6 h off in Costa Rica.
+    const tzOffset = (() => {
+      const off = -new Date().getTimezoneOffset();
+      const sign = off >= 0 ? '+' : '-';
+      const hh = String(Math.floor(Math.abs(off) / 60)).padStart(2, '0');
+      const mm = String(Math.abs(off) % 60).padStart(2, '0');
+      return `${sign}${hh}:${mm}`;
+    })();
+    const startDateTime = `${startDate}T${startTime}:00${tzOffset}`;
+    const endDateTime   = `${endDate}T${endTime}:00${tzOffset}`;
 
     if (new Date(startDateTime) >= new Date(endDateTime)) {
       toast.error('La fecha/hora de inicio debe ser anterior a la fecha/hora de fin', { position: 'top-center' });
