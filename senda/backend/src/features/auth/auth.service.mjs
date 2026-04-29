@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { buildAuthEmail } from './auth.schemas.mjs';
 import { signInWithPassword, findProfileById } from './auth.repository.mjs';
 import { updateProfileField } from '../users/users.repository.mjs';
+import { updateAuthPassword } from '../users/users.repository.mjs';
 import { toUser } from '../../shared/utils/mappers.mjs';
 
 const { SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
@@ -55,14 +56,19 @@ export async function getSessionProfile(supabase, authUserId) {
   return toUser(data);
 }
 
-export async function changePassword(supabase, userId, newPassword) {
+export async function changePassword(userId, newPassword) {
   if (typeof newPassword !== 'string' || newPassword.trim().length < 8) {
     const err = new Error('La nueva contraseña debe tener al menos 8 caracteres.');
     err.statusCode = 400;
     throw err;
   }
 
-  const { error } = await supabase.auth.updateUser({ password: newPassword.trim() });
+  // Use admin client — the user-scoped supabase client doesn't carry a live
+  // session (persistSession: false), so auth.updateUser() would fail with
+  // "Auth session missing". adminSupabase.auth.admin.updateUserById is safe
+  // here because we only ever set the password for the authenticated user's
+  // own ID (verified by requireAuth middleware).
+  const { error } = await updateAuthPassword(userId, newPassword.trim());
   if (error) {
     const err = new Error(error.message);
     err.statusCode = 400;
