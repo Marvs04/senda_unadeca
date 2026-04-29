@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { buildAuthEmail } from './auth.schemas.mjs';
 import { signInWithPassword, findProfileById } from './auth.repository.mjs';
+import { updateProfileField } from '../users/users.repository.mjs';
 import { toUser } from '../../shared/utils/mappers.mjs';
 
 const { SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
@@ -52,6 +53,24 @@ export async function getSessionProfile(supabase, authUserId) {
     throw err;
   }
   return toUser(data);
+}
+
+export async function changePassword(supabase, userId, newPassword) {
+  if (typeof newPassword !== 'string' || newPassword.trim().length < 8) {
+    const err = new Error('La nueva contraseña debe tener al menos 8 caracteres.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword.trim() });
+  if (error) {
+    const err = new Error(error.message);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  await updateProfileField(userId, { must_change_password: false })
+    .catch((e) => console.error('[auth] changePassword flag error:', e.message));
 }
 // Exports:
 //   login(identifier, password)    — builds synthetic email, authenticates, returns { accessToken, user }

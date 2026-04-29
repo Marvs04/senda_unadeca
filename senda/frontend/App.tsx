@@ -1,5 +1,5 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
-import { UserRole } from './types';
+import { User, UserRole } from './types';
 
 // Code splitting: cada portal solo se descarga cuando el usuario lo necesita
 const AdminPortal      = lazy(() => import('./screens/admin'));
@@ -16,6 +16,7 @@ import { useRate } from './hooks/useRate';
 import { useKiosk } from './hooks/useKiosk';
 import { AnimatePresence, motion } from 'motion/react';
 import AppLoader from './components/AppLoader';
+import ChangePasswordModal from './components/ChangePasswordModal';
 import { getSessionProfile, login, logout } from './services';
 
 interface AuthenticatedAreaProps {
@@ -164,6 +165,7 @@ const AuthenticatedArea: React.FC<AuthenticatedAreaProps> = ({ currentUserId, on
 
 const App: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [pendingPasswordChange, setPendingPasswordChange] = useState<User | null>(null);
   const [isBooting, setIsBooting] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -173,7 +175,11 @@ const App: React.FC = () => {
     getSessionProfile()
       .then(profile => {
         if (!mounted) return;
-        setCurrentUserId(profile?.id ?? null);
+        if (profile?.mustChangePassword) {
+          setPendingPasswordChange(profile);
+        } else {
+          setCurrentUserId(profile?.id ?? null);
+        }
       })
       .catch((error: unknown) => {
         if (!mounted) return;
@@ -190,8 +196,19 @@ const App: React.FC = () => {
 
   const handleLogin = async (identifier: string, password: string) => {
     const profile = await login(identifier, password);
-    setCurrentUserId(profile.id);
+    if (profile.mustChangePassword) {
+      setPendingPasswordChange(profile);
+    } else {
+      setCurrentUserId(profile.id);
+    }
     setAuthError(null);
+  };
+
+  const handlePasswordChanged = () => {
+    if (pendingPasswordChange) {
+      setCurrentUserId(pendingPasswordChange.id);
+      setPendingPasswordChange(null);
+    }
   };
 
   const handleLogout = () => {
@@ -199,6 +216,7 @@ const App: React.FC = () => {
       .catch(() => { /* token already cleared by logout() finally block */ })
       .finally(() => {
         setCurrentUserId(null);
+        setPendingPasswordChange(null);
         setAuthError(null);
       });
   };
@@ -219,6 +237,12 @@ const App: React.FC = () => {
           )}
         </AnimatePresence>
       </Suspense>
+      {pendingPasswordChange && (
+        <ChangePasswordModal
+          userName={pendingPasswordChange.name}
+          onComplete={handlePasswordChanged}
+        />
+      )}
     </div>
   );
 };

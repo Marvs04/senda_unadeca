@@ -110,6 +110,7 @@ export async function createUser(body, requester) {
 
   const { data: profile, error: profileError } = await updateProfileField(createdAuth.user.id, {
     institutional_email: normalizedInstitutionalEmail ?? null,
+    must_change_password: true,
   });
   if (profileError) {
     const err = new Error(profileError.message);
@@ -120,7 +121,6 @@ export async function createUser(body, requester) {
   sendWelcome({
     to: normalizedInstitutionalEmail,
     name: normalizedName,
-    role: normalizedRole,
     identifier: normalizedCarnet ?? normalizedEmployeeNumber ?? normalizedName,
     password,
   }).catch((e) => console.error('[mailer] sendWelcome error:', e.message));
@@ -277,6 +277,9 @@ export async function resetPassword(id, newPassword, requester) {
     err.statusCode = 400;
     throw err;
   }
+
+  await updateProfileField(id, { must_change_password: true })
+    .catch((e) => console.error('[users] resetPassword flag error:', e.message));
 
   const recipientEmail = target.institutional_email;
   if (recipientEmail) {

@@ -24,6 +24,10 @@ export async function logout(): Promise<void> {
   }
 }
 
+export async function changePassword(newPassword: string): Promise<void> {
+  await apiClient.post('/auth/change-password', { newPassword });
+}
+
 export async function getSessionProfile(): Promise<User | null> {
   if (!TokenManager.get()) return null;
   try {
