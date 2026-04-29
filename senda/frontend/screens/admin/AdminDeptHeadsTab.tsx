@@ -9,7 +9,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { Toolbar, Button, Badge, Modal, Input, Select, EmptyState } from '../../components/ui';
 import type { SelectOption } from '../../components/ui';
 
-const INSTITUTIONAL_EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+const INSTITUTIONAL_EMAIL_REGEX = /^[A-Z0-9._%+-]+@unadeca\.net$/i;
 
 interface AdminDeptHeadsTabProps {
   allUsers: User[];
@@ -88,8 +88,12 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
       toast.error('Nombre completo y numero de empleado son obligatorios.');
       return;
     }
-    if (institutionalEmail && !INSTITUTIONAL_EMAIL_REGEX.test(institutionalEmail)) {
-      toast.error('Correo institucional invalido.');
+    if (!institutionalEmail) {
+      toast.error('El correo institucional es requerido.');
+      return;
+    }
+    if (!INSTITUTIONAL_EMAIL_REGEX.test(institutionalEmail)) {
+      toast.error('El correo institucional debe tener el formato usuario@unadeca.net');
       return;
     }
 
@@ -97,7 +101,7 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
       await addUser({
         name,
         employeeNumber,
-        institutionalEmail: institutionalEmail || undefined,
+        institutionalEmail,
         departmentId: departmentId || undefined,
         role: UserRole.DEPT_HEAD,
         isActive: true,
@@ -130,7 +134,7 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
       return;
     }
     if (institutionalEmail && !INSTITUTIONAL_EMAIL_REGEX.test(institutionalEmail)) {
-      toast.error('Correo institucional invalido.');
+      toast.error('El correo institucional debe tener el formato usuario@unadeca.net');
       return;
     }
 
@@ -343,7 +347,7 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
         <form onSubmit={handleAddDeptHead} className="space-y-5">
           <Input label="Nombre Completo" name="name" placeholder="Ej. Juan Perez" autoFocus required />
           <Input label="Nº de Empleado" name="employeeNumber" placeholder="Ej. EMP-123" required />
-          <Input label="Correo Institucional (opcional)" name="institutionalEmail" type="email" placeholder="ejemplo@unadeca.ac.cr" />
+          <Input label="Correo Institucional *" name="institutionalEmail" type="email" placeholder="usuario@unadeca.net" required />
           <Select label="Departamento" name="departmentId" options={deptOptions} />
           <div className="grid grid-cols-2 gap-3 pt-1">
             <Button type="button" variant="ghost" onClick={() => setIsAddingDeptHead(false)}>
@@ -374,7 +378,7 @@ const AdminDeptHeadsTab: React.FC<AdminDeptHeadsTabProps> = ({
             onChange={e => setEditEmployeeNumber(e.target.value)}
           />
           <Input
-            label="Correo Institucional (opcional)"
+            label="Correo Institucional"
             type="email"
             value={editInstitutionalEmail}
             onChange={e => setEditInstitutionalEmail(e.target.value)}

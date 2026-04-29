@@ -34,6 +34,8 @@ interface SuperAdminCreateFormProps {
   setAdminCarnet: (v: string) => void;
   adminEmployeeNumber: string;
   setAdminEmployeeNumber: (v: string) => void;
+  adminInstitutionalEmail: string;
+  setAdminInstitutionalEmail: (v: string) => void;
   adminDepartmentId: string;
   setAdminDepartmentId: (v: string) => void;
   allDepartments: Department[];
@@ -51,6 +53,8 @@ const SuperAdminCreateForm: React.FC<SuperAdminCreateFormProps> = ({
   setAdminCarnet,
   adminEmployeeNumber,
   setAdminEmployeeNumber,
+  adminInstitutionalEmail,
+  setAdminInstitutionalEmail,
   adminDepartmentId,
   setAdminDepartmentId,
   allDepartments,
@@ -139,6 +143,15 @@ const SuperAdminCreateForm: React.FC<SuperAdminCreateFormProps> = ({
               </select>
             </div>
           )}
+
+          <Input
+            label="Correo Institucional *"
+            type="email"
+            value={adminInstitutionalEmail}
+            onChange={e => setAdminInstitutionalEmail(e.target.value)}
+            placeholder="usuario@unadeca.net"
+            required
+          />
 
           <Input
             label="Contraseña Temporal"

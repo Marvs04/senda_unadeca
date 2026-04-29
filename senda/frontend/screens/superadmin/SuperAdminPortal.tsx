@@ -62,6 +62,7 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   const [adminPassword, setAdminPassword] = useState('');
   const [adminCarnet, setAdminCarnet] = useState('');
   const [adminEmployeeNumber, setAdminEmployeeNumber] = useState('');
+  const [adminInstitutionalEmail, setAdminInstitutionalEmail] = useState('');
   const [adminDepartmentId, setAdminDepartmentId] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
   const [adminSearch, setAdminSearch] = useState('');
@@ -132,18 +133,28 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
       toast.error('El número de empleado es requerido para jefes de departamento.');
       return;
     }
+    if (!adminInstitutionalEmail.trim()) {
+      toast.error('El correo institucional es requerido.');
+      return;
+    }
+    if (!/^[A-Z0-9._%+-]+@unadeca\.net$/i.test(adminInstitutionalEmail.trim())) {
+      toast.error('El correo institucional debe tener el formato usuario@unadeca.net');
+      return;
+    }
 
     try {
       const newUser: Omit<User, 'id'> = { name: adminName, role: adminRole };
       if (adminCarnet.trim()) newUser.carnet = adminCarnet.trim();
       if (adminEmployeeNumber.trim()) newUser.employeeNumber = adminEmployeeNumber.trim();
       if (adminDepartmentId) newUser.departmentId = adminDepartmentId;
+      newUser.institutionalEmail = adminInstitutionalEmail.trim();
       await addUser(newUser, adminPassword);
       const loginIdentifier = adminCarnet.trim() || adminEmployeeNumber.trim() || adminName.trim().toLowerCase().replace(/\s+/g, '-');
       setAdminName('');
       setAdminPassword('');
       setAdminCarnet('');
       setAdminEmployeeNumber('');
+      setAdminInstitutionalEmail('');
       setAdminDepartmentId('');
       toast.success(`Cuenta creada. Login: ${loginIdentifier} | Clave: ${adminPassword}`);
     } catch {
@@ -318,6 +329,8 @@ const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
               setAdminCarnet={setAdminCarnet}
               adminEmployeeNumber={adminEmployeeNumber}
               setAdminEmployeeNumber={setAdminEmployeeNumber}
+              adminInstitutionalEmail={adminInstitutionalEmail}
+              setAdminInstitutionalEmail={setAdminInstitutionalEmail}
               adminDepartmentId={adminDepartmentId}
               setAdminDepartmentId={setAdminDepartmentId}
               allDepartments={allDepartments}

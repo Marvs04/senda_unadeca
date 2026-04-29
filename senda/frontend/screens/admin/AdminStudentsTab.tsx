@@ -10,7 +10,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { Toolbar, Button, Badge, Modal, EmptyState, Input, Select } from '../../components/ui';
 import type { SelectOption } from '../../components/ui';
 
-const INSTITUTIONAL_EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+const INSTITUTIONAL_EMAIL_REGEX = /^[A-Z0-9._%+-]+@unadeca\.net$/i;
 
 interface AdminStudentsTabProps {
   allUsers: User[];
@@ -100,8 +100,12 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
       toast.error('Nombre y carnet son requeridos.');
       return;
     }
-    if (newStudentInstitutionalEmail.trim() && !INSTITUTIONAL_EMAIL_REGEX.test(newStudentInstitutionalEmail.trim())) {
-      toast.error('Correo institucional invalido.');
+    if (!newStudentInstitutionalEmail.trim()) {
+      toast.error('El correo institucional es requerido.');
+      return;
+    }
+    if (!INSTITUTIONAL_EMAIL_REGEX.test(newStudentInstitutionalEmail.trim())) {
+      toast.error('El correo institucional debe tener el formato usuario@unadeca.net');
       return;
     }
 
@@ -110,7 +114,7 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
         {
           name,
           carnet,
-          institutionalEmail: newStudentInstitutionalEmail.trim() || undefined,
+          institutionalEmail: newStudentInstitutionalEmail.trim(),
           role: UserRole.STUDENT,
           isActive: true,
           departmentId: newStudentDepartmentId || undefined,
@@ -145,7 +149,7 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
       return;
     }
     if (editInstitutionalEmail.trim() && !INSTITUTIONAL_EMAIL_REGEX.test(editInstitutionalEmail.trim())) {
-      toast.error('Correo institucional invalido.');
+      toast.error('El correo institucional debe tener el formato usuario@unadeca.net');
       return;
     }
 
@@ -379,11 +383,12 @@ const AdminStudentsTab: React.FC<AdminStudentsTabProps> = ({
             required
           />
           <Input
-            label="Correo Institucional (opcional)"
+            label="Correo Institucional *"
             type="email"
             value={newStudentInstitutionalEmail}
             onChange={e => setNewStudentInstitutionalEmail(e.target.value)}
-            placeholder="ejemplo@unadeca.ac.cr"
+            placeholder="usuario@unadeca.net"
+            required
           />
           <Select
             label="Departamento"
