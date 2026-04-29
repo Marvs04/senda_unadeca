@@ -45,6 +45,8 @@ interface AccountingPayrollTableProps {
   onBatchImportReceivables:    (rows: { studentId: string; amount: number }[]) => Promise<void>;
   onDownloadDeptPDF?:          (book: DeptBook) => void;
   onStudentClick?:             (studentId: string) => void;
+  selectedPaymentIds:          Set<string>;
+  onTogglePaymentSelection:    (workLogId: string) => void;
 }
 
 // ─── Component: Editable Input ────────────────────────────────────────────────
@@ -92,7 +94,20 @@ const DeptBookCard: React.FC<{
   onDownloadDeptPDF?: (book: DeptBook) => void;
   dimmed?:            boolean; // processed books look dimmer
   showCarnet:         boolean;
-}> = ({ book, registeredIds, onToggleRegistered, onUpdateReceivable, onStudentClick, onDownloadDeptPDF, dimmed, showCarnet }) => {
+  selectedPaymentIds: Set<string>;
+  onTogglePaymentSelection: (workLogId: string) => void;
+}> = ({ 
+  book, 
+  registeredIds, 
+  onToggleRegistered, 
+  onUpdateReceivable, 
+  onStudentClick, 
+  onDownloadDeptPDF, 
+  dimmed, 
+  showCarnet,
+  selectedPaymentIds,
+  onTogglePaymentSelection,
+}) => {
   const [collapsed, setCollapsed] = useState(false);
   const registeredCount = book.students.filter(s => registeredIds.has(s.studentId)).length;
   const allRegistered   = registeredCount === book.students.length && book.students.length > 0;
@@ -212,135 +227,268 @@ const DeptBookCard: React.FC<{
             exit={{ height: 0 }}
             className="overflow-hidden"
           >
-            <div className="border-t border-border-faint overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-surface text-[9px] uppercase tracking-widest text-faint font-bold">
-                    <th className="px-6 py-3 w-8">
-                      {/* registered col header */}
-                      <Check className="w-3 h-3" />
-                    </th>
-                    <th className="px-3 py-3">Estudiante</th>
-                    {showCarnet && <th className="px-3 py-3">Carnet</th>}
-                    <th className="px-3 py-3 text-right">Horas</th>
-                    <th className="px-3 py-3 text-right">Bruto</th>
-                    <th className="px-3 py-3 text-right">Diezmo</th>
-                    <th className="px-3 py-3 text-right">Neto</th>
-                    <th className="px-3 py-3 text-right">Por Cobrar</th>
-                    <th className="px-3 py-3 text-right">Por Pagar</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border-faint">
-                  {book.students.map(student => {
-                    const isRegistered = registeredIds.has(student.studentId);
-                    return (
-                      <tr
-                        key={student.studentId}
-                        className={cn(
-                          'transition-colors group',
-                          isRegistered ? 'bg-surface/50' : 'hover:bg-surface/40',
-                        )}
-                      >
-                        {/* Registered toggle */}
-                        <td className="px-6 py-3">
-                          <button
-                            title={isRegistered ? 'Marcar como no registrado' : 'Marcar como registrado'}
-                            onClick={() => onToggleRegistered(student.studentId)}
-                            className={cn(
-                              'w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all',
-                              isRegistered
-                                ? 'bg-foreground border-foreground text-background'
-                                : 'border-border bg-card hover:border-foreground/40',
-                            )}
-                          >
-                            {isRegistered && <Check className="w-3 h-3" />}
-                          </button>
-                        </td>
-                        <td className="px-3 py-3 relative">
-                          <button
-                            onClick={() => onStudentClick?.(student.studentId)}
-                            className="group/btn flex flex-col items-start text-left focus:outline-none"
-                          >
-                            <span className={cn(
-                              'text-sm font-medium text-foreground group-hover/btn:text-primary transition-colors underline decoration-transparent group-hover/btn:decoration-primary/30 underline-offset-4',
-                              isRegistered && 'line-through'
-                            )}>
-                              {student.studentName}
-                            </span>
-                          </button>
-                        </td>
-                        {showCarnet && (
-                          <td className="px-3 py-3">
-                            <span className="text-xs font-mono text-faint">
-                              {student.carnet ?? '—'}
+            <div className="border-t border-border-faint">
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-surface text-[9px] uppercase tracking-widest text-faint font-bold">
+                      <th className="px-6 py-3 w-8">
+                        <Check className="w-3 h-3" />
+                      </th>
+                      <th className="px-3 py-3">Estudiante</th>
+                      {showCarnet && <th className="px-3 py-3">Carnet</th>}
+                      <th className="px-3 py-3 text-right">Horas</th>
+                      <th className="px-3 py-3 text-right">Bruto</th>
+                      <th className="px-3 py-3 text-right">Diezmo</th>
+                      <th className="px-3 py-3 text-right">Neto</th>
+                      <th className="px-3 py-3 text-right">Por Cobrar</th>
+                      <th className="px-3 py-3 text-right">Por Pagar</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border-faint">
+                    {book.students.map(student => {
+                      const isRegistered = registeredIds.has(student.studentId);
+                      const isSelected = selectedPaymentIds.has(student.studentId);
+                      return (
+                        <tr
+                          key={student.studentId}
+                          className={cn(
+                            'transition-colors group',
+                            isSelected ? 'bg-primary/5' : 'hover:bg-surface/40',
+                          )}
+                        >
+                          <td className="px-6 py-3">
+                            <div className="flex items-center gap-2">
+                              {/* Selection checkbox - disabled for processed books */}
+                              <button
+                                disabled={dimmed}
+                                title={dimmed ? 'No puedes seleccionar pagos procesados' : (isSelected ? 'Deseleccionar para procesar' : 'Seleccionar para procesar')}
+                                onClick={() => !dimmed && onTogglePaymentSelection(student.studentId)}
+                                className={cn(
+                                  'w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all',
+                                  dimmed 
+                                    ? 'border-border bg-surface cursor-not-allowed'
+                                    : isSelected
+                                    ? 'bg-primary border-primary text-background'
+                                    : 'border-border bg-card hover:border-foreground/40 cursor-pointer',
+                                )}
+                              >
+                                {isSelected && <Check className="w-3 h-3" />}
+                              </button>
+                              {/* Registered indicator */}
+                              {isRegistered && (
+                                <div
+                                  title="Registrado en nómina"
+                                  className="w-3 h-3 rounded-full bg-foreground/40"
+                                />
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 relative">
+                            <button
+                              onClick={() => onStudentClick?.(student.studentId)}
+                              className="group/btn flex flex-col items-start text-left focus:outline-none"
+                            >
+                              <span className={cn(
+                                'text-sm font-medium text-foreground group-hover/btn:text-primary transition-colors underline decoration-transparent group-hover/btn:decoration-primary/30 underline-offset-4',
+                                isRegistered && 'line-through'
+                              )}>
+                                {student.studentName}
+                              </span>
+                            </button>
+                          </td>
+                          {showCarnet && (
+                            <td className="px-3 py-3">
+                              <span className="text-xs font-mono text-faint">
+                                {student.carnet ?? '—'}
+                              </span>
+                            </td>
+                          )}
+                          <td className="px-3 py-3 text-right">
+                            <span className="text-sm font-bold font-mono">
+                              {formatHours(student.totalHours)}
                             </span>
                           </td>
-                        )}
-                        <td className="px-3 py-3 text-right">
-                          <span className="text-sm font-bold font-mono">
-                            {formatHours(student.totalHours)}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-right">
-                          <span className="text-sm font-mono text-muted">
-                            {formatCurrency(student.totalBruto)}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-right">
-                          <span className="text-xs font-mono text-faint">
-                            {formatCurrency(-student.totalTithe)}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-right">
-                          <span className="text-sm font-black font-mono">
-                            {formatCurrency(student.totalNeto)}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-right">
+                          <td className="px-3 py-3 text-right">
+                            <span className="text-sm font-mono text-muted">
+                              {formatCurrency(student.totalBruto)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-right">
+                            <span className="text-xs font-mono text-faint">
+                              {formatCurrency(-student.totalTithe)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-right">
+                            <span className="text-sm font-black font-mono">
+                              {formatCurrency(student.totalNeto)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-right">
                             <ReceivableInput
                               initialValue={student.manualReceivable}
                               disabled={dimmed}
                               onSave={(val) => onUpdateReceivable(student.studentId, val)}
                             />
                           </td>
-                        <td className="px-3 py-3 text-right">
+                          <td className="px-3 py-3 text-right">
+                            <span className="text-sm font-black font-mono text-primary">
+                              {formatCurrency(student.totalPayable)}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-border bg-surface font-black text-xs">
+                      <td className="px-6 py-3" colSpan={showCarnet ? 3 : 2}>
+                        <span className="text-[9px] uppercase tracking-widest text-faint">
+                          Total {book.departmentName}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-right font-mono">
+                        {book.totalHours.toFixed(2)} h
+                      </td>
+                      <td className="px-3 py-3 text-right font-mono text-muted">
+                        {formatCurrency(book.totalBruto)}
+                      </td>
+                      <td className="px-3 py-3 text-right font-mono text-faint text-xs">
+                        {formatCurrency(-book.totalTithe)}
+                      </td>
+                      <td className="px-3 py-3 text-right font-mono">
+                        {formatCurrency(book.totalNeto)}
+                      </td>
+                      <td className="px-3 py-3 text-right font-mono text-muted">
+                        {formatCurrency(book.totalReceivable)}
+                      </td>
+                      <td className="px-3 py-3 text-right font-mono text-primary">
+                        {formatCurrency(book.totalPayable)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {book.students.map(student => {
+                  const isRegistered = registeredIds.has(student.studentId);
+                  return (
+                    <div
+                      key={student.studentId}
+                      className={cn(
+                        'border border-border-faint rounded-lg p-3 space-y-2 transition-colors',
+                        isRegistered ? 'bg-surface/50' : 'bg-card hover:bg-surface/40',
+                      )}
+                    >
+                      {/* Header: Name + Check */}
+                      <div className="flex items-center justify-between gap-2">
+                        <button
+                          onClick={() => onStudentClick?.(student.studentId)}
+                          className="flex-1 text-left focus:outline-none"
+                        >
+                          <span className={cn(
+                            'text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors underline decoration-transparent group-hover:decoration-primary/30 underline-offset-2',
+                            isRegistered && 'line-through'
+                          )}>
+                            {student.studentName}
+                          </span>
+                          {showCarnet && (
+                            <div className="text-[10px] text-faint font-mono mt-0.5">
+                              {student.carnet ?? '—'}
+                            </div>
+                          )}
+                        </button>
+                        <button
+                          title={isRegistered ? 'Marcar como no registrado' : 'Marcar como registrado'}
+                          onClick={() => onToggleRegistered(student.studentId)}
+                          className={cn(
+                            'shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all',
+                            isRegistered
+                              ? 'bg-foreground border-foreground text-background'
+                              : 'border-border bg-card hover:border-foreground/40',
+                          )}
+                        >
+                          {isRegistered && <Check className="w-3 h-3" />}
+                        </button>
+                      </div>
+
+                      {/* Grid: financials */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="text-[10px]">
+                          <p className="text-faint font-bold uppercase tracking-widest">Horas</p>
+                          <p className="font-bold font-mono text-foreground">{formatHours(student.totalHours)}</p>
+                        </div>
+                        <div className="text-[10px] text-right">
+                          <p className="text-faint font-bold uppercase tracking-widest">Bruto</p>
+                          <p className="font-mono text-muted">{formatCurrency(student.totalBruto)}</p>
+                        </div>
+                        <div className="text-[10px]">
+                          <p className="text-faint font-bold uppercase tracking-widest">Diezmo</p>
+                          <p className="font-mono text-faint text-xs">{formatCurrency(-student.totalTithe)}</p>
+                        </div>
+                        <div className="text-[10px] text-right">
+                          <p className="text-faint font-bold uppercase tracking-widest">Neto</p>
+                          <p className="font-bold font-mono">{formatCurrency(student.totalNeto)}</p>
+                        </div>
+                      </div>
+
+                      {/* Por Cobrar input */}
+                      <div className="border-t border-border-faint pt-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-[10px] text-faint font-bold uppercase tracking-widest">Por Cobrar</p>
+                          <ReceivableInput
+                            initialValue={student.manualReceivable}
+                            disabled={dimmed}
+                            onSave={(val) => onUpdateReceivable(student.studentId, val)}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] text-faint font-bold uppercase tracking-widest">Por Pagar</p>
                           <span className="text-sm font-black font-mono text-primary">
                             {formatCurrency(student.totalPayable)}
                           </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                {/* Dept totals footer */}
-                <tfoot>
-                  <tr className="border-t-2 border-border bg-surface font-black text-xs">
-                    <td className="px-6 py-3" colSpan={showCarnet ? 3 : 2}>
-                      <span className="text-[9px] uppercase tracking-widest text-faint">
-                        Total {book.departmentName}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 text-right font-mono">
-                      {book.totalHours.toFixed(2)} h
-                    </td>
-                    <td className="px-3 py-3 text-right font-mono text-muted">
-                      {formatCurrency(book.totalBruto)}
-                    </td>
-                    <td className="px-3 py-3 text-right font-mono text-faint text-xs">
-                      {formatCurrency(-book.totalTithe)}
-                    </td>
-                    <td className="px-3 py-3 text-right font-mono">
-                      {formatCurrency(book.totalNeto)}
-                    </td>
-                    <td className="px-3 py-3 text-right font-mono text-muted">
-                      {formatCurrency(book.totalReceivable)}
-                    </td>
-                    <td className="px-3 py-3 text-right font-mono text-primary">
-                      {formatCurrency(book.totalPayable)}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Mobile Footer Totals */}
+                <div className="border-t-2 border-border bg-surface rounded-lg p-3 space-y-2 font-black text-xs">
+                  <p className="text-[9px] uppercase tracking-widest text-faint">
+                    Total {book.departmentName}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-[10px]">
+                    <div>
+                      <p className="text-faint mb-1">Horas</p>
+                      <p className="font-mono">{book.totalHours.toFixed(2)} h</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-faint mb-1">Bruto</p>
+                      <p className="font-mono text-muted">{formatCurrency(book.totalBruto)}</p>
+                    </div>
+                    <div>
+                      <p className="text-faint text-xs mb-1">Diezmo</p>
+                      <p className="font-mono text-faint">{formatCurrency(-book.totalTithe)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-faint mb-1">Neto</p>
+                      <p className="font-mono">{formatCurrency(book.totalNeto)}</p>
+                    </div>
+                    <div>
+                      <p className="text-faint text-xs mb-1">Por Cobrar</p>
+                      <p className="font-mono text-muted">{formatCurrency(book.totalReceivable)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-faint text-xs mb-1">Por Pagar</p>
+                      <p className="font-mono text-primary">{formatCurrency(book.totalPayable)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
@@ -361,6 +509,8 @@ const AccountingPayrollTable: React.FC<AccountingPayrollTableProps> = ({
   onBatchImportReceivables,
   onDownloadDeptPDF,
   onStudentClick,
+  selectedPaymentIds,
+  onTogglePaymentSelection,
 }) => {
   const [tab, setTab] = useState<'approved' | 'processed'>('approved');
   const [showCarnet, setShowCarnet] = useState(false);
@@ -550,6 +700,8 @@ const AccountingPayrollTable: React.FC<AccountingPayrollTableProps> = ({
               onDownloadDeptPDF={onDownloadDeptPDF}
               dimmed={tab === 'processed'}
               showCarnet={showCarnet}
+              selectedPaymentIds={selectedPaymentIds}
+              onTogglePaymentSelection={onTogglePaymentSelection}
             />
           ))
         ) : (
@@ -565,7 +717,7 @@ const AccountingPayrollTable: React.FC<AccountingPayrollTableProps> = ({
 
       {/* Process action */}
       <AnimatePresence>
-        {approvedBooks.length > 0 && (
+        {approvedBooks.length > 0 && selectedPaymentIds.size > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -576,7 +728,7 @@ const AccountingPayrollTable: React.FC<AccountingPayrollTableProps> = ({
               className="px-8 py-4 bg-foreground text-background rounded-2xl font-bold hover:opacity-80 transition-all flex items-center space-x-3 active:scale-95"
             >
               <CheckCircle className="h-5 w-5 opacity-70" />
-              <span>Procesar Pagos del Período</span>
+              <span>Procesar Pagos ({selectedPaymentIds.size} seleccionado{selectedPaymentIds.size !== 1 ? 's' : ''})</span>
               <ArrowRight className="w-4 h-4 opacity-50" />
             </button>
           </motion.div>

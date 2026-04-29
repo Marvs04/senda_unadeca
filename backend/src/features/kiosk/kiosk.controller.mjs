@@ -29,6 +29,16 @@ export async function activate(req, res) {
   }
 }
 
+// POST /api/v1/kiosk/continue
+export async function continueKiosk(req, res) {
+  try {
+    const state = await kioskService.continueKiosk(req.body, adminSupabase);
+    return res.json(state);
+  } catch (error) {
+    return handleError(res, error);
+  }
+}
+
 // POST /api/v1/kiosk/deactivate
 export async function deactivate(req, res) {
   try {
