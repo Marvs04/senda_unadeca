@@ -50,6 +50,48 @@ Thumbs.db
 # Misc
 *.local
 
-#supabase
+# Supabase local
 supabase/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Docker overrides con secrets locales
+docker-compose.override.yml
+docker-compose.local.yml
+deploy/.env
+deploy/*.env
+
+# Archivos de base de datos locales
+*.sqlite
+*.sqlite3
+*.db
+
+# Claves y certificados
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+
+# Secrets / credenciales
+secrets.json
+secrets.yaml
+secrets.yml
+service-account.json
+*-service-account.json
+credentials.json
+
+# Archivos temporales del sistema
+*.tmp
+*.temp
 
