@@ -39,6 +39,76 @@ error()   { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# ── Preflight: verificar conflictos antes de hacer nada ──────
+preflight_check() {
+  local issues=0
+
+  # Contenedores que este instalador va a crear
+  local containers=(
+    nginx-proxy
+    senda-db senda-kong senda-auth senda-rest senda-realtime
+    senda-storage senda-imgproxy senda-meta senda-edge-functions
+    senda-analytics senda-vector senda-pooler senda-studio
+    senda-backend senda-frontend
+  )
+
+  local conflicting=()
+  for c in "${containers[@]}"; do
+    if docker ps -a --format '{{.Names}}' | grep -q "^${c}$"; then
+      conflicting+=("$c")
+    fi
+  done
+
+  if [[ ${#conflicting[@]} -gt 0 ]]; then
+    warn "Contenedores existentes que entran en conflicto:"
+    for c in "${conflicting[@]}"; do
+      local status
+      status=$(docker inspect --format='{{.State.Status}}' "$c" 2>/dev/null)
+      echo -e "    ${YELLOW}•${NC} $c  (${status})"
+    done
+    echo ""
+    if [[ "$INTERACTIVE" == "true" ]]; then
+      read -rp "  ¿Detener y eliminar estos contenedores para continuar? (s/N): " ans
+      if [[ "$ans" =~ ^[sS]$ ]]; then
+        for c in "${conflicting[@]}"; do
+          docker rm -f "$c" &>/dev/null && echo -e "    eliminado: $c"
+        done
+        success "Contenedores conflictivos eliminados."
+      else
+        error "Instalación cancelada. Elimina los contenedores manualmente y vuelve a correr."
+      fi
+    else
+      warn "Modo no-interactivo: eliminando contenedores conflictivos automáticamente..."
+      for c in "${conflicting[@]}"; do
+        docker rm -f "$c" &>/dev/null && echo -e "    eliminado: $c"
+      done
+      success "Contenedores conflictivos eliminados."
+    fi
+    issues=1
+  fi
+
+  # Verificar puerto 80
+  if ss -tlnp 2>/dev/null | grep -q ':80 ' || \
+     ss -tlnp 2>/dev/null | grep -q ':80\b'; then
+    local occupant
+    occupant=$(ss -tlnp 2>/dev/null | grep ':80' | awk '{print $NF}' | head -1)
+    warn "Puerto 80 en uso: ${occupant}"
+    warn "Detén el proceso que usa el puerto 80 antes de continuar."
+    warn "Puedes identificarlo con: sudo ss -tlnp | grep :80"
+    if [[ "$INTERACTIVE" == "true" ]]; then
+      read -rp "  ¿Continuar de todas formas? (s/N): " ans
+      [[ "$ans" =~ ^[sS]$ ]] || error "Instalación cancelada."
+    else
+      error "Puerto 80 ocupado. Libéralo y vuelve a correr el instalador."
+    fi
+    issues=1
+  fi
+
+  [[ $issues -eq 0 ]] && success "Preflight OK — sin conflictos."
+}
+
+preflight_check
+
 # ── Detectar modo ────────────────────────────────────────────
 # No-interactivo si todas las variables requeridas ya están definidas
 INTERACTIVE=true
