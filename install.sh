@@ -39,6 +39,13 @@ error()   { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# ── Detectar modo ────────────────────────────────────────────
+INTERACTIVE=true
+if [[ -n "${SENDA_SITE_URL:-}" && -n "${SENDA_API_URL:-}" && \
+      -n "${SENDA_SMTP_USER:-}" && -n "${SENDA_SMTP_PASS:-}" ]]; then
+  INTERACTIVE=false
+fi
+
 # ── Preflight: verificar conflictos antes de hacer nada ──────
 preflight_check() {
   local issues=0
@@ -108,14 +115,6 @@ preflight_check() {
 }
 
 preflight_check
-
-# ── Detectar modo ────────────────────────────────────────────
-# No-interactivo si todas las variables requeridas ya están definidas
-INTERACTIVE=true
-if [[ -n "${SENDA_SITE_URL:-}" && -n "${SENDA_API_URL:-}" && \
-      -n "${SENDA_SMTP_USER:-}" && -n "${SENDA_SMTP_PASS:-}" ]]; then
-  INTERACTIVE=false
-fi
 
 # ── Banner ───────────────────────────────────────────────────
 echo ""
