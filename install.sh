@@ -211,8 +211,13 @@ success "kong.yml actualizado."
 info "Escribiendo deploy/.env..."
 cat > "${REPO_DIR}/deploy/.env" <<ENV
 # SENDA App — Generado por install.sh el $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+SITE_URL=${SITE_URL}
+VITE_SUPABASE_URL=${SUPABASE_PUBLIC_URL}
 SUPABASE_ANON_KEY=${ANON_KEY}
 SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}
+SMTP_HOST=${SMTP_HOST}
+SMTP_PORT=587
+SMTP_SENDER_NAME=SENDA-Lab
 SMTP_USER=${SMTP_USER}
 SMTP_PASS=${SMTP_PASS}
 SMTP_FROM=${SMTP_USER}
