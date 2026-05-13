@@ -1,9 +1,37 @@
 #!/usr/bin/env bash
-# ============================================================
+# ================================================================
 # SENDA — Script de instalación y despliegue desde cero
-# Uso: ./install.sh
-# Requisitos: Ubuntu 22.04/24.04 o Debian 12, acceso al repo
-# ============================================================
+# ================================================================
+#
+# MODO AGENTE (no-interactivo) — pasar todo como variables de entorno:
+#
+#   export SENDA_SITE_URL="https://senda.ejemplo.com"
+#   export SENDA_API_URL="https://sendasupabaseapi.ejemplo.com"
+#   export SENDA_CF_TOKEN="eyJ..."           # token de Cloudflare Tunnel
+#   export SENDA_SMTP_USER="correo@dominio.com"
+#   export SENDA_SMTP_PASS="contraseña"
+#   export SENDA_SMTP_HOST="smtp.office365.com"   # opcional
+#   ./install.sh
+#
+# MODO INTERACTIVO — correr sin variables y el script las pide:
+#
+#   ./install.sh
+#
+# Variables opcionales (tienen valores por defecto):
+#   SENDA_SMTP_HOST      → smtp.office365.com
+#   SENDA_STUDIO_URL     → se deriva de SENDA_SITE_URL (senda→sendasupabase)
+#
+# Requisitos del servidor:
+#   - Ubuntu 22.04/24.04 o Debian 12
+#   - Acceso a internet (para descargar imágenes Docker)
+#   - Token de Cloudflare Tunnel válido y apuntado a este servidor
+#   - Puerto 587 saliente desbloqueado (SMTP)
+#
+# Dominios que deben estar en Cloudflare apuntando al Tunnel:
+#   SENDA_SITE_URL          → senda-frontend:80
+#   SENDA_API_URL           → senda-kong:8000
+#   SENDA_STUDIO_URL        → senda-studio:3000  (solo acceso interno/admin)
+# ================================================================
 set -euo pipefail
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
@@ -14,27 +42,45 @@ error()   { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# ── Banner ──────────────────────────────────────────────────
+# ── Detectar modo ────────────────────────────────────────────
+# No-interactivo si todas las variables requeridas ya están definidas
+INTERACTIVE=true
+if [[ -n "${SENDA_SITE_URL:-}" && -n "${SENDA_API_URL:-}" && \
+      -n "${SENDA_CF_TOKEN:-}" && -n "${SENDA_SMTP_USER:-}" && \
+      -n "${SENDA_SMTP_PASS:-}" ]]; then
+  INTERACTIVE=false
+fi
+
+# ── Banner ───────────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║        SENDA — Instalación completa      ║${NC}"
+if [[ "$INTERACTIVE" == "false" ]]; then
+echo -e "${CYAN}║           Modo: no-interactivo           ║${NC}"
+fi
 echo -e "${CYAN}╚══════════════════════════════════════════╝${NC}"
 echo ""
 
-# ── 1. Verificar OS ─────────────────────────────────────────
+# ── 1. Verificar OS ──────────────────────────────────────────
 info "Verificando sistema operativo..."
 if ! grep -qiE "ubuntu|debian" /etc/os-release 2>/dev/null; then
-  warn "Sistema no reconocido. Se recomienda Ubuntu 22.04/24.04 o Debian 12."
-  read -rp "¿Continuar de todas formas? (s/N): " ans
-  [[ "$ans" =~ ^[sS]$ ]] || error "Instalación cancelada."
+  if [[ "$INTERACTIVE" == "true" ]]; then
+    warn "Sistema no reconocido. Se recomienda Ubuntu 22.04/24.04 o Debian 12."
+    read -rp "¿Continuar de todas formas? (s/N): " ans
+    [[ "$ans" =~ ^[sS]$ ]] || error "Instalación cancelada."
+  else
+    warn "Sistema no reconocido — continuando en modo no-interactivo."
+  fi
+else
+  success "OS verificado."
 fi
 
-# ── 2. Instalar Docker ──────────────────────────────────────
+# ── 2. Instalar Docker ───────────────────────────────────────
 if ! command -v docker &>/dev/null; then
   info "Docker no encontrado. Instalando..."
   curl -fsSL https://get.docker.com | sh
-  usermod -aG docker "$USER"
-  success "Docker instalado. Es posible que necesites cerrar sesión y volver a entrar."
+  usermod -aG docker "$USER" 2>/dev/null || true
+  success "Docker instalado."
 else
   success "Docker ya instalado: $(docker --version)"
 fi
@@ -43,7 +89,7 @@ if ! docker compose version &>/dev/null; then
   error "Docker Compose v2 no disponible. Asegúrate de tener Docker Engine >= 24."
 fi
 
-# ── 3. Red Docker ───────────────────────────────────────────
+# ── 3. Red Docker ────────────────────────────────────────────
 info "Verificando red Docker stamp-net..."
 if ! docker network ls --format '{{.Name}}' | grep -q "^stamp-net$"; then
   docker network create stamp-net
@@ -52,10 +98,9 @@ else
   success "Red stamp-net ya existe."
 fi
 
-# ── 4. Generar secretos ─────────────────────────────────────
+# ── 4. Generar secretos ──────────────────────────────────────
 info "Generando secretos criptográficos..."
 
-# Función para generar JWT HS256 sin dependencias externas
 jwt_encode() {
   local payload="$1" secret="$2"
   local header_b64 payload_b64 sig
@@ -86,26 +131,39 @@ SERVICE_ROLE_KEY=$(jwt_encode "{\"role\":\"service_role\",\"iss\":\"supabase\",\
 
 success "Secretos generados."
 
-# ── 5. Recopilar información del usuario ────────────────────
+# ── 5. Recopilar configuración ───────────────────────────────
 echo ""
-info "Configuración del sitio (Enter para usar el valor predeterminado)"
+if [[ "$INTERACTIVE" == "true" ]]; then
+  info "Configuración del sitio (Enter para usar el valor predeterminado)"
+  read -rp "  URL del sitio SENDA        [https://senda.rlp.lat]: "       _SITE
+  read -rp "  URL de la API de Supabase  [https://sendasupabaseapi.rlp.lat]: " _API
+  read -rp "  Token de Cloudflare Tunnel (requerido): "                    _CF
+  read -rp "  SMTP usuario (correo): "                                     _SMTP_USER
+  read -rsp "  SMTP contraseña: " _SMTP_PASS; echo ""
+  read -rp "  SMTP host [smtp.office365.com]: "                            _SMTP_HOST
 
-read -rp "  URL del sitio SENDA        [https://senda.rlp.lat]: "       SITE_URL_INPUT
-read -rp "  URL de la API de Supabase  [https://sendasupabaseapi.rlp.lat]: " API_URL_INPUT
-read -rp "  Token de Cloudflare Tunnel (requerido): " CF_TOKEN
-read -rp "  SMTP usuario (correo): " SMTP_USER
-read -rsp "  SMTP contraseña: " SMTP_PASS; echo ""
-read -rp "  SMTP host [smtp.office365.com]: " SMTP_HOST_INPUT
-
-SITE_URL="${SITE_URL_INPUT:-https://senda.rlp.lat}"
-SUPABASE_PUBLIC_URL="${API_URL_INPUT:-https://sendasupabaseapi.rlp.lat}"
-SMTP_HOST="${SMTP_HOST_INPUT:-smtp.office365.com}"
-
-if [[ -z "$CF_TOKEN" ]]; then
-  warn "No se proporcionó el token de Cloudflare Tunnel. El servicio de infra no podrá levantarse."
+  SENDA_SITE_URL="${_SITE:-https://senda.rlp.lat}"
+  SENDA_API_URL="${_API:-https://sendasupabaseapi.rlp.lat}"
+  SENDA_CF_TOKEN="${_CF:-}"
+  SENDA_SMTP_USER="${_SMTP_USER:-}"
+  SENDA_SMTP_PASS="${_SMTP_PASS:-}"
+  SENDA_SMTP_HOST="${_SMTP_HOST:-smtp.office365.com}"
+else
+  info "Usando configuración de variables de entorno."
+  # Aplicar defaults para opcionales
+  SENDA_SMTP_HOST="${SENDA_SMTP_HOST:-smtp.office365.com}"
 fi
 
-# ── 6. Escribir supabase/.env ───────────────────────────────
+# Validar requeridos
+[[ -z "${SENDA_CF_TOKEN:-}" ]]    && warn "SENDA_CF_TOKEN vacío — el tunnel de Cloudflare no levantará."
+[[ -z "${SENDA_SMTP_USER:-}" ]]   && warn "SENDA_SMTP_USER vacío — el envío de correos fallará."
+[[ -z "${SENDA_SMTP_PASS:-}" ]]   && warn "SENDA_SMTP_PASS vacío — el envío de correos fallará."
+
+info "  Site URL:  ${SENDA_SITE_URL}"
+info "  API URL:   ${SENDA_API_URL}"
+info "  SMTP host: ${SENDA_SMTP_HOST}"
+
+# ── 6. Escribir supabase/.env ─────────────────────────────────
 info "Escribiendo supabase/.env..."
 cat > "${REPO_DIR}/supabase/.env" <<ENV
 ############################################################
@@ -131,9 +189,9 @@ POSTGRES_HOST=senda-db
 POSTGRES_DB=postgres
 POSTGRES_PORT=5432
 
-SITE_URL=${SITE_URL}
-API_EXTERNAL_URL=${SUPABASE_PUBLIC_URL}
-SUPABASE_PUBLIC_URL=${SUPABASE_PUBLIC_URL}
+SITE_URL=${SENDA_SITE_URL}
+API_EXTERNAL_URL=${SENDA_API_URL}
+SUPABASE_PUBLIC_URL=${SENDA_API_URL}
 
 JWT_EXPIRY=3600
 JWT_JWKS=
@@ -142,11 +200,11 @@ SERVICE_ROLE_KEY_ASYMMETRIC=
 SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SECRET_KEY=
 
-SMTP_ADMIN_EMAIL=${SMTP_USER}
-SMTP_HOST=${SMTP_HOST}
+SMTP_ADMIN_EMAIL=${SENDA_SMTP_USER}
+SMTP_HOST=${SENDA_SMTP_HOST}
 SMTP_PORT=587
-SMTP_USER=${SMTP_USER}
-SMTP_PASS=${SMTP_PASS}
+SMTP_USER=${SENDA_SMTP_USER}
+SMTP_PASS=${SENDA_SMTP_PASS}
 SMTP_SENDER_NAME=SENDA-Lab
 
 ENABLE_EMAIL_SIGNUP=true
@@ -175,84 +233,57 @@ STUDIO_DEFAULT_ORGANIZATION=SENDA
 STUDIO_DEFAULT_PROJECT=senda
 OPENAI_API_KEY=
 ENV
-
 success "supabase/.env creado."
 
-# ── 7. Actualizar kong.yml con las nuevas claves ────────────
+# ── 7. Actualizar kong.yml con las nuevas claves ──────────────
 info "Actualizando kong.yml con las nuevas JWT keys..."
 KONG_FILE="${REPO_DIR}/supabase/volumes/api/kong.yml"
-# Reemplazar las credenciales de los consumidores anon y service_role
 python3 - <<PYEOF
 import re
-
 with open('${KONG_FILE}', 'r') as f:
     content = f.read()
-
-# Reemplazar anon key
 content = re.sub(
     r'(consumers:.*?- username: anon\s+keyauth_credentials:\s+- key: )[^\n]+',
-    r'\g<1>${ANON_KEY}',
-    content, flags=re.DOTALL
-)
-# Reemplazar service_role key
+    r'\g<1>${ANON_KEY}', content, flags=re.DOTALL)
 content = re.sub(
     r'(- username: service_role\s+keyauth_credentials:\s+- key: )[^\n]+',
-    r'\g<1>${SERVICE_ROLE_KEY}',
-    content, flags=re.DOTALL
-)
-
+    r'\g<1>${SERVICE_ROLE_KEY}', content, flags=re.DOTALL)
 with open('${KONG_FILE}', 'w') as f:
     f.write(content)
 print("kong.yml actualizado")
 PYEOF
 success "kong.yml actualizado."
 
-# ── 8. Escribir deploy/.env ─────────────────────────────────
+# ── 8. Escribir deploy/.env ───────────────────────────────────
 info "Escribiendo deploy/.env..."
 cat > "${REPO_DIR}/deploy/.env" <<ENV
 # SENDA App — Generado por install.sh el $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-SITE_URL=${SITE_URL}
-VITE_SUPABASE_URL=${SUPABASE_PUBLIC_URL}
+SITE_URL=${SENDA_SITE_URL}
+VITE_SUPABASE_URL=${SENDA_API_URL}
 SUPABASE_ANON_KEY=${ANON_KEY}
 SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}
-SMTP_HOST=${SMTP_HOST}
+SMTP_HOST=${SENDA_SMTP_HOST}
 SMTP_PORT=587
 SMTP_SENDER_NAME=SENDA-Lab
-SMTP_USER=${SMTP_USER}
-SMTP_PASS=${SMTP_PASS}
-SMTP_FROM=${SMTP_USER}
+SMTP_USER=${SENDA_SMTP_USER}
+SMTP_PASS=${SENDA_SMTP_PASS}
+SMTP_FROM=${SENDA_SMTP_USER}
 ENV
 success "deploy/.env creado."
 
-# ── 9. Escribir infra/.env y .htpasswd ─────────────────────
+# ── 9. Escribir infra/.env y .htpasswd ───────────────────────
 info "Escribiendo infra/.env..."
 cat > "${REPO_DIR}/infra/.env" <<ENV
-CF_TUNNEL_TOKEN=${CF_TOKEN}
+CF_TUNNEL_TOKEN=${SENDA_CF_TOKEN}
 ENV
 
-# Generar .htpasswd_senda para el panel de Studio
-if command -v htpasswd &>/dev/null; then
-  htpasswd -nb admin "${DASHBOARD_PASSWORD}" > "${REPO_DIR}/infra/.htpasswd_senda"
-  success "infra/.htpasswd_senda generado."
-else
-  # Generar formato htpasswd manualmente (apr1 md5)
-  python3 -c "
-import hashlib, base64, os, sys
-pwd = '${DASHBOARD_PASSWORD}'.encode()
-salt = os.urandom(8)
-salt_b64 = base64.b64encode(salt).decode()[:8]
-# SHA-1 básico (compatible con nginx)
-import crypt
-h = crypt.crypt('${DASHBOARD_PASSWORD}', '\$apr1\$' + salt_b64)
-print('admin:' + h)
-" > "${REPO_DIR}/infra/.htpasswd_senda" 2>/dev/null || \
-  printf 'admin:%s\n' "$(openssl passwd -apr1 "${DASHBOARD_PASSWORD}")" > "${REPO_DIR}/infra/.htpasswd_senda"
-  success "infra/.htpasswd_senda generado."
-fi
+printf 'admin:%s\n' "$(openssl passwd -apr1 "${DASHBOARD_PASSWORD}")" \
+  > "${REPO_DIR}/infra/.htpasswd_senda"
+success "infra/.env y .htpasswd_senda creados."
 
-# ── 10. Levantar stacks ─────────────────────────────────────
+# ── 10. Levantar stacks ───────────────────────────────────────
 echo ""
-info "Levantando stack de infraestructura (nginx + Cloudflare Tunnel)..."
+info "Levantando infraestructura (nginx + Cloudflare Tunnel)..."
 docker compose -f "${REPO_DIR}/infra/docker-compose.yml" \
   --project-directory "${REPO_DIR}" \
   --env-file "${REPO_DIR}/infra/.env" \
@@ -260,54 +291,52 @@ docker compose -f "${REPO_DIR}/infra/docker-compose.yml" \
 success "Infra levantada."
 
 echo ""
-info "Levantando stack de Supabase (13 contenedores)..."
-info "Esto puede tardar 2-5 minutos la primera vez (descarga de imágenes)..."
+info "Levantando Supabase (13 contenedores — puede tardar 2-5 min en primer arranque)..."
 docker compose -f "${REPO_DIR}/supabase/docker-compose.yml" \
   --project-directory "${REPO_DIR}" \
   --env-file "${REPO_DIR}/supabase/.env" \
   -p supabase up -d
 success "Stack de Supabase iniciado."
 
-# ── 11. Esperar a senda-db ──────────────────────────────────
+# ── 11. Esperar a senda-db ────────────────────────────────────
 info "Esperando a que senda-db esté healthy..."
-TIMEOUT=120; ELAPSED=0
+TIMEOUT=180; ELAPSED=0
 until docker inspect --format='{{.State.Health.Status}}' senda-db 2>/dev/null | grep -q "healthy"; do
   if (( ELAPSED >= TIMEOUT )); then
-    error "senda-db no levantó en ${TIMEOUT}s. Revisa: docker logs senda-db"
+    error "senda-db no respondió en ${TIMEOUT}s. Diagnóstico: docker logs senda-db"
   fi
   printf "."
-  sleep 3; ELAPSED=$(( ELAPSED + 3 ))
+  sleep 5; ELAPSED=$(( ELAPSED + 5 ))
 done
 echo ""
 success "senda-db healthy."
 
-# ── 12. Levantar app ────────────────────────────────────────
+# ── 12. Levantar app ──────────────────────────────────────────
 echo ""
-info "Construyendo y levantando la app de SENDA (backend + frontend)..."
+info "Construyendo y levantando la app (backend + frontend)..."
 docker compose -f "${REPO_DIR}/deploy/docker-compose.yml" \
   --project-directory "${REPO_DIR}" \
   --env-file "${REPO_DIR}/deploy/.env" \
   -p senda up -d --build
 success "App levantada."
 
-# ── 13. Resumen final ───────────────────────────────────────
+# ── 13. Resumen ───────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}╔══════════════════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║              SENDA instalado exitosamente            ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "  App:              ${CYAN}${SITE_URL}${NC}"
-echo -e "  Supabase Studio:  ${CYAN}${SITE_URL/senda/sendasupabase}${NC}"
-echo -e "  Supabase API:     ${CYAN}${SUPABASE_PUBLIC_URL}${NC}"
+echo -e "  App:             ${CYAN}${SENDA_SITE_URL}${NC}"
+echo -e "  Supabase API:    ${CYAN}${SENDA_API_URL}${NC}"
 echo ""
-echo -e "  ${YELLOW}Credenciales del panel de Supabase Studio:${NC}"
+echo -e "  ${YELLOW}Panel Supabase Studio (admin DB):${NC}"
 echo -e "    Usuario:    admin"
 echo -e "    Contraseña: ${DASHBOARD_PASSWORD}"
 echo ""
-echo -e "  ${YELLOW}Los secretos completos están en:${NC}"
-echo -e "    supabase/.env  (NO subir al repo)"
-echo -e "    deploy/.env    (NO subir al repo)"
+echo -e "  ${YELLOW}Secretos guardados en (NO subir al repo):${NC}"
+echo -e "    supabase/.env"
+echo -e "    deploy/.env"
+echo -e "    infra/.env"
 echo ""
-echo -e "  Para ver el estado: ${CYAN}make status${NC}"
-echo -e "  Para ver logs:      ${CYAN}make logs${NC}"
+echo -e "  Comandos útiles: ${CYAN}make status${NC}  |  ${CYAN}make logs${NC}  |  ${CYAN}make db-backup${NC}"
 echo ""
