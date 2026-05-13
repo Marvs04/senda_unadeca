@@ -10,19 +10,16 @@ services:
     restart: unless-stopped
     networks:
       - stamp-net
+    env_file:
+      - .env
     environment:
       PORT: 4000
       SUPABASE_URL: http://senda-kong:8000
-      SUPABASE_ANON_KEY: REDACTED_ANON_KEY
-      SUPABASE_SERVICE_ROLE_KEY: REDACTED_SERVICE_ROLE_KEY
       CORS_ORIGIN: https://senda.rlp.lat
       SITE_URL: https://senda.rlp.lat
       SMTP_HOST: smtp.office365.com
       SMTP_PORT: 587
-      SMTP_USER: virtual.machine@unadeca.net
-      SMTP_PASS: REDACTED_SMTP_PASS
       SMTP_SENDER_NAME: SENDA-Lab
-      SMTP_FROM: virtual.machine@unadeca.net
     expose:
       - "4000"
     healthcheck:
@@ -39,7 +36,7 @@ services:
       args:
         VITE_API_VERSION: v1
         VITE_SUPABASE_URL: https://sendasupabaseapi.rlp.lat
-        VITE_SUPABASE_ANON_KEY: REDACTED_ANON_KEY
+        VITE_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
     image: senda-frontend:latest
     container_name: senda-frontend
     restart: unless-stopped
