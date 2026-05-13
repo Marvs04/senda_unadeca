@@ -50,8 +50,10 @@ Thumbs.db
 # Misc
 *.local
 
-# Supabase local
-supabase/
+# Supabase — excluir secretos y datos, rastrear configuración
+supabase/.env
+supabase/volumes/db/data/
+supabase/volumes/storage/
 
 # Python
 .venv/
@@ -69,6 +71,10 @@ docker-compose.override.yml
 docker-compose.local.yml
 deploy/.env
 deploy/*.env
+
+# Infra — secretos (NO subir token de Cloudflare ni htpasswd)
+infra/.env
+infra/.htpasswd_senda
 
 # Archivos de base de datos locales
 *.sqlite
