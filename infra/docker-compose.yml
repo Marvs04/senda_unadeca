@@ -1,7 +1,7 @@
-# SENDA — Infraestructura: nginx-proxy + Cloudflare Tunnel
-# NUNCA apagar este stack — es el que mantiene todos los subdominios en línea.
+# SENDA — Infraestructura: nginx reverse proxy
 #
-# Requiere: infra/.env con CF_TUNNEL_TOKEN
+# Expone el puerto 80 públicamente. El enrutamiento externo (DNS, SSL,
+# Cloudflare, Traefik, etc.) queda a cargo de quien despliega.
 #
 # Levantar: docker compose -f infra/docker-compose.yml --project-directory . -p infra up -d
 # Bajar:    docker compose -f infra/docker-compose.yml --project-directory . -p infra down
@@ -19,18 +19,8 @@ services:
     restart: unless-stopped
     networks:
       - stamp-net
-    expose:
-      - "80"
+    ports:
+      - "80:80"
     volumes:
       - ./infra/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./infra/.htpasswd_senda:/etc/nginx/.htpasswd_senda:ro
-
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: cloudflared
-    restart: unless-stopped
-    networks:
-      - stamp-net
-    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
-    depends_on:
-      - nginx

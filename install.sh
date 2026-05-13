@@ -7,7 +7,6 @@
 #
 #   export SENDA_SITE_URL="https://senda.ejemplo.com"
 #   export SENDA_API_URL="https://sendasupabaseapi.ejemplo.com"
-#   export SENDA_CF_TOKEN="eyJ..."           # token de Cloudflare Tunnel
 #   export SENDA_SMTP_USER="correo@dominio.com"
 #   export SENDA_SMTP_PASS="contraseña"
 #   export SENDA_SMTP_HOST="smtp.office365.com"   # opcional
@@ -19,18 +18,16 @@
 #
 # Variables opcionales (tienen valores por defecto):
 #   SENDA_SMTP_HOST      → smtp.office365.com
-#   SENDA_STUDIO_URL     → se deriva de SENDA_SITE_URL (senda→sendasupabase)
 #
 # Requisitos del servidor:
 #   - Ubuntu 22.04/24.04 o Debian 12
 #   - Acceso a internet (para descargar imágenes Docker)
-#   - Token de Cloudflare Tunnel válido y apuntado a este servidor
+#   - Puerto 80 abierto (nginx expone HTTP directamente)
 #   - Puerto 587 saliente desbloqueado (SMTP)
 #
-# Dominios que deben estar en Cloudflare apuntando al Tunnel:
-#   SENDA_SITE_URL          → senda-frontend:80
-#   SENDA_API_URL           → senda-kong:8000
-#   SENDA_STUDIO_URL        → senda-studio:3000  (solo acceso interno/admin)
+# El sistema expone el puerto 80. El SSL y el enrutamiento DNS
+# quedan a cargo de quien despliega (Cloudflare proxy, Traefik,
+# Certbot, IP directa, etc.).
 # ================================================================
 set -euo pipefail
 
@@ -46,8 +43,7 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # No-interactivo si todas las variables requeridas ya están definidas
 INTERACTIVE=true
 if [[ -n "${SENDA_SITE_URL:-}" && -n "${SENDA_API_URL:-}" && \
-      -n "${SENDA_CF_TOKEN:-}" && -n "${SENDA_SMTP_USER:-}" && \
-      -n "${SENDA_SMTP_PASS:-}" ]]; then
+      -n "${SENDA_SMTP_USER:-}" && -n "${SENDA_SMTP_PASS:-}" ]]; then
   INTERACTIVE=false
 fi
 
@@ -137,14 +133,12 @@ if [[ "$INTERACTIVE" == "true" ]]; then
   info "Configuración del sitio (Enter para usar el valor predeterminado)"
   read -rp "  URL del sitio SENDA        [https://senda.rlp.lat]: "       _SITE
   read -rp "  URL de la API de Supabase  [https://sendasupabaseapi.rlp.lat]: " _API
-  read -rp "  Token de Cloudflare Tunnel (requerido): "                    _CF
   read -rp "  SMTP usuario (correo): "                                     _SMTP_USER
   read -rsp "  SMTP contraseña: " _SMTP_PASS; echo ""
   read -rp "  SMTP host [smtp.office365.com]: "                            _SMTP_HOST
 
   SENDA_SITE_URL="${_SITE:-https://senda.rlp.lat}"
   SENDA_API_URL="${_API:-https://sendasupabaseapi.rlp.lat}"
-  SENDA_CF_TOKEN="${_CF:-}"
   SENDA_SMTP_USER="${_SMTP_USER:-}"
   SENDA_SMTP_PASS="${_SMTP_PASS:-}"
   SENDA_SMTP_HOST="${_SMTP_HOST:-smtp.office365.com}"
@@ -155,9 +149,8 @@ else
 fi
 
 # Validar requeridos
-[[ -z "${SENDA_CF_TOKEN:-}" ]]    && warn "SENDA_CF_TOKEN vacío — el tunnel de Cloudflare no levantará."
-[[ -z "${SENDA_SMTP_USER:-}" ]]   && warn "SENDA_SMTP_USER vacío — el envío de correos fallará."
-[[ -z "${SENDA_SMTP_PASS:-}" ]]   && warn "SENDA_SMTP_PASS vacío — el envío de correos fallará."
+[[ -z "${SENDA_SMTP_USER:-}" ]] && warn "SENDA_SMTP_USER vacío — el envío de correos fallará."
+[[ -z "${SENDA_SMTP_PASS:-}" ]] && warn "SENDA_SMTP_PASS vacío — el envío de correos fallará."
 
 info "  Site URL:  ${SENDA_SITE_URL}"
 info "  API URL:   ${SENDA_API_URL}"
@@ -271,22 +264,16 @@ SMTP_FROM=${SENDA_SMTP_USER}
 ENV
 success "deploy/.env creado."
 
-# ── 9. Escribir infra/.env y .htpasswd ───────────────────────
-info "Escribiendo infra/.env..."
-cat > "${REPO_DIR}/infra/.env" <<ENV
-CF_TUNNEL_TOKEN=${SENDA_CF_TOKEN}
-ENV
-
+# ── 9. Generar .htpasswd para el panel de Studio ─────────────
 printf 'admin:%s\n' "$(openssl passwd -apr1 "${DASHBOARD_PASSWORD}")" \
   > "${REPO_DIR}/infra/.htpasswd_senda"
-success "infra/.env y .htpasswd_senda creados."
+success "infra/.htpasswd_senda creado."
 
 # ── 10. Levantar stacks ───────────────────────────────────────
 echo ""
-info "Levantando infraestructura (nginx + Cloudflare Tunnel)..."
+info "Levantando infraestructura (nginx en puerto 80)..."
 docker compose -f "${REPO_DIR}/infra/docker-compose.yml" \
   --project-directory "${REPO_DIR}" \
-  --env-file "${REPO_DIR}/infra/.env" \
   -p infra up -d
 success "Infra levantada."
 
