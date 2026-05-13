@@ -20,7 +20,7 @@ services:
     networks:
       - stamp-net
     ports:
-      - "80:80"
+      - "${SENDA_HTTP_PORT:-80}:80"
     volumes:
       - ./infra/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./infra/.htpasswd_senda:/etc/nginx/.htpasswd_senda:ro

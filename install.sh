@@ -94,23 +94,31 @@ preflight_check() {
     issues=1
   fi
 
-  # Verificar puerto 80
-  if ss -tlnp 2>/dev/null | grep -q ':80 ' || \
-     ss -tlnp 2>/dev/null | grep -q ':80\b'; then
-    local occupant
-    occupant=$(ss -tlnp 2>/dev/null | grep ':80' | awk '{print $NF}' | head -1)
-    warn "Puerto 80 en uso: ${occupant}"
-    warn "Detén el proceso que usa el puerto 80 antes de continuar."
-    warn "Puedes identificarlo con: sudo ss -tlnp | grep :80"
-    if [[ "$INTERACTIVE" == "true" ]]; then
-      read -rp "  ¿Continuar de todas formas? (s/N): " ans
-      [[ "$ans" =~ ^[sS]$ ]] || error "Instalación cancelada."
-    else
-      error "Puerto 80 ocupado. Libéralo y vuelve a correr el instalador."
+  # Verificar puerto HTTP — encontrar uno libre automáticamente
+  local desired_port="${SENDA_HTTP_PORT:-80}"
+  local port="$desired_port"
+  local candidates=(80 8080 8888 3080 9080)
+
+  is_port_free() { ! ss -tlnp 2>/dev/null | grep -q ":${1} "; }
+
+  if ! is_port_free "$port"; then
+    warn "Puerto ${port} en uso. Buscando un puerto libre..."
+    for candidate in "${candidates[@]}"; do
+      if is_port_free "$candidate"; then
+        port="$candidate"
+        break
+      fi
+    done
+    # Si ningún candidato está libre, buscar secuencialmente desde 8100
+    if ! is_port_free "${port}" 2>/dev/null || [[ "$port" == "$desired_port" ]]; then
+      for p in $(seq 8100 8200); do
+        if is_port_free "$p"; then port="$p"; break; fi
+      done
     fi
-    issues=1
+    warn "Puerto ${desired_port} ocupado — usando el puerto ${port}."
   fi
 
+  export SENDA_HTTP_PORT="$port"
   [[ $issues -eq 0 ]] && success "Preflight OK — sin conflictos."
 }
 
@@ -340,7 +348,7 @@ success "infra/.htpasswd_senda creado."
 
 # ── 10. Levantar stacks ───────────────────────────────────────
 echo ""
-info "Levantando infraestructura (nginx en puerto 80)..."
+info "Levantando infraestructura (nginx en puerto ${SENDA_HTTP_PORT})..."
 docker compose -f "${REPO_DIR}/infra/docker-compose.yml" \
   --project-directory "${REPO_DIR}" \
   -p infra up -d
@@ -384,6 +392,7 @@ echo -e "${GREEN}╚════════════════════
 echo ""
 echo -e "  App:             ${CYAN}${SENDA_SITE_URL}${NC}"
 echo -e "  Supabase API:    ${CYAN}${SENDA_API_URL}${NC}"
+echo -e "  Puerto HTTP:     ${CYAN}${SENDA_HTTP_PORT}${NC}"
 echo ""
 echo -e "  ${YELLOW}Panel Supabase Studio (admin DB):${NC}"
 echo -e "    Usuario:    admin"
