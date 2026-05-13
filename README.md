@@ -1,6 +1,6 @@
 # SENDA — Sistema de Horas Beca (UNADECA)
 
-SENDA (*Sistema Estratégico de Normalización y Desarrollo Académico*) digitaliza el flujo completo de horas beca:
+SENDA (*Sistema Estratégico de Navegación y Desempeño Asistencial*) digitaliza el flujo completo de horas beca:
 
 1. Estudiantes registran horas
 2. Jefes de departamento aprueban/rechazan

@@ -1,6 +1,6 @@
 # FASE 3 — Diseño Conceptual
 
-**Proyecto:** SENDA — Sistema Estratégico de Normalización y Desarrollo Académico  
+**Proyecto:** SENDA — Sistema Estratégico de Navegación y Desempeño Asistencial  
 **Institución:** UNADECA  
 **Versión:** 1.0  
 **Fecha:** Abril 2026

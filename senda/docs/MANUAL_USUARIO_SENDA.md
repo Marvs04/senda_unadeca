@@ -1,5 +1,5 @@
 # 📘 Manual de Usuario — SENDA
-## Sistema Estratégico de Normalización y Desarrollo Académico
+## Sistema Estratégico de Navegación y Desempeño Asistencial
 ### Universidad UNADECA — Versión 2.0
 
 ---
@@ -30,7 +30,7 @@
 
 ## 1. Introducción al Sistema
 
-**SENDA** (*Sistema Estratégico de Normalización y Desarrollo Académico*) es la plataforma digital institucional de UNADECA para la gestión completa del programa de **Horas Beca Estudiantil**.
+**SENDA** (*Sistema Estratégico de Navegación y Desempeño Asistencial*) es la plataforma digital institucional de UNADECA para la gestión completa del programa de **Horas Beca Estudiantil**.
 
 ### ¿Para qué sirve SENDA?
 

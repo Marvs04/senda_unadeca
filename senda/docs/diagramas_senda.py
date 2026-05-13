@@ -266,7 +266,7 @@ ax.text(12.0, 14.40, 'Documento de Trabajo de Graduación · UNADECA 2026',
 ax.add_patch(FancyBboxPatch((3.6, 0.6), 19.8, 13.5,
     boxstyle='round,pad=0.15', fc='white', ec='#37474F', lw=2.5, ls='--', zorder=1))
 ax.text(13.5, 14.0,
-    '«sistema»  SENDA — Sistema Estratégico de Normalización y Desarrollo Académico',
+    '«sistema»  SENDA — Sistema Estratégico de Navegación y Desempeño Asistencial',
     ha='center', va='center', fontsize=9.5, style='italic',
     color='#263238', fontweight='bold', zorder=2)
 

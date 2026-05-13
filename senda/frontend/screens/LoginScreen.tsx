@@ -71,7 +71,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                             </h1>
                         </div>
                         <p className="text-muted text-xl font-medium max-w-md leading-relaxed text-center">
-                            Sistema Estratégico de Normalización y Desarrollo Académico.
+                            Sistema Estratégico de Navegación y Desempeño Asistencial.
                         </p>
                     </div>
 

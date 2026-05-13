@@ -1,6 +1,6 @@
 # FASE 1 — Análisis de Requerimientos
 
-**Proyecto:** SENDA — Sistema Estratégico de Normalización y Desarrollo Académico  
+**Proyecto:** SENDA — Sistema Estratégico de Navegación y Desempeño Asistencial  
 **Institución:** UNADECA  
 **Versión:** 1.0  
 **Fecha:** Abril 2026  
@@ -23,7 +23,7 @@
 
 ### 1.1 Nombre del Sistema
 
-**SENDA** — Sistema Estratégico de Normalización y Desarrollo Académico
+**SENDA** — Sistema Estratégico de Navegación y Desempeño Asistencial
 
 ### 1.2 Propósito y Alcance
 
@@ -507,7 +507,7 @@ Escenario: Desactivación de cuenta
 
 #### 6.1.1 Propósito
 
-Este documento especifica los requerimientos de software del sistema **SENDA** (Sistema Estratégico de Normalización y Desarrollo Académico) para la institución UNADECA. Está dirigido al equipo de desarrollo, a los evaluadores académicos y a los stakeholders institucionales. Sirve como contrato de referencia para el diseño, la implementación y la validación del sistema.
+Este documento especifica los requerimientos de software del sistema **SENDA** (Sistema Estratégico de Navegación y Desempeño Asistencial) para la institución UNADECA. Está dirigido al equipo de desarrollo, a los evaluadores académicos y a los stakeholders institucionales. Sirve como contrato de referencia para el diseño, la implementación y la validación del sistema.
 
 #### 6.1.2 Ámbito del Sistema
 
@@ -517,7 +517,7 @@ El sistema cubre la gestión del programa de becas estudiantiles por horas de tr
 
 | Término | Definición |
 |---|---|
-| SENDA | Sistema Estratégico de Normalización y Desarrollo Académico |
+| SENDA | Sistema Estratégico de Navegación y Desempeño Asistencial |
 | UNADECA | Universidad Adventista de Centroamérica |
 | SRS | Software Requirements Specification |
 | API | Application Programming Interface |
